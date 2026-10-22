@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service-Oriented Architecture Notes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky section index on the left, one reading column with full-width figures; stacks on phones.
+   Diagram colours: class/component = blue, interface/abstract = purple, new or added = green, external/actor = amber. */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --fg:#1c2230; --muted:#5b6474; --line:#dce1e8;
+  --accent:#b4441c; --accent-soft:#fbeee7; --code-bg:#eef1f5;
+  --blob:#2f7d4f; --blob-bg:#e5f3ea; --tree:#a3620a; --tree-bg:#fbf0dc;
+  --commit:#1f5f99; --commit-bg:#e4eef8; --ref:#7b3fa0; --ref-bg:#f1e8f7;
+  --display:"Source Serif 4", Georgia, serif;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12151b; --surface:#1a1f28; --fg:#e3e7ee; --muted:#9aa3b2; --line:#2b323e;
+  --accent:#f08a5d; --accent-soft:#2e1d16; --code-bg:#0d1016;
+  --blob:#6fcf97; --blob-bg:#14281c; --tree:#f2b55c; --tree-bg:#2b2112;
+  --commit:#8bb8e4; --commit-bg:#162536; --ref:#c79be6; --ref-bg:#251a30; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12151b; --surface:#1a1f28; --fg:#e3e7ee; --muted:#9aa3b2; --line:#2b323e;
+  --accent:#f08a5d; --accent-soft:#2e1d16; --code-bg:#0d1016;
+  --blob:#6fcf97; --blob-bg:#14281c; --tree:#f2b55c; --tree-bg:#2b2112;
+  --commit:#8bb8e4; --commit-bg:#162536; --ref:#c79be6; --ref-bg:#251a30; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 var(--body)}
+.wrap{max-width:1160px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 72px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+nav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:14px}
+nav h2{font:600 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+nav ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav a{display:block;padding:6px 10px;border-radius:6px;color:var(--fg);text-decoration:none}
+nav a:hover,nav a:focus-visible{background:var(--accent-soft);outline:none}
+nav .n{font:500 12px var(--mono);color:var(--accent);margin-right:6px}
+main{min-width:0;max-width:820px}
+header h1{font:700 clamp(30px,5vw,44px)/1.12 var(--display);margin:0 0 10px;text-wrap:balance}
+header p{color:var(--muted);margin:0 0 8px;max-width:68ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 4px}
+.meta span{font:500 12px/1 var(--mono);padding:6px 9px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0 0;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:14px;border-radius:3px;border:1.5px solid;display:inline-block}
+.legend .lb i{background:var(--blob-bg);border-color:var(--blob)}
+.legend .lt i{background:var(--tree-bg);border-color:var(--tree)}
+.legend .lc i{background:var(--commit-bg);border-color:var(--commit)}
+.legend .lr i{background:var(--ref-bg);border-color:var(--ref)}
+.note{margin:18px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:14px;color:var(--muted);max-width:72ch}
+section.sec{padding-top:48px;scroll-margin-top:16px}
+.eyebrow{font:500 12px/1 var(--mono);color:var(--accent);letter-spacing:.04em;margin-bottom:8px}
+h2{font:700 28px/1.22 var(--display);margin:0 0 8px;text-wrap:balance}
+.sum{color:var(--muted);margin:0 0 6px;max-width:68ch}
+h3{font:600 17px/1.35 var(--body);margin:30px 0 6px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+h3 .lt{font:500 11px/1 var(--mono);color:var(--muted);letter-spacing:.03em}
+p,li{max-width:70ch}
+ul,ol.steps{padding-left:20px;margin:6px 0} li{margin:3px 0}
+code{font:14px var(--mono);background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font:13.5px/1.6 var(--mono);margin:10px 0;max-width:72ch}
+pre code{background:none;padding:0;overflow-wrap:normal}
+pre .c{color:var(--muted)}
+.key{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 8px 8px 0;margin:16px 0;max-width:68ch}
+.key strong:first-child{display:block;font:600 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.tbl{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+td code{white-space:nowrap}
+/* figures */
+figure{margin:20px 0 22px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+figure svg{display:block;width:100%;height:auto;color:var(--fg)}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;max-width:72ch}
+svg text{fill:currentColor;font-family:var(--mono);font-size:12px}
+svg .t{font-family:var(--body);font-size:13px;font-weight:600}
+svg .s{font-size:11px}
+svg .m{fill:var(--muted)}
+svg .edge{stroke:currentColor;stroke-width:1.4;fill:none}
+svg .dash{stroke-dasharray:5 4}
+svg .node rect{fill:var(--bg);stroke:var(--line);stroke-width:1.4}
+svg .blob rect,svg .blob circle{fill:var(--blob-bg);stroke:var(--blob);stroke-width:1.6}
+svg .blob .k{fill:var(--blob)}
+svg .tree rect{fill:var(--tree-bg);stroke:var(--tree);stroke-width:1.6}
+svg .tree .k{fill:var(--tree)}
+svg .commit rect,svg .commit circle{fill:var(--commit-bg);stroke:var(--commit);stroke-width:1.6}
+svg .commit .k{fill:var(--commit)}
+svg .ref rect{fill:var(--ref-bg);stroke:var(--ref);stroke-width:1.6}
+svg .ref .k{fill:var(--ref)}
+svg .ghost circle{fill:none;stroke:var(--muted);stroke-width:1.4;stroke-dasharray:3 3}
+svg .lane{stroke:var(--line);stroke-width:1}
+/* hash split illustration */
+.hashsplit{display:flex;flex-wrap:wrap;gap:0;font:600 clamp(13px,2.6vw,19px)/1.2 var(--mono);margin:6px 0 4px}
+.hashsplit > div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.hashsplit .v{padding:8px 4px;border-bottom:3px solid;overflow-wrap:anywhere}
+.hashsplit .a .v{border-color:var(--accent);color:var(--accent)}
+.hashsplit .b .v{border-color:var(--blob)}
+.hashsplit .b{flex:1}
+.hashsplit .l{font:500 12px var(--body);color:var(--muted)}
+.path{font:14px var(--mono);margin-top:12px;overflow-wrap:anywhere}
+.path b{color:var(--accent)}
+/* .git folder tree */
+.dirtree{font:13.5px/1.75 var(--mono);display:grid;grid-template-columns:max-content 1fr;gap:0 24px;overflow-x:auto}
+.dirtree .d{white-space:pre}
+.dirtree .x{font-family:var(--body);font-size:13.5px;color:var(--muted)}
+/* object type cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:12px 0}
+.card{border:1.5px solid;border-radius:8px;padding:12px 14px;font-size:14px}
+.card b{display:block;font:600 13px var(--mono);margin-bottom:4px}
+.card.cb{background:var(--blob-bg);border-color:var(--blob)} .card.cb b{color:var(--blob)}
+.card.ct{background:var(--tree-bg);border-color:var(--tree)} .card.ct b{color:var(--tree)}
+.card.cc{background:var(--commit-bg);border-color:var(--commit)} .card.cc b{color:var(--commit)}
+.card.cr{background:var(--ref-bg);border-color:var(--ref)} .card.cr b{color:var(--ref)}
+/* UML additions */
+svg .cls rect,svg .cls circle,svg .cls ellipse{fill:var(--commit-bg);stroke:var(--commit);stroke-width:1.5}
+svg .ifc rect,svg .ifc circle,svg .ifc ellipse{fill:var(--ref-bg);stroke:var(--ref);stroke-width:1.5}
+svg .new rect,svg .new circle,svg .new ellipse{fill:var(--blob-bg);stroke:var(--blob);stroke-width:1.5}
+svg .ext rect,svg .ext circle{fill:var(--tree-bg);stroke:var(--tree);stroke-width:1.5}
+svg .div{stroke:currentColor;stroke-width:1;opacity:.55}
+svg .life{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 4}
+svg .act{fill:var(--surface);stroke:currentColor;stroke-width:1.3}
+svg .frame{fill:none;stroke:var(--muted);stroke-width:1.2}
+svg .bad{stroke:var(--accent);stroke-width:1.6;fill:none}
+svg .i{font-style:italic}
+.crc{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.crc .c{border:1.5px solid var(--commit);border-radius:6px;background:var(--surface);font-size:13.5px;overflow:hidden}
+.crc .c h4{margin:0;padding:7px 10px;font:600 14px var(--mono);background:var(--commit-bg);color:var(--commit);border-bottom:1.5px solid var(--commit);text-align:center}
+.crc .c .g{display:grid;grid-template-columns:3fr 2fr}
+.crc .c ul{list-style:none;margin:0;padding:8px 10px}
+.crc .c ul+ul{border-left:1px solid var(--line)}
+.crc .c li{margin:2px 0}
+.crc .c .hd{font:600 10px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tl{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tl > div{border-top:3px solid var(--commit);padding:8px 2px 0;font-size:13.5px}
+.tl b{display:block;font:600 13px var(--mono);color:var(--commit)}
+.tl i{display:block;font-style:normal;font-weight:600;margin:2px 0}
+.card.cn{background:var(--bg);border-color:var(--line)}
+a{color:var(--accent)}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:8px}nav{position:static}nav ol{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
+</style>
+
+<div class="wrap">
+<nav aria-label="Sections">
+  <h2>Sections</h2>
+  <ol>
+    <li><a href="#m1"><span class="n">1</span>Services &amp; SOA</a></li>
+    <li><a href="#m2"><span class="n">2</span>Web evolution &amp; layers</a></li>
+    <li><a href="#m3"><span class="n">3</span>HTML · XML · JSON · HTTP · JS</a></li>
+    <li><a href="#m4"><span class="n">4</span>RPC &amp; object brokers</a></li>
+    <li><a href="#m5"><span class="n">5</span>Web services: SOAP, WSDL, UDDI, BPEL</a></li>
+    <li><a href="#m6"><span class="n">6</span>REST</a></li>
+    <li><a href="#m7"><span class="n">7</span>Microservices</a></li>
+    <li><a href="#cheat"><span class="n">★</span>Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<main>
+<header>
+  <p style="margin:0 0 12px"><a href="index.html">← All notes</a></p>
+  <h1>Service-Oriented Architecture</h1>
+  <p>Notes with diagrams from every lecture transcript of <em>Service-Oriented Architecture</em> (University of Alberta, Coursera), the fourth and final course of the Software Design and Architecture Specialization. It covers web standards, middleware, first-generation SOAP web services, REST and microservices.</p>
+  <div class="meta"><span>Course 4 of 4</span><span>17 lectures</span><span>web → RPC → SOAP stack → REST → microservices</span></div>
+  <div class="legend" aria-label="Diagram colour legend">
+    <span class="lc"><i></i>component / server</span>
+    <span class="lr"><i></i>middleware / shared data</span>
+    <span class="lb"><i></i>service / stub</span>
+    <span class="lt"><i></i>requester / external</span>
+  </div>
+  <div class="note">Some of the technology here is now dated. The course itself says SOAP has largely been superseded by REST, and that object brokers (CORBA) are legacy. Public UDDI registries have also mostly disappeared, so services are now found through API catalogues and documentation such as OpenAPI. The ideas carry over: invoke, describe, publish, discover and compose.</div>
+</header>
+
+<!-- 1 -->
+<section class="sec" id="m1">
+  <div class="eyebrow">Module 1 · Service-oriented architecture</div>
+  <h2>Services and SOA</h2>
+  <p class="sum">Just as you use a laundromat or a ride service, software can use outside services for the weather or exchange rates. Unlike a component, a <strong>service</strong> is external to the software requesting it and often remote. The two roles are <strong>service requester</strong> and <strong>service provider</strong>, similar to client and server. SOA means reaching your goals by building, using and combining services.</p>
+  <figure><svg viewBox="0 0 760 200" role="img" aria-label="Service requester and providers: the Backpack Budgeter app requests flight prices, currency exchange rates and local food and tour prices from external web services, and combines the answers."><defs><marker id="u1tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u1arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="currentColor" stroke-width="1.4"/></marker><marker id="u1fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker><marker id="u1dh" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u1df" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" fill="currentColor"/></marker></defs><g class="new"><rect x="20" y="70" width="220" height="53" rx="4"/></g><text class="t" x="130.0" y="88" text-anchor="middle">Backpack Budgeter</text><line class="div" x1="20" y1="96" x2="240" y2="96"/><text class="s m" x="28" y="112">service requester (your app)</text><g class="ext"><rect x="470" y="10" width="270" height="53" rx="4"/></g><text class="t" x="605.0" y="28" text-anchor="middle">Flight prices service</text><line class="div" x1="470" y1="36" x2="740" y2="36"/><text class="s m" x="478" y="52">provider · external</text><path class="edge" d="M240 95 L360 95 L360 30 L468 30"  marker-end="url(#u1fl)"/><g class="ext"><rect x="470" y="72" width="270" height="53" rx="4"/></g><text class="t" x="605.0" y="90" text-anchor="middle">Exchange rates service</text><line class="div" x1="470" y1="98" x2="740" y2="98"/><text class="s m" x="478" y="114">provider · external</text><path class="edge" d="M240 95 L360 95 L360 92 L468 92"  marker-end="url(#u1fl)"/><g class="ext"><rect x="470" y="134" width="270" height="53" rx="4"/></g><text class="t" x="605.0" y="152" text-anchor="middle">Food &amp; tour prices service</text><line class="div" x1="470" y1="160" x2="740" y2="160"/><text class="s m" x="478" y="176">provider · external</text><path class="edge" d="M240 95 L360 95 L360 154 L468 154"  marker-end="url(#u1fl)"/><text class="s m" x="20" y="170" text-anchor="start">internal SOA: e.g. IT exposes support costs as a service</text><text class="s m" x="20" y="188" text-anchor="start">for management (ROI) and accounting (tax) to query</text></svg><figcaption><strong>External SOA</strong> (web services) builds apps mostly by combining existing services. <strong>Internal SOA</strong> turns in-house code into general, reusable services, so a company can respond to opportunities, new departments or mergers quickly. The trade-offs: you rely on qualities you don't control (response time, supportability, availability), and in large organisations a full switch is costly, so introduce services gradually, starting with the most useful cross-department functions.</figcaption></figure>
+  <h3>Service principles <span class="lt">What makes a service reusable</span></h3>
+  <div class="cards">
+    <div class="card cc"><b>Modular, loosely coupled</b>Requests follow the interface: either a method-like call or a request document.</div>
+    <div class="card cb"><b>Composable</b>Services combine into apps or new services, like composing objects.</div>
+    <div class="card cr"><b>Platform- and language-independent</b>A Java service can serve a Ruby client, thanks to standard protocols (XML, HTTP).</div>
+    <div class="card ct"><b>Self-describing and self-advertising</b>Describes its own interface (WSDL) and can be found (UDDI or a catalogue).</div>
+  </div>
+  <p>Practitioner advice from the lectures: break the client's problem into conceptual chunks (e.g. a "management of change" service for engineering sign-offs) and define each one's interface. Hide information, keep coupling simple, and document complicated interactions between services, because that's where the risk is.</p>
+</section>
+
+<!-- 2 -->
+<section class="sec" id="m2">
+  <div class="eyebrow">Module 1 · Web systems</div>
+  <h2>How the web evolved, and its layers</h2>
+  <div class="tl">
+    <div><b>1969</b><i>ARPANET</i>The first network data transfer; grew into the Internet, a network of networks.</div>
+    <div><b>1990</b><i>World Wide Web</i>Tim Berners-Lee's hypertext system built on the Internet: HTML + HTTP.</div>
+    <div><b>Early 1990s</b><i>Static pages</i>One HTML file per page, served unchanged; changes are manual.</div>
+    <div><b>1993 →</b><i>Dynamic pages</i>Generated per request by an application: personalised and easier to change.</div>
+    <div><b>Now</b><i>Web apps + services</i>Desktop-like apps in the browser (Google Docs) that call web services asynchronously.</div>
+  </div>
+  <figure><svg viewBox="0 0 760 230" role="img" aria-label="Web system layers: static content uses web browser, web server and a read-only file system of HTML; dynamic content adds an application server between web server and database, which may also call external web services."><defs><marker id="u2tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u2arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="currentColor" stroke-width="1.4"/></marker><marker id="u2fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker><marker id="u2dh" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u2df" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" fill="currentColor"/></marker></defs><text class="t" x="170" y="18" text-anchor="middle">Static</text><text class="t" x="560" y="18" text-anchor="middle">Dynamic</text><line x1="350" y1="10" x2="350" y2="225" class="lane"/><g class="ext"><rect x="60" y="32" width="220" height="26" rx="4"/></g><text class="t" x="170.0" y="50" text-anchor="middle">Web browser</text><g class="cls"><rect x="60" y="98" width="220" height="26" rx="4"/></g><text class="t" x="170.0" y="116" text-anchor="middle">Web server</text><path class="edge" d="M170 58 L170 96"  marker-end="url(#u2fl)"/><g class="ifc"><rect x="60" y="164" width="220" height="26" rx="4"/></g><text class="t" x="170.0" y="182" text-anchor="middle">File system (HTML)</text><path class="edge" d="M170 124 L170 162"  marker-end="url(#u2fl)"/><g class="ext"><rect x="420" y="32" width="200" height="26" rx="4"/></g><text class="t" x="520.0" y="50" text-anchor="middle">Web browser</text><g class="cls"><rect x="420" y="82" width="200" height="26" rx="4"/></g><text class="t" x="520.0" y="100" text-anchor="middle">Web server</text><path class="edge" d="M520 58 L520 80"  marker-end="url(#u2fl)"/><g class="new"><rect x="420" y="132" width="200" height="26" rx="4"/></g><text class="t" x="520.0" y="150" text-anchor="middle">Application server</text><path class="edge" d="M520 108 L520 130"  marker-end="url(#u2fl)"/><g class="ifc"><rect x="420" y="182" width="200" height="26" rx="4"/></g><text class="t" x="520.0" y="200" text-anchor="middle">Database</text><path class="edge" d="M520 158 L520 180"  marker-end="url(#u2fl)"/><g class="ext"><rect x="640" y="132" width="110" height="26" rx="4"/></g><text class="t" x="695.0" y="150" text-anchor="middle">web services</text><path class="edge" d="M620 145 L638 145"  marker-end="url(#u2fl)"/><text class="s m" x="170" y="222" text-anchor="middle">HTML served unchanged; no app layer</text><text class="s m" x="560" y="222" text-anchor="middle">HTML generated per request</text></svg><figcaption>The presentation tier of a web system splits into a browser layer and a web server layer. Seen as components, the system is a set of requester/provider pairs: the application server requests data services from the database and calls outside web services, which may call others. Each extra layer adds communication overhead.</figcaption></figure>
+</section>
+
+<!-- 3 -->
+<section class="sec" id="m3">
+  <div class="eyebrow">Module 1 · Web standards</div>
+  <h2>HTML, XML, JSON, HTTP and JavaScript</h2>
+  <ul>
+    <li><strong>HTML</strong> structures content but doesn't style it (<code>&lt;!DOCTYPE&gt;</code>, <code>&lt;head&gt;</code> for metadata, <code>&lt;body&gt;</code> for content). <strong>CSS</strong> adds the styling.</li>
+    <li><strong>XML</strong> stores and transports structured data with your own tags, which can be validated by a schema.</li>
+    <li><strong>JSON</strong> uses name–value pairs in <code>{ }</code> and arrays in <code>[ ]</code>. It converts easily to JavaScript objects, which makes it the usual format between browser and server.</li>
+  </ul>
+<pre><code><span class="c">&lt;!-- XML --&gt;</span>
+&lt;note&gt;&lt;to&gt;John&lt;/to&gt;&lt;from&gt;Jane&lt;/from&gt;&lt;heading&gt;Reminder&lt;/heading&gt;&lt;body&gt;Don't forget the dogs&lt;/body&gt;&lt;/note&gt;
+
+<span class="c">// JSON</span>
+{ "people": [ { "name": "John Doe", "age": 15, "favouriteColour": "red" } ] }</code></pre>
+
+  <h3>HTTP <span class="lt">Request/response over TCP port 80 (HTTP/1.1)</span></h3>
+  <ul>
+    <li><strong>URI vs URL:</strong> a URI identifies a resource; a URL also says how to locate it. All URLs are URIs. In <code>http://etsy.com/user/favoriteitems/widebrimsunhat/sunhat.png</code> the parts are protocol, host (resolved through DNS), path and resource.</li>
+    <li><strong>Request:</strong> a request line (method, URI, version), headers (<code>Host</code> and <code>Accept</code> are required; <code>Content-Type</code> and <code>Content-Length</code> when there's a body), a blank line, then an optional body.</li>
+    <li><strong>Response:</strong> a status line (e.g. <code>200 OK</code>), headers, a blank line, then the body.</li>
+    <li><strong>URL encoding:</strong> characters are limited to ASCII, so a space becomes <code>%20</code> or <code>+</code>, and queries use <code>?a=1&amp;b=2</code>.</li>
+    <li><strong>Stateless:</strong> HTTP doesn't link one request to the next, so sites use <strong>cookies</strong> to track sessions.</li>
+  </ul>
+<pre><code>GET /reservation?id=17021 HTTP/1.1          <span class="c"># read; no body</span>
+Host: camping.com
+Accept: text/html
+
+POST /reservation HTTP/1.1                   <span class="c"># create; server chooses where it lives</span>
+Content-Type: application/x-www-form-urlencoded
+fullname=Mary+Teller&amp;email=…&amp;date=01%2F07%2F17&amp;site=35
+
+PUT /reservation/17021/note HTTP/1.1         <span class="c"># create/replace at THIS URI</span>
+Content-Type: application/json
+{ "note": "Please leave an axe and firewood" }</code></pre>
+  <p><strong>JavaScript</strong> runs in the browser (interpreted at runtime) and edits the page through the <strong>DOM</strong>. Example: clicking a cat thumbnail toggles it between 25% and 100% size. It can validate forms in the browser without reloading, takes work off the server, and lets you embed services such as Disqus comments with a pasted snippet.</p>
+</section>
+
+<!-- 4 -->
+<section class="sec" id="m4">
+  <div class="eyebrow">Module 1 · Middleware</div>
+  <h2>Remote procedure calls and object brokers</h2>
+  <p class="sum">Clients and servers often run on different hardware and operating systems. <strong>Middleware</strong> gives them a common interface: a large-scale version of the Mediator design pattern.</p>
+  <figure><svg viewBox="0 0 760 230" role="img" aria-label="Remote procedure call: the client calls the client stub like a local procedure; the stub marshals the arguments and sends them over the network using binding information; the server stub unmarshals them and calls the server procedure; the result goes back the same way."><defs><marker id="u3tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u3arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="currentColor" stroke-width="1.4"/></marker><marker id="u3fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker><marker id="u3dh" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u3df" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" fill="currentColor"/></marker></defs><g class="ext"><rect x="20" y="30" width="150" height="53" rx="4"/></g><text class="t" x="95.0" y="48" text-anchor="middle">Client</text><line class="div" x1="20" y1="56" x2="170" y2="56"/><text class="s m" x="28" y="72">calls add(2, 3)</text><g class="new"><rect x="200" y="30" width="150" height="53" rx="4"/></g><text class="t" x="275.0" y="48" text-anchor="middle">Client stub</text><line class="div" x1="200" y1="56" x2="350" y2="56"/><text class="s m" x="208" y="72">marshal · bind</text><g class="new"><rect x="410" y="30" width="150" height="53" rx="4"/></g><text class="t" x="485.0" y="48" text-anchor="middle">Server stub</text><line class="div" x1="410" y1="56" x2="560" y2="56"/><text class="s m" x="418" y="72">unmarshal · invoke</text><g class="cls"><rect x="590" y="30" width="150" height="53" rx="4"/></g><text class="t" x="665.0" y="48" text-anchor="middle">Server procedure</text><line class="div" x1="590" y1="56" x2="740" y2="56"/><text class="s m" x="598" y="72">add(a, b)</text><path class="edge" d="M170 52 L198 52"  marker-end="url(#u3fl)"/><text class="s" x="184" y="44" text-anchor="middle">1</text><path class="edge" d="M350 52 L408 52"  marker-end="url(#u3fl)"/><text class="s" x="379" y="44" text-anchor="middle">2–3 network</text><path class="edge" d="M560 52 L588 52"  marker-end="url(#u3fl)"/><text class="s" x="574" y="44" text-anchor="middle">4</text><path class="edge" d="M588 75 L562 75"  marker-end="url(#u3fl)"/><text class="s" x="575" y="92" text-anchor="middle">5</text><path class="edge" d="M408 75 L352 75"  marker-end="url(#u3fl)"/><text class="s" x="380" y="92" text-anchor="middle">6</text><path class="edge" d="M198 75 L172 75"  marker-end="url(#u3fl)"/><text class="s" x="185" y="92" text-anchor="middle">7</text><g class="ifc"><rect x="170" y="140" width="420" height="34" rx="6"/></g><text class="s" x="380" y="162" text-anchor="middle">IDL → compiler generates both stubs + interface headers</text><path class="edge dash" d="M275 140 L275 99"  marker-end="url(#u3arr)"/><path class="edge dash" d="M485 140 L485 99"  marker-end="url(#u3arr)"/><text class="s m" x="380" y="200" text-anchor="middle">binding: static (hard-coded host:port) or dynamic (name/directory server)</text><text class="s m" x="380" y="218" text-anchor="middle">sync = blocking · async = keep working · plan timeouts and retries</text></svg><figcaption><strong>RPC</strong> (Birrell and Nelson, 1980s) succeeded because developers already understood procedure calls. The <strong>IDL</strong> is written first: it specifies the available procedures, their parameters and their returns, and its compiler generates the stubs, so a remote call looks local. Today you'll recognise it in database stored procedure calls and XML web service messages.</figcaption></figure>
+  <figure><svg viewBox="0 0 760 190" role="img" aria-label="CORBA object broker: client with client stub acting as a proxy object, the object request broker in the middle with CORBA services and facilities, and the server with a server skeleton. An interface repository and dynamic invocation interface support dynamic binding."><defs><marker id="u4tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u4arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="currentColor" stroke-width="1.4"/></marker><marker id="u4fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker><marker id="u4dh" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u4df" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" fill="currentColor"/></marker></defs><g class="ext"><rect x="20" y="40" width="150" height="53" rx="4"/></g><text class="t" x="95.0" y="58" text-anchor="middle">Client</text><line class="div" x1="20" y1="66" x2="170" y2="66"/><text class="s m" x="28" y="82">+ client stub (proxy)</text><g class="ifc"><rect x="230" y="20" width="300" height="100" rx="8"/></g><text class="t" x="380" y="44" text-anchor="middle">Object Request Broker (ORB)</text><text class="s" x="380" y="66" text-anchor="middle">marshalling · object references</text><text class="s m" x="380" y="84" text-anchor="middle">CORBA services (persistence, security)</text><text class="s m" x="380" y="102" text-anchor="middle">CORBA facilities (application-level)</text><g class="cls"><rect x="590" y="40" width="150" height="53" rx="4"/></g><text class="t" x="665.0" y="58" text-anchor="middle">Server</text><line class="div" x1="590" y1="66" x2="740" y2="66"/><text class="s m" x="598" y="82">+ server skeleton</text><path class="edge" d="M170 65 L228 65"  marker-end="url(#u4fl)"/><path class="edge" d="M532 65 L588 65"  marker-end="url(#u4fl)"/><text class="s m" x="380" y="150" text-anchor="middle">IDL supports inheritance + polymorphism; maps to many OO languages</text><text class="s m" x="380" y="168" text-anchor="middle">dynamic binding: interface repository + dynamic invocation interface (naming, trading)</text><text class="s m" x="380" y="186" text-anchor="middle">drawback: location transparency makes even local calls remote</text></svg><figcaption><strong>Object brokers</strong> extend RPC to objects. Inheritance and polymorphism mean one signature can have several implementations, so the broker has to route each call to the right one. <strong>CORBA</strong> (from the Object Management Group) is a <em>standard</em>, independent of language and OS, and the foundation for .NET and J2EE. The broker tracks object references, so objects can move. Most real problems came from poor implementations: complex APIs and slow performance. Dynamic discovery is semantically hard (does "get" mean the same as "fetch"?), so the cost often outweighs the benefit.</figcaption></figure>
+</section>
+
+<!-- 5 -->
+<section class="sec" id="m5">
+  <div class="eyebrow">Module 2 · First-generation web services</div>
+  <h2>SOAP, WSDL, UDDI and BPEL</h2>
+  <figure><svg viewBox="0 0 760 200" role="img" aria-label="Left: six applications connected point to point need up to fifteen pairwise connections. Right: with enterprise application integration middleware each application connects once to the hub."><defs><marker id="u5tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u5arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="currentColor" stroke-width="1.4"/></marker><marker id="u5fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker><marker id="u5dh" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u5df" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" fill="currentColor"/></marker></defs><path class="edge" d="M240.0 95.0 L205.0 155.6217782649107"  /><path class="edge" d="M240.0 95.0 L135.0 155.62177826491072"  /><path class="edge" d="M240.0 95.0 L100.0 95.00000000000001"  /><path class="edge" d="M240.0 95.0 L134.99999999999997 34.37822173508931"  /><path class="edge" d="M240.0 95.0 L205.0 34.3782217350893"  /><path class="edge" d="M205.0 155.6217782649107 L135.0 155.62177826491072"  /><path class="edge" d="M205.0 155.6217782649107 L100.0 95.00000000000001"  /><path class="edge" d="M205.0 155.6217782649107 L134.99999999999997 34.37822173508931"  /><path class="edge" d="M205.0 155.6217782649107 L205.0 34.3782217350893"  /><path class="edge" d="M135.0 155.62177826491072 L100.0 95.00000000000001"  /><path class="edge" d="M135.0 155.62177826491072 L134.99999999999997 34.37822173508931"  /><path class="edge" d="M135.0 155.62177826491072 L205.0 34.3782217350893"  /><path class="edge" d="M100.0 95.00000000000001 L134.99999999999997 34.37822173508931"  /><path class="edge" d="M100.0 95.00000000000001 L205.0 34.3782217350893"  /><path class="edge" d="M134.99999999999997 34.37822173508931 L205.0 34.3782217350893"  /><g class="cls"><circle cx="240" cy="95" r="13"/></g><g class="cls"><circle cx="205" cy="156" r="13"/></g><g class="cls"><circle cx="135" cy="156" r="13"/></g><g class="cls"><circle cx="100" cy="95" r="13"/></g><g class="cls"><circle cx="135" cy="34" r="13"/></g><g class="cls"><circle cx="205" cy="34" r="13"/></g><path class="edge" d="M630.0 95.0 L560 95"  /><path class="edge" d="M595.0 155.6217782649107 L560 95"  /><path class="edge" d="M525.0 155.62177826491072 L560 95"  /><path class="edge" d="M490.0 95.00000000000001 L560 95"  /><path class="edge" d="M525.0 34.37822173508931 L560 95"  /><path class="edge" d="M595.0 34.3782217350893 L560 95"  /><g class="ifc"><circle cx="560" cy="95" r="26"/></g><text class="t" x="560" y="99" text-anchor="middle">EAI</text><g class="cls"><circle cx="630" cy="95" r="13"/></g><g class="cls"><circle cx="595" cy="156" r="13"/></g><g class="cls"><circle cx="525" cy="156" r="13"/></g><g class="cls"><circle cx="490" cy="95" r="13"/></g><g class="cls"><circle cx="525" cy="34" r="13"/></g><g class="cls"><circle cx="595" cy="34" r="13"/></g><text class="s m" x="170" y="190" text-anchor="middle">point to point: 15 links, wrappers each</text><text class="s m" x="560" y="190" text-anchor="middle">middleware hub: 6 links (but who hosts it for B2B?)</text></svg><figcaption><strong>Enterprise Application Integration</strong> uses middleware to tame integration inside one company. Between businesses (B2B) it's unclear who hosts the middleware and how security works, so B2B integration uses <strong>web services</strong> instead. The W3C defines a web service as "a software system designed to support interoperable machine-to-machine interaction over a network."</figcaption></figure>
+  <figure><svg viewBox="0 0 760 260" role="img" aria-label="Web services stack: TCP, then HTTP, then XML; on top SOAP for invocation, WSDL for description and UDDI for publication and discovery; WS-BPEL for composition at the top. Beside it, the provider publishes to a UDDI registry, the requester finds the service there, binds using WSDL, and invokes it with SOAP."><defs><marker id="u6tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u6arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="currentColor" stroke-width="1.4"/></marker><marker id="u6fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker><marker id="u6dh" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u6df" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" fill="currentColor"/></marker></defs><g class="cls"><rect x="20" y="210" width="330" height="26" rx="4"/></g><text class="t" x="185.0" y="228" text-anchor="middle">TCP</text><g class="cls"><rect x="20" y="166" width="330" height="26" rx="4"/></g><text class="t" x="185.0" y="184" text-anchor="middle">HTTP</text><g class="cls"><rect x="20" y="122" width="330" height="26" rx="4"/></g><text class="t" x="185.0" y="140" text-anchor="middle">XML</text><g class="new"><rect x="20" y="64" width="106" height="53" rx="4"/></g><text class="t" x="73.0" y="82" text-anchor="middle">SOAP</text><line class="div" x1="20" y1="90" x2="126" y2="90"/><text class="s m" x="28" y="106">invoke</text><g class="new"><rect x="132" y="64" width="106" height="53" rx="4"/></g><text class="t" x="185.0" y="82" text-anchor="middle">WSDL</text><line class="div" x1="132" y1="90" x2="238" y2="90"/><text class="s m" x="140" y="106">describe</text><g class="new"><rect x="244" y="64" width="106" height="53" rx="4"/></g><text class="t" x="297.0" y="82" text-anchor="middle">UDDI</text><line class="div" x1="244" y1="90" x2="350" y2="90"/><text class="s m" x="252" y="106">publish · find</text><g class="ifc"><rect x="20" y="14" width="330" height="26" rx="4"/></g><text class="t" x="185.0" y="32" text-anchor="middle">WS-BPEL (compose)</text><g class="ifc"><rect x="520" y="10" width="160" height="53" rx="4"/></g><text class="t" x="600.0" y="28" text-anchor="middle">UDDI registry</text><line class="div" x1="520" y1="36" x2="680" y2="36"/><text class="s m" x="528" y="52">white · yellow · green</text><g class="cls"><rect x="640" y="170" width="110" height="26" rx="4"/></g><text class="t" x="695.0" y="188" text-anchor="middle">Provider</text><g class="ext"><rect x="420" y="170" width="120" height="26" rx="4"/></g><text class="t" x="480.0" y="188" text-anchor="middle">Requester</text><path class="edge" d="M695 170 L695 72 L682 60"  marker-end="url(#u6fl)"/><text class="s" x="702" y="120" text-anchor="start">1 publish</text><path class="edge" d="M480 168 L540 72"  marker-end="url(#u6fl)"/><text class="s" x="470" y="120" text-anchor="end">2 find</text><path class="edge" d="M540 183 L638 183"  marker-end="url(#u6fl)"/><text class="s" x="589" y="176" text-anchor="middle">3 bind (WSDL)</text><path class="edge" d="M540 200 L638 200"  marker-end="url(#u6fl)"/><text class="s" x="589" y="222" text-anchor="middle">4 invoke (SOAP)</text></svg><figcaption>The three foundational standards, all XML over web infrastructure, with extensions (WS-Security, WS-Coordination, WS-BPEL) on top.</figcaption></figure>
+
+  <h3>SOAP: invocation <span class="lt">Originally "Simple Object Access Protocol"</span></h3>
+  <figure><svg viewBox="0 0 760 200" role="img" aria-label="SOAP message structure: an envelope, required, containing an optional header with context such as client or routing information, and a required body with the request. Document style puts a request document in the body; RPC style puts an operation with parameters."><defs><marker id="u7tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u7arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="currentColor" stroke-width="1.4"/></marker><marker id="u7fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker><marker id="u7dh" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u7df" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" fill="currentColor"/></marker></defs><g class="cls"><rect x="20" y="10" width="300" height="180" rx="6"/></g><text class="t" x="34" y="32" text-anchor="start">Envelope (required)</text><g class="ext"><rect x="40" y="44" width="260" height="46" rx="4"/></g><text class="t" x="52" y="64" text-anchor="start">Header (optional)</text><text class="s m" x="52" y="82" text-anchor="start">client info, routing</text><g class="new"><rect x="40" y="100" width="260" height="76" rx="4"/></g><text class="t" x="52" y="120" text-anchor="start">Body (required)</text><text class="s" x="52" y="140" text-anchor="start">operation + parameters</text><text class="s m" x="52" y="158" text-anchor="start">or a request document</text><text class="t" x="360" y="40" text-anchor="start">Document style</text><text class="s" x="360" y="58" text-anchor="start">&lt;ExchangeRateRequest&gt;</text><text class="s" x="372" y="74" text-anchor="start">&lt;from&gt;CAD&lt;/from&gt;&lt;to&gt;USD&lt;/to&gt;</text><text class="t" x="360" y="110" text-anchor="start">RPC style</text><text class="s" x="360" y="128" text-anchor="start">&lt;getExchangeRate&gt;</text><text class="s" x="372" y="144" text-anchor="start">&lt;c1&gt;CAD&lt;/c1&gt;&lt;c2&gt;USD&lt;/c2&gt;</text><text class="s m" x="360" y="180" text-anchor="start">sent by HTTP POST → SOAP router → server stub</text></svg><figcaption>Four messaging patterns:
+    <ul>
+      <li><strong>Request–response</strong> (synchronous).</li>
+      <li><strong>Solicit–response</strong>: the provider asks, e.g. for a confirmation (synchronous).</li>
+      <li><strong>One-way</strong>: a request with no reply (asynchronous).</li>
+      <li><strong>Notification</strong>: the provider pushes, e.g. to subscribers (asynchronous).</li>
+    </ul>
+    SOAP messages are stateless, so longer interactions keep their state elsewhere or use WS-Coordination. XML encoding adds overhead, which is why lighter REST largely replaced SOAP.</figcaption></figure>
+
+  <h3>WSDL: description <span class="lt">The service's "method signature"</span></h3>
+  <div class="tbl"><table>
+    <tr><th>WSDL 2.0 part</th><th>Says</th><th>Currency example</th></tr>
+    <tr><td><code>types</code></td><td>Custom XML data types (optional)</td><td>Not needed: strings and a decimal</td></tr>
+    <tr><td><code>interface</code> (formerly portType)</td><td>Abstract operations and their exchange pattern</td><td>One request–response operation</td></tr>
+    <tr><td><code>binding</code></td><td>Message format (document or RPC style) and transport</td><td>SOAP over HTTP</td></tr>
+    <tr><td><code>service</code></td><td>Interface + binding at an endpoint URI</td><td><code>http://…/exchange</code></td></tr>
+  </table></div>
+  <p>Because WSDL is machine-readable, <strong>binding</strong> code can be generated automatically. Its modular parts can be reused (one interface over SMTP and HTTP), and WSDL files can import other WSDL files.</p>
+
+  <h3>UDDI: publication and discovery <span class="lt">A phone book for services</span></h3>
+  <ul>
+    <li><strong>White pages:</strong> the business (<code>businessEntity</code>).</li>
+    <li><strong>Yellow pages:</strong> the industry category and the service (<code>businessService</code>), e.g. food → delivery → pizza.</li>
+    <li><strong>Green pages:</strong> technical details (<code>bindingTemplate</code> + <code>tModel</code>, which points to the WSDL).</li>
+    <li><strong>API:</strong> <code>save_*</code>/<code>delete_*</code> to publish; <code>find_*</code>/<code>get_*Detail</code> to discover, all called with SOAP messages.</li>
+    <li><strong>In practice</strong> discovery happens at <em>design time</em> by a person, since contracts and error handling need human judgment, while binding can be generated but is tested by people.</li>
+  </ul>
+
+  <h3>WS-BPEL: composition <span class="lt">Business Process Execution Language</span></h3>
+  <figure><svg viewBox="0 0 760 220" role="img" aria-label="BPEL composite service: Part Order Service queries the warehouse stock service; if stock is greater than zero it requests the part and returns a confirmation, otherwise it asks an external supplier for a price and returns the price."><defs><marker id="u8tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u8arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="currentColor" stroke-width="1.4"/></marker><marker id="u8fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker><marker id="u8dh" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u8df" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" fill="currentColor"/></marker></defs><circle cx="30" cy="40" r="8" fill="currentColor"/><g class="cls"><rect x="60" y="24" width="150" height="32" rx="16"/></g><text class="s" x="135.0" y="45" text-anchor="middle">query warehouse stock</text><path class="edge" d="M38 40 L58 40"  marker-end="url(#u8fl)"/><path d="M260 25 L280 40 L260 55 L240 40 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.4"/><path class="edge" d="M210 40 L238 40"  marker-end="url(#u8fl)"/><g class="cls"><rect x="320" y="24" width="190" height="32" rx="16"/></g><text class="s" x="415.0" y="45" text-anchor="middle">request part (warehouse)</text><g class="new"><rect x="540" y="24" width="190" height="32" rx="16"/></g><text class="s" x="635.0" y="45" text-anchor="middle">return confirmation</text><g class="ext"><rect x="320" y="110" width="210" height="32" rx="16"/></g><text class="s" x="425.0" y="131" text-anchor="middle">get price (external supplier)</text><g class="new"><rect x="560" y="110" width="170" height="32" rx="16"/></g><text class="s" x="645.0" y="131" text-anchor="middle">return price</text><path class="edge" d="M280 40 L318 40"  marker-end="url(#u8fl)"/><text class="s" x="300" y="18" text-anchor="middle">[stock &gt; 0]</text><path class="edge" d="M510 40 L538 40"  marker-end="url(#u8fl)"/><path class="edge" d="M260 55 L260 126 L318 126"  marker-end="url(#u8fl)"/><text class="s" x="268" y="92" text-anchor="start">[else]</text><path class="edge" d="M530 126 L558 126"  marker-end="url(#u8fl)"/><text class="s m" x="20" y="190" text-anchor="start">composition exposes the whole flow as a new service; coordination only orchestrates</text></svg><figcaption>A composite service invokes other services in order and handles their exceptions; the component services stay separate. Services can be <em>basic</em> or composite, at many levels. It's the composing objects principle at service scale.</figcaption></figure>
+</section>
+
+<!-- 6 -->
+<section class="sec" id="m6">
+  <div class="eyebrow">Module 3 · REST architecture</div>
+  <h2>REST: representational state transfer</h2>
+  <p class="sum">A client/server, request/response style in which messages are <strong>representations of resources</strong>: documents, images, objects. It's defined by five constraints:</p>
+  <div class="cards">
+    <div class="card cc"><b>1 · Client–server</b>Separate concerns, so each side can evolve and scale independently.</div>
+    <div class="card cc"><b>2 · Layered</b>Proxies and gateways can be added or removed to improve performance, translate messages or manage traffic.</div>
+    <div class="card cb"><b>3 · Stateless</b>Each request carries everything needed, including authentication every time.</div>
+    <div class="card cb"><b>4 · Cacheable</b>The server labels responses cacheable or not, which offsets the cost of statelessness.</div>
+    <div class="card cr"><b>5 · Uniform interface</b>HTTP methods (GET, POST, PUT, DELETE), URIs for resources, and representations in XML, JSON or text.</div>
+  </div>
+  <figure><svg viewBox="0 0 760 120" role="img" aria-label="REST: the client sends a stateless HTTP request naming a resource by URI with a method; the server returns a representation in JSON, XML or text with cache-control headers."><defs><marker id="u9tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u9arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="currentColor" stroke-width="1.4"/></marker><marker id="u9fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker><marker id="u9dh" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u9df" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" fill="currentColor"/></marker></defs><g class="ext"><rect x="20" y="30" width="160" height="53" rx="4"/></g><text class="t" x="100.0" y="48" text-anchor="middle">Client</text><line class="div" x1="20" y1="56" x2="180" y2="56"/><text class="s m" x="28" y="72">holds its own state</text><g class="cls"><rect x="580" y="30" width="160" height="53" rx="4"/></g><text class="t" x="660.0" y="48" text-anchor="middle">Server</text><line class="div" x1="580" y1="56" x2="740" y2="56"/><text class="s m" x="588" y="72">no session memory</text><path class="edge" d="M180 45 L578 45"  marker-end="url(#u9fl)"/><text class="s" x="380" y="37" text-anchor="middle">PUT /carts/1234   (all info needed, every time)</text><path class="edge" d="M578 75 L182 75"  marker-end="url(#u9fl)"/><text class="s" x="380" y="95" text-anchor="middle">200 OK · Cache-Control: max-age=30 · JSON representation</text></svg></figure>
+
+  <h3>Designing a REST API <span class="lt">Eight practices from the lecture</span></h3>
+  <ol class="steps">
+    <li>Use <strong>nouns</strong> in URIs; the HTTP method is the verb. Write <code>/teachers</code>, not <code>/getAllTeachers</code>.</li>
+    <li><code>GET</code> must never change state.</li>
+    <li>Use <strong>plural</strong> nouns consistently: <code>/students</code>, <code>/students/3</code>.</li>
+    <li>Use <strong>sub-resources</strong> for relationships: <code>/students/3/courses/2</code>.</li>
+    <li>Use <code>Content-Type</code> and <code>Accept</code> headers to state input and output formats.</li>
+    <li>Support <strong>filtering and paging</strong>: <code>/courses?department=CMPUT&amp;offset=20&amp;limit=10</code>.</li>
+    <li><strong>Version</strong> the API: <code>/v2/students</code>.</li>
+    <li>Return the right <strong>status codes</strong>: <code>200</code> OK, <code>201</code> Created, <code>204</code> No Content (e.g. after a delete).</li>
+  </ol>
+  <div class="tbl"><table>
+    <tr><th>Method</th><th>URI</th><th>Action</th></tr>
+    <tr><td><code>GET</code></td><td><code>/students</code> · <code>/students/{sid}</code></td><td>List students / get one</td></tr>
+    <tr><td><code>POST</code></td><td><code>/students</code></td><td>Create a student</td></tr>
+    <tr><td><code>PUT</code></td><td><code>/students/{sid}</code></td><td>Update a student</td></tr>
+    <tr><td><code>DELETE</code></td><td><code>/students/{sid}</code></td><td>Delete a student</td></tr>
+    <tr><td><code>GET</code></td><td><code>/students/{sid}/courses</code></td><td>A student's courses</td></tr>
+  </table></div>
+<pre><code>@Path("/studentcourseapi")                    <span class="c">// Jersey (JAX-RS)</span>
+public class StudentCourseService {
+    @POST
+    @Path("/students")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_XML)
+    public Response createStudent(MyJaxBean input) {
+        Student s = new Student(input.fullName, input.department);
+        <span class="c">// save s …</span>
+        return Response.status(201).entity(s).build();
+    }
+}
+
+curl -X POST -H "Content-Type: application/json" \
+     -d '{"fullName":"James Dean","department":"Computing Science"}' \
+     http://localhost:8080/studentcourseapi/students</code></pre>
+  <p>Other Java REST frameworks named in the course: Restlet, Spring, RESTEasy. Deploy on Apache or another web server, then test with your own client or with <code>curl</code>.</p>
+</section>
+
+<!-- 7 -->
+<section class="sec" id="m7">
+  <div class="eyebrow">Module 3 · Microservices</div>
+  <h2>Microservices: SOA at application scale</h2>
+  <figure><svg viewBox="0 0 760 220" role="img" aria-label="Microservices restaurant guide: a user interface microservice talks over REST to a restaurant catalog, a reservation and a review microservice, each managing its own data. The review service is replicated for scale."><defs><marker id="u10tri" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u10arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1,1 L9,5 L1,9" fill="none" stroke="currentColor" stroke-width="1.4"/></marker><marker id="u10fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker><marker id="u10dh" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.2"/></marker><marker id="u10df" viewBox="0 0 20 10" refX="1" refY="5" markerWidth="16" markerHeight="8" orient="auto-start-reverse"><path d="M1,5 L10,1 L19,5 L10,9 z" fill="currentColor"/></marker></defs><g class="ext"><rect x="20" y="90" width="150" height="53" rx="4"/></g><text class="t" x="95.0" y="108" text-anchor="middle">User interface</text><line class="div" x1="20" y1="116" x2="170" y2="116"/><text class="s m" x="28" y="132">microservice</text><g class="new"><rect x="312" y="166" width="200" height="53" rx="4"/><rect x="306" y="160" width="200" height="53" rx="4"/></g><text class="s m" x="520" y="214" text-anchor="start">replicas</text><g class="new"><rect x="300" y="14" width="200" height="53" rx="4"/></g><text class="t" x="400.0" y="32" text-anchor="middle">Restaurant catalog</text><line class="div" x1="300" y1="40" x2="500" y2="40"/><text class="s m" x="308" y="56">own API + own data</text><path class="edge" d="M170 115 L240 115 L240 36 L298 36"  marker-end="url(#u10fl)"/><g class="ifc"><ellipse cx="560" cy="38" rx="22" ry="9"/></g><path class="edge" d="M500 38 L536 38"  /><g class="new"><rect x="300" y="84" width="200" height="53" rx="4"/></g><text class="t" x="400.0" y="102" text-anchor="middle">Reservations</text><line class="div" x1="300" y1="110" x2="500" y2="110"/><text class="s m" x="308" y="126">own API + own data</text><path class="edge" d="M170 115 L240 115 L240 106 L298 106"  marker-end="url(#u10fl)"/><g class="ifc"><ellipse cx="560" cy="108" rx="22" ry="9"/></g><path class="edge" d="M500 108 L536 108"  /><g class="new"><rect x="300" y="154" width="200" height="53" rx="4"/></g><text class="t" x="400.0" y="172" text-anchor="middle">Reviews</text><line class="div" x1="300" y1="180" x2="500" y2="180"/><text class="s m" x="308" y="196">own API + own data</text><path class="edge" d="M170 115 L240 115 L240 176 L298 176"  marker-end="url(#u10fl)"/><g class="ifc"><ellipse cx="560" cy="178" rx="22" ry="9"/></g><path class="edge" d="M500 178 L536 178"  /><text class="s m" x="600" y="100" text-anchor="start">each: small team,</text><text class="s m" x="600" y="118" text-anchor="start">any language,</text><text class="s m" x="600" y="136" text-anchor="start">scale by replication,</text><text class="s m" x="600" y="154" text-anchor="start">deploy independently</text></svg><figcaption>Monolithic apps were hard to maintain and scale. A <strong>microservice</strong> is a process that does one independent task or business capability (search, recommendations, ratings). Each has a well-defined API, usually REST over HTTP, and its own data, so the application as a whole isn't layered.</figcaption></figure>
+  <div class="cards">
+    <div class="card cb"><b>Benefits</b>
+      <ul>
+        <li>The best language and framework for each service, and room to try new tech.</li>
+        <li><strong>Scale by replication</strong>, independently per service, which also tolerates failures.</li>
+        <li>Update one service at a time.</li>
+        <li>Small parallel teams.</li>
+        <li>Reuse.</li>
+      </ul>
+    </div>
+    <div class="card ct"><b>Costs</b>
+      <ul>
+        <li>It's a distributed system, so it needs central coordination.</li>
+        <li>Transactions and data span services.</li>
+        <li>Harder testing and bugs that are hard to reproduce.</li>
+        <li>Callers must handle a failed service gracefully.</li>
+        <li>Messaging overhead; statelessness means cookies to track users.</li>
+        <li>Rigid old monoliths may need wrapping first.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- cheat -->
+<section class="sec" id="cheat">
+  <div class="eyebrow">Quick reference</div>
+  <h2>Cheat sheet</h2>
+  <div class="tbl"><table>
+    <tr><th>Term</th><th>One line</th></tr>
+    <tr><td>Service requester / provider</td><td>The software asking for a service / the software fulfilling it</td></tr>
+    <tr><td>Middleware</td><td>Software between systems that mediates communication (EAI, RPC, ORB)</td></tr>
+    <tr><td>IDL, stub, skeleton</td><td>Interface spec → generated proxies that make remote calls look local</td></tr>
+    <tr><td>Marshalling</td><td>Converting arguments into a standard message format (and back: unmarshalling)</td></tr>
+    <tr><td>Static / dynamic binding</td><td>Hard-coded server address / looked up via a name and directory service</td></tr>
+    <tr><td>SOAP</td><td>XML envelope + header + body for invoking a service</td></tr>
+    <tr><td>WSDL</td><td>XML description: types, interface, binding, service</td></tr>
+    <tr><td>UDDI</td><td>Registry: white, yellow and green pages for publishing and discovery</td></tr>
+    <tr><td>WS-BPEL</td><td>Composes services into a business process exposed as a new service</td></tr>
+    <tr><td>REST</td><td>Client–server, layered, stateless, cacheable, uniform interface</td></tr>
+    <tr><td>Microservice</td><td>One business capability, own data, own API, deployed and scaled independently</td></tr>
+  </table></div>
+  <div class="key"><strong>Across the four courses</strong>The same few ideas recur at every scale: abstraction, encapsulation and information hiding, low coupling with high cohesion, separation of concerns, and composition over inheritance. They apply to a class (course 1), a pattern (course 2), an architecture (course 3) and a set of services (course 4).</div>
+</section>
+</main>
+</div>
