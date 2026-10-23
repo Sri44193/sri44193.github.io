@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Engineering · Ch 8 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📘 AI Engineering · Chapter 8</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+
+<header class="hero">
+  <div class="kicker">AI Engineering · Chip Huyen · Week 7 (lighter reading)</div>
+  <h1>Chapter 8: Dataset Engineering</h1>
+  <p>Building the data that trains and finetunes models: what good data looks like, how much you need, how to collect and synthesise it, how to check it, and how to clean and format it. Much of it doubles as a guide to building great test data.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 387–428</span>
+    <span class="chip">⏱ ~4 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🧪 Written for a QA engineer</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    A model is only as good as its data. Good datasets balance <b>quality</b>, <b>coverage</b> and <b>quantity</b>; when real data runs short, you can <b>synthesise</b> more (with rules, simulation or AI), but every piece must be <b>verified</b>, deduplicated, cleaned and correctly formatted. The book warns that data is mostly "toil, tears, and sweat".
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why this chapter is a QA chapter in disguise</span>
+    Training data and <b>test data</b> are built the same way: guidelines, coverage of real usage, edge cases, synthetic variants, deduplication, validation. The book even points out that synthetic data started in <b>software testing</b> (libraries like Faker).
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Dataset<br/>engineering))
+    Curation
+      What data you need
+      Quality
+      Coverage
+      Quantity
+      Acquisition and annotation
+    Synthesis
+      Why synthesise
+      Rules and simulation
+      AI-generated data
+      Verification
+      Limits
+      Distillation
+    Processing
+      Inspect
+      Deduplicate
+      Clean and filter
+      Format
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Data-centric AI</a>
+    <a class="pill" href="#t2"><b>2</b> What data you need</a>
+    <a class="pill" href="#t3"><b>3</b> Quality</a>
+    <a class="pill" href="#t4"><b>4</b> Coverage</a>
+    <a class="pill" href="#t5"><b>5</b> Quantity</a>
+    <a class="pill" href="#t6"><b>6</b> Acquisition &amp; annotation</a>
+    <a class="pill" href="#t7"><b>7</b> Why synthesise</a>
+    <a class="pill" href="#t8"><b>8</b> Rules &amp; simulation</a>
+    <a class="pill" href="#t9"><b>9</b> AI-made data</a>
+    <a class="pill" href="#t10"><b>10</b> Verifying data</a>
+    <a class="pill" href="#t11"><b>11</b> Limits &amp; distillation</a>
+    <a class="pill" href="#t12"><b>12</b> Processing</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>A data-centric view of AI</h2>
+    <p class="sub">Improving the data instead of the model <span class="page">📖 PDF p. 387–389</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🧠 Model-centric AI</h4><p>Better architectures, bigger models, new training tricks. Classic benchmark: same dataset (e.g. ImageNet), who builds the best model?</p></div>
+    <div class="tile green"><h4>📚 Data-centric AI</h4><p>Better data. Newer benchmarks: same model, who builds the best <b>dataset</b>? E.g. Andrew Ng's 2021 competition, DataComp (judged on 38 downstream tasks).</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 How fast data work has grown</span>
+    GPT-3's paper credited <b>2 people</b> with data collection and cleaning. Three years later, GPT-4 credited <b>80</b> (not counting contracted annotators). Data labellers, dataset creators and data quality engineers are now dedicated roles.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    "Data quality engineer" is a natural next step for a QA lead in AI teams: the same skills of defining quality, building checks and finding edge cases, applied to datasets.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>What data you need</h2>
+    <p class="sub">The data must show the behaviour you want <span class="page">📖 PDF p. 389–391</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Training type</th><th>Data format</th></tr>
+    <tr><td>Self-supervised finetuning</td><td>Plain sequences of text</td></tr>
+    <tr><td>Instruction finetuning (SFT)</td><td>(instruction, response)</td></tr>
+    <tr><td>Preference finetuning</td><td>(instruction, winning response, losing response)</td></tr>
+    <tr><td>Reward model</td><td>Preference format, or ((instruction, response), score)</td></tr>
+  </table></div>
+
+  <div class="grid">
+    <div class="tile purple"><h4>🧠 Chain-of-thought data</h4><p>To teach step-by-step answers, the data must contain step-by-step answers. Adding them nearly <b>doubled</b> accuracy on some tasks. But they're slow to write ("23 apples − 20 = 3, + 6 = 9" vs just "9"), so they're rare.</p></div>
+    <div class="tile orange"><h4>🛠️ Tool-use data</h4><p>Experts forget steps when explaining; you often need to <b>watch</b> them work. And what's efficient for people (clicking through a website) isn't for AI (calling an API), so teams often <b>simulate</b> tool use. Tool data may need special multi-message formats.</p></div>
+    <div class="tile blue"><h4>💬 Single vs multi-turn</h4><p>Single-turn teaches answering one instruction (easier to get). Multi-turn teaches solving tasks with clarifications and corrections (harder to collect).</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Curation also means removing data (the book's example)</span>
+    Users complain the chatbot is arrogant: asked to fact-check a statement, it says it's correct, then rewrites it unasked. The cause: training examples containing <b>unsolicited suggestions</b>. Fix: remove them and add examples of fact-checking <i>without</i> rewriting.
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 The book's analogy: cooking</span>
+    <b>Quality</b> = fresh ingredients (spoiled ones ruin the dish) · <b>coverage</b> = the right mix (not too much sugar) · <b>quantity</b> = how much of everything.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Data quality</h2>
+    <p class="sub">A little good data beats a lot of noisy data <span class="page">📖 PDF p. 392–393</span></p>
+  </div></div>
+
+  <div class="box example"><span class="label">🧩 Evidence</span>
+    <ul>
+      <li>The Yi team found <b>10K</b> carefully crafted instructions beat hundreds of thousands of noisy ones.</li>
+      <li><b>LIMA:</b> a 65B Llama finetuned on just <b>1,000</b> curated examples gave answers equal to or preferred over GPT-4's in <b>43%</b> of cases, though it was less robust than production models.</li>
+      <li>Llama 3's team found <b>human</b> data more error-prone than expected for nuanced safety rules, so they built AI-assisted annotation tools.</li>
+    </ul>
+  </div>
+
+  <h3>✅ Six signs of high-quality data</h3>
+  <div class="grid">
+    <div class="tile green"><h4>🎯 Relevant</h4><p>19th-century law is irrelevant for today's legal questions, unless the task is about 19th-century law.</p></div>
+    <div class="tile blue"><h4>📐 Aligned with the task</h4><p>Factual tasks need correct answers; creative tasks creative ones; concise tasks concise ones; "score and justify" needs both.</p></div>
+    <div class="tile purple"><h4>🤝 Consistent</h4><p>Two annotators on the same example should agree; two essays scored 3 should be similar. A good guideline is key.</p></div>
+    <div class="tile orange"><h4>🧹 Correctly formatted</h4><p>No stray HTML tags, trailing spaces, odd newlines, mixed casing or number formats.</p></div>
+    <div class="tile yellow"><h4>🔂 Sufficiently unique</h4><p>Duplicates add bias and can contaminate test sets.</p></div>
+    <div class="tile red"><h4>⚖️ Compliant</h4><p>Follows internal policies and laws, e.g. no personal data if that's not allowed.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ A bug the author still remembers</span>
+    A column of decimal numbers was accidentally stored as integers, silently rounding every value and causing baffling behaviour. Formatting errors are quiet and expensive.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    These six characteristics are a <b>data validation checklist</b>, and they apply equally to your <b>evaluation sets</b>. Write automated checks for format, duplicates and PII, and measure annotator agreement for consistency.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Data coverage (diversity)</h2>
+    <p class="sub">Cover the range of real usage <span class="page">📖 PDF p. 393–396</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The data should cover the problems users actually bring, <b>and the ways they phrase them</b>: short and detailed instructions, typos if users make typos, every programming language your users care about. Which kinds of diversity matter depends on the app: a French-to-English translator needs varied topics and styles, not varied languages; a global shopping bot needs linguistic and cultural variety.
+  </div>
+
+  <h3>🍰 Llama 3's data mix changes by training phase</h3>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Domain</th><th>Pre-training</th><th>Supervised finetuning</th><th>Preference finetuning</th></tr>
+    <tr><td>General knowledge (English)</td><td>50%</td><td>52.66%</td><td>81.99%</td></tr>
+    <tr><td>Math and reasoning</td><td>25%</td><td>21.19%</td><td>5.89%</td></tr>
+    <tr><td>Coding</td><td>17%</td><td>14.89%</td><td>6.93%</td></tr>
+    <tr><td>Multilingual</td><td>8%</td><td>3.01%</td><td>5.19%</td></tr>
+    <tr><td>Exam-like</td><td>–</td><td>8.14%</td><td>–</td></tr>
+    <tr><td>Long context</td><td>–</td><td>0.11%</td><td>–</td></tr>
+  </table></div>
+  <p>Math, reasoning and code make up nearly <b>half</b> of pre-training and SFT data, far more than on the web, because high-quality code and math boost reasoning. Preference data uses much less, to mirror what users really ask. Meta credited Llama 3's gains mainly to <b>data quality and diversity</b>, not architecture.</p>
+
+  <div class="box example"><span class="label">🧩 Quality AND diversity (Zhou et al., 2023)</span>
+    Three 2,000-example datasets: high-quality but narrow · diverse but low-quality · <b>both</b>. The model trained on the one with both did best. One study even found that adding more <i>mixed</i> data can make things worse.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Choosing a mix</span>
+    Simplest: <b>mirror real usage</b>. More rigorous: train small models on candidate mixes and extrapolate, as Meta did.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Exactly how you'd design test coverage: list the dimensions that matter (intent, length, language, format, typos, user type) and make sure each is represented, with production-like proportions in at least one set.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Data quantity</h2>
+    <p class="sub">How much is enough? <span class="page">📖 PDF p. 396–401</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Asking how much data you need is like asking how much money you need. One experiment showed a model learning from a <b>single</b> example; some teams finetune on millions. It depends on three things:
+  </div>
+
+  <div class="grid">
+    <div class="tile yellow"><h4>🔧 Technique</h4><p>Full finetuning: tens of thousands to millions of examples. PEFT/LoRA: hundreds to a few thousand.</p></div>
+    <div class="tile orange"><h4>🧩 Task complexity</h4><p>Review sentiment needs far less than Q&amp;A on financial filings.</p></div>
+    <div class="tile blue"><h4>🤖 Base model</h4><p>The closer it already is, the less you need. With 100 examples, more advanced models finetuned much better; with 550,000, all five models ended up similar.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Practical rules from the book</span>
+    <ul>
+      <li>Start with ~<b>50</b> well-crafted examples. You should usually see improvement after 50–100. No improvement? A bigger dataset rarely helps, but first rule out bad hyperparameters, data or prompts.</li>
+      <li>Little data → PEFT on a stronger model. Lots of data → full finetuning on a smaller model.</li>
+      <li>Too much pre-training can <b>ossify</b> a model so it adapts poorly (smaller models are more prone).</li>
+      <li>Budget caps quantity: $10,000 at $2 per annotation = <b>5,000</b> examples, and money spent on data isn't spent on compute.</li>
+    </ul>
+  </div>
+
+  <h3>📉 Diminishing returns (the book's illustration)</h3>
+  <div class="bars">
+    <div class="bar"><span>First 1,000 examples</span><div class="track"><div class="fill" style="width:66%; background:linear-gradient(90deg,#16a34a,#4ade80)">+10 points</div></div></div>
+    <div class="bar"><span>Next 1,000</span><div class="track"><div class="fill" style="width:33%; background:linear-gradient(90deg,#ca8a04,#facc15)">+5 points</div></div></div>
+  </div>
+  <p class="muted">Finetune on 25%, 50% and 100% of your data and plot the curve: steep means more data will pay off; flat means it won't. Task variety matters too: performance jumped going from 9 to 282 training tasks, then flattened up to 1,836.</p>
+
+  <div class="box example"><span class="label">🧩 Stretching scarce data: train on cheaper data first</span>
+    <ul>
+      <li><b>Unlabelled → labelled:</b> raw legal documents, then legal Q&amp;A pairs.</li>
+      <li><b>Less relevant → relevant:</b> tweet sentiment, then product-review sentiment.</li>
+      <li><b>Synthetic → real:</b> AI-generated medical reports, then the few real ones (harder to get right).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--pink)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Data acquisition and annotation</h2>
+    <p class="sub">Mix and match sources; guidelines are the hard part <span class="page">📖 PDF p. 401–404</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The best data usually comes from <b>your own application</b>: it matches your real usage perfectly. A <b>data flywheel</b> uses users' content, usage and feedback to keep improving the product (every AI startup pitch mentions one, the author jokes). Before building your own, check what already exists.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["📦 Find a public dataset<br/>10,000 examples"]:::grey --> B["🧹 Drop low-quality instructions<br/>9,000 left"]:::yellow
+  B --> C["🔍 Set aside 3,000 with poor responses<br/>6,000 fully good"]:::orange
+  C --> D["✍️ Write new responses for the 3,000<br/>9,000 good examples"]:::blue
+  D --> E["🕳️ Not enough on topic X?<br/>write templates, AI generates 2,000 instructions"]:::purple
+  E --> F["🏷️ Annotate those 2,000<br/>11,000 examples"]:::green
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">A simplified version of the book's example. Reality has more loops: unhelpful annotations → new guideline → re-annotate; wrong facts → fact-checkers; too many examples per template → less diversity</div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Where to find public data</span>
+    Hugging Face and Kaggle (hundreds of thousands of datasets) · Google Dataset Search · government portals (data.gov, data.gov.in) · ICPSR · UCI and OpenML · Open Data Network · AWS Open Data · framework datasets · evaluation harnesses (EleutherAI's 400+ benchmark datasets, ~2,000 examples each). <b>Always check the licence and where the data came from</b>, and never trust it without inspecting it.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ The real bottleneck: annotation guidelines</span>
+    LinkedIn and others found writing guidelines among the hardest parts of the whole pipeline. Teams often give up on careful annotation halfway and hope the model figures it out, which is risky. Good news: <b>training guidelines and evaluation guidelines are the same</b> (Ch 4), so investing in evaluation pays twice.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Why synthesise data?</h2>
+    <p class="sub">Augmentation, synthesis, and five reasons to use them <span class="page">📖 PDF p. 404–406</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🔁 Data augmentation</h4><p>New data <b>derived from real data</b>, e.g. flipping a real cat photo.</p></div>
+    <div class="tile purple"><h4>🧪 Data synthesis</h4><p>Data that <b>mimics</b> real data, e.g. simulating how a bot's mouse moves. The book uses "synthesis" for both.</p></div>
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 You already know this</span>
+    Generating fake names, addresses and phone numbers with <b>Faker</b> to test an address parser across countries is data synthesis. AI now lets you synthesise far richer things: doctors' notes, contracts, financial statements.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Reason</th><th>Example</th></tr>
+    <tr><td>📈 Quantity</td><td>Rare situations: unusual weather, deep-sea exploration, self-driving accidents</td></tr>
+    <tr><td>🗺️ Coverage</td><td>Very short or very long texts, toxic examples for a toxicity detector, rare classes, <b>adversarial examples</b>. Anthropic generated datasets to test 154 behaviours; AI-written sets came close to human ones, sometimes better</td></tr>
+    <tr><td>💎 Quality</td><td>Tool-use steps AI does better than people; harder maths problems; more consistent preference ratings</td></tr>
+    <tr><td>🔒 Privacy</td><td>Synthetic patient records or insurance claims instead of real, sensitive ones</td></tr>
+    <tr><td>⚗️ Distillation</td><td>Train a small model on a big model's outputs (topic 11)</td></tr>
+  </table></div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Every one of these reasons applies to <b>test data</b> too, especially coverage (rare and adversarial cases) and privacy (no real customer data in test environments).
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Traditional synthesis: rules, transformations, simulation</h2>
+    <p class="sub">Techniques from testing, gaming and robotics <span class="page">📖 PDF p. 407–410</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile teal"><h4>📝 Templates</h4><p>A transaction template (ID, date, amount, merchant, status…) filled by Faker lets fraud models prove themselves before touching real data. Templates also make invoices, CVs, tax forms and maths problems. DeepMind's AlphaGeometry trained on <b>100 million</b> synthetic examples.</p></div>
+    <div class="tile blue"><h4>🔀 Transformations</h4><p>Rotate, crop or scale images; swap words for synonyms ("She's a fantastic nurse" → "She's a great nurse").</p></div>
+    <div class="tile purple"><h4>🎮 Simulation</h4><p>Test a self-driving car meeting a horse on the highway virtually, not for real. Robots try many joint movements in simulation. Good for rare events: bankruptcies, material defects, extreme weather. (Sim2Real = making simulation-trained skills work in reality.)</p></div>
+  </div>
+
+  <h3>⚖️ Augmenting to reduce bias (the book's examples)</h3>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Original</th><th class="new">Augmented</th></tr>
+    <tr><td>She's a fantastic nurse.</td><td>He's a fantastic nurse. · She's a fantastic doctor.</td></tr>
+    <tr><td>The CEO of the firm, Mr. Alex Wang…</td><td>The CEO of the firm, Ms. Alexa Wang…</td></tr>
+    <tr><td>Today, my mom made a casserole for dinner.</td><td>Today, my dad made a casserole for dinner.</td></tr>
+    <tr><td>Emily has always loved the violin.</td><td>Mohammed has always loved the violin.</td></tr>
+  </table></div>
+
+  <div class="box example"><span class="label">🧩 Perturbation: tiny changes, big failures</span>
+    Changing <b>one pixel</b> fooled models on 67.97% of CIFAR-10 test images and 16.04% of ImageNet ones. An attacker might use this to pass as an authorised employee. Training on perturbed data (noise, brightness, "snow") makes models more robust; BERT's training randomly replaced 1.5% of tokens.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    The bias table is a ready-made <b>counterfactual test</b>: swap gender, names or roles in your test inputs and check the AI's output doesn't change unfairly. Perturbation is your robustness test (Ch 5, topic 1).
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>AI-powered data synthesis</h2>
+    <p class="sub">Using models to make training data <span class="page">📖 PDF p. 410–415</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🎭 Simulate</h4><p>AI can simulate API responses without calling the API, or simulate people. OpenAI's Dota 2 bot played ~180 years of games a day against itself (<b>self-play</b>); AlphaGo did the same with Go. One AI can play an upset customer while another plays the support agent.</p></div>
+    <div class="tile green"><h4>✏️ Paraphrase</h4><p>"How to reset my password?" → "I forgot my password." · "How can I change my password?" · "Steps to reset passwords." MetaMath rewrote 15,000 maths problems into ~<b>400,000</b>, and beat bigger models.</p></div>
+    <div class="tile purple"><h4>🌍 Translate</h4><p>Into low-resource languages (e.g. Quechua, Lao), checked by <b>back-translation</b>: translate back and compare with the original. Also code to other programming languages.</p></div>
+    <div class="tile orange"><h4>⚖️ Preference data</h4><p>An AI judge picks the better answer. NVIDIA asked <b>twice with the order swapped</b> and kept only consistent verdicts, to cancel first-position bias.</p></div>
+  </div>
+
+  <h3>🧾 Synthesising instruction data</h3>
+  <div class="box example"><span class="label">🧩 Two famous recipes</span>
+    <b>UltraChat:</b> ChatGPT wrote 30 everyday topics → 30–50 subtopics each → instructions and responses. <b>Alpaca:</b> 175 human-written seed examples → GPT-3 generated <b>52,000</b> similar pairs.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["🌱 A few seed examples"]:::green --> B["🐣 Train a weak model"]:::blue
+  B --> C["📖 Take existing high-quality writing<br/>stories, books, Wikipedia"]:::yellow
+  C --> D["❓ The model writes the instruction<br/>that would produce that text"]:::purple
+  D --> E["🎓 Finetune on these new<br/>instruction + real text pairs"]:::orange
+  E -. "repeat until good enough" .-> B
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">Reverse instruction: long answers written by people avoid AI hallucinations in the responses</div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Llama 3's synthetic coding data pipeline (summarised from the book)</span>
+<pre>problems  ← AI writes diverse programming problem descriptions
+solutions ← AI solves each, in several languages      <span class="cm"># good-practice rules + step-by-step helped</span>
+<span class="kw">for</span> each solution:
+    check with parsers and linters                   <span class="cm"># missing imports, uninitialised variables</span>
+    run AI-written unit tests                        <span class="cm"># runtime errors</span>
+    <span class="kw">if</span> fail: ask AI to fix it, using the error feedback  <span class="cm"># ~20% were fixed this way</span>
+translate passing code to other languages; keep only translations that pass tests
+generate explanations and docs; keep only those that survive back-translation
+<span class="kw">result</span>: over 2.7 million verified coding examples</pre>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Synthetic data is used far more in <b>post-training</b> than pre-training: AI can reformat existing knowledge but struggles to create <b>new</b> knowledge. Long-context data can be synthesised too: write Q&amp;A from short chunks, then train with the whole long document as context.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    The paraphrase and self-play ideas are great for <b>test generation</b>: have AI paraphrase each golden test question five ways, or play a difficult customer against your bot. Then verify the generated cases (next topic) before trusting them.
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Verifying data</h2>
+    <p class="sub">People synthesise what they can check <span class="page">📖 PDF p. 415–417</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Just as companies build apps they can evaluate (evaluation-driven development), they <b>synthesise data they can verify</b>. That's why so much synthetic data is code: running it proves it works. For everything else, use the evaluation methods from Chapters 3–4.
+  </div>
+
+  <div class="grid">
+    <div class="tile green"><h4>▶️ Functional checks</h4><p>Run the code; execute the SQL; back-translate.</p></div>
+    <div class="tile purple"><h4>🧑‍⚖️ AI verifiers</h4><p>Score each example 1–5 or good/bad against written quality requirements; filter likely hallucinations with factual-consistency checks.</p></div>
+    <div class="tile blue"><h4>🕵️ Creative checks</h4><p>If a detector can easily tell synthetic data from real, it isn't realistic enough. Topic classifiers drop off-topic examples; anomaly detection flags outliers.</p></div>
+    <div class="tile orange"><h4>📏 Heuristics</h4><p>Self-Instruct removed: repetitive examples · too-long or too-short instructions · same instruction with different answers · outputs that just repeat the input.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 The ultimate test</span>
+    Does the data actually <b>improve the model</b>? For many models, synthetic data has passed that test.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Limits of AI-generated data, and model distillation</h2>
+    <p class="sub">Why synthetic data won't fully replace human data <span class="page">📖 PDF p. 417–420</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile red"><h4>🗑️ Quality control</h4><p>Garbage in, garbage out. Without reliable checks, teams hesitate to use it.</p></div>
+    <div class="tile orange"><h4>🎭 Superficial imitation</h4><p>Students copy the teacher's <b>style</b> but not its accuracy. Training a weak model on a strong model's maths solutions teaches it to produce things that <i>look like</i> solutions: it learns to hallucinate.</p></div>
+    <div class="tile purple"><h4>🌀 Model collapse</h4><p>Training on AI output, generation after generation, can make models forget rare cases (AI over-produces the likely, e.g. "no cancer", and under-produces the rare). Mixing in real data seems to prevent it; no one knows the safe ratio.</p></div>
+    <div class="tile yellow"><h4>🔍 Hidden lineage</h4><p>If the generator was trained on copyrighted data or on your benchmark, your model inherits copyright risk or a contaminated score.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  R["🌍 Real data<br/>common and rare cases"]:::green --> M1["🤖 Model 1 learns it"]:::blue
+  M1 --> S1["📝 Model 1 generates data<br/>mostly common cases"]:::yellow
+  S1 --> M2["🤖 Model 2 trains only on that"]:::blue
+  M2 --> S2["📝 Even fewer rare cases"]:::orange
+  S2 --> X["💥 Rare cases forgotten:<br/>model collapse"]:::red
+  R -. "mixing real data back in helps" .-> M2
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">One explanation for model collapse; bias can be amplified the same way</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Yet it often works</span>
+    Synthetic maths data was nearly as good as real for Llama 2-7B, with no saturation up to ~1 million examples. NVIDIA's Nemotron-4 340B used <b>98%</b> synthetic data in finetuning. Llama 3's team found training on unverified self-generated data didn't help, but <b>verified</b> self-generated data did.
+  </div>
+
+  <h3>⚗️ Model distillation</h3>
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A small <b>student</b> model learns to imitate a big <b>teacher</b> model's outputs.
+  </div>
+  <div class="bars">
+    <div class="bar"><span>DistilBERT size</span><div class="track"><div class="fill" style="width:60%; background:linear-gradient(90deg,#2563eb,#60a5fa)">60% of BERT</div></div></div>
+    <div class="bar"><span>…ability kept</span><div class="track"><div class="fill" style="width:97%; background:linear-gradient(90deg,#16a34a,#4ade80)">97%</div></div></div>
+    <div class="bar"><span>Alpaca vs teacher</span><div class="track"><div class="fill" style="width:4%; background:#7c3aed"></div></div></div>
+  </div>
+  <p class="muted">DistilBERT is also 60% faster. Alpaca (7B) behaves much like its 175B teacher at about 4% of the size. BuzzFeed cut inference cost by 80% with a LoRA-finetuned model trained on another model's outputs (how well it performed was unclear).</p>
+
+  <div class="box trap"><span class="label">⚠️ Check the licence</span>
+    Many model licences forbid using outputs to train other (especially competing) models. Also, not all synthetic training is distillation: Nemotron-4 340B (the student) <b>outperformed</b> its smaller teacher, Mixtral.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Data processing: inspect, deduplicate, clean, format</h2>
+    <p class="sub">The unglamorous steps that decide quality <span class="page">📖 PDF p. 420–427</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  I["👀 Inspect<br/>sources, statistics, length and topic distributions,<br/>per-annotator patterns, annotator disagreement"]:::blue --> D["🔂 Deduplicate<br/>exact, n-gram, fuzzy or semantic matching;<br/>hashing such as MinHash or Bloom filters"]:::purple
+  D --> C["🧹 Clean and filter<br/>strip HTML, remove PII, toxic or non-compliant data,<br/>drop low-quality examples"]:::orange
+  C --> F["📐 Format<br/>the model's tokenizer and chat template"]:::green
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Order the steps to save time (e.g. dedupe first if cleaning is slow). Do trial runs, and never change the original data in place</div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Inspect by hand</span>
+    The author says 15 minutes of staring at data almost always saves hours. As OpenAI's Greg Brockman put it, manual inspection has "probably the highest value-to-prestige ratio" in machine learning. Annotate a few examples yourself and compare; fact-check answers; look for same question with different answers.
+  </div>
+
+  <div class="box example"><span class="label">🧩 Why duplicates hurt (the book's toy example)</span>
+    <div class="table-wrap"><table class="compare">
+      <tr><th>Product</th><th>Price</th></tr>
+      <tr><td>pencil, red</td><td>$20</td></tr>
+      <tr><td>compass, green</td><td>$2</td></tr>
+      <tr><td style="color:var(--red)">pencil, red (duplicate)</td><td style="color:var(--red)">$20</td></tr>
+      <tr><td style="color:var(--red)">pencil, red (duplicate)</td><td style="color:var(--red)">$20</td></tr>
+      <tr><td>pencil, green</td><td>$1</td></tr>
+    </table></div>
+    The repeats may teach "red means expensive". In an Anthropic study, repeating just <b>0.1%</b> of data 100 times made an 800M model perform like a <b>400M</b> one. Duplicates split across train and test also <b>contaminate the test set</b>.
+  </div>
+
+  <div class="grid">
+    <div class="tile orange"><h4>🧹 Cleaning wins</h4><p>Databricks removed stray Markdown and HTML: accuracy <b>+20%</b>, input length <b>−60%</b>.</p></div>
+    <div class="tile purple"><h4>😴 A hidden quality signal</h4><p>Annotations from the <b>second half</b> of a labelling session were lower quality, likely due to fatigue.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Formatting: training format = usage format</span>
+    A 3-shot prompt ("Item: burger / Label: edible …") can become training rows like <code>burger --&gt; edible</code>. After finetuning, the prompt is just <code>{INPUT} --&gt;</code>, which is much shorter. But use <b>exactly</b> that format: "burger" (no arrow), "Item: burger --&gt;" (extra prefix) or "burger --&gt; " (extra space) can all cause problems.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Build these into your test-data pipeline: a <b>dedupe check</b> between training and test sets (contamination), a <b>PII scan</b>, and tests that production prompts <b>exactly match</b> the finetuning format, including whitespace.
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>📚 <b>Data-centric AI</b>: improve the data, not just the model. Data work is now dedicated roles.</li>
+    <li>🧾 Data must <b>show the target behaviour</b> (step-by-step reasoning, tool use, multi-turn). Removing bad examples is curation too.</li>
+    <li>💎 <b>Quality</b> beats quantity (LIMA: 1,000 examples). Six signs: relevant, aligned, consistent, well formatted, unique, compliant.</li>
+    <li>🗺️ <b>Coverage</b>: match real users' tasks and phrasing. Llama 3 credited gains to data quality and diversity; mixes differ by training phase.</li>
+    <li>🔢 <b>Quantity</b> depends on technique, task and base model. Start with ~50 examples; expect diminishing returns; plot the curve.</li>
+    <li>🧲 Best data = your own app's (data flywheel). Check public datasets and licences. <b>Guidelines</b> are the bottleneck, and they double as evaluation guidelines.</li>
+    <li>🧪 Synthesise for quantity, coverage, quality, privacy, distillation. Roots: Faker-style test data.</li>
+    <li>🧰 Traditional: templates, transformations (incl. counterfactual bias swaps), perturbation, simulation.</li>
+    <li>🤖 AI-powered: simulate, self-play, paraphrase, translate (+ back-translation), reverse instruction, verified pipelines (Llama 3: 2.7M coding examples).</li>
+    <li>✅ <b>Verify</b>: run it, AI verifiers, detectors, heuristics. Synthesise what you can check.</li>
+    <li>⚠️ Limits: weak quality control, superficial imitation, <b>model collapse</b>, hidden lineage. Mix in real data. <b>Distillation</b> = small student copies big teacher (licences permitting).</li>
+    <li>🧹 Process: <b>inspect</b> by hand → <b>deduplicate</b> → <b>clean and filter</b> → <b>format</b> exactly as used later.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: a data-QA mini lab (optional)</h2>
+    <p class="sub">Apply the chapter to your own evaluation set</p>
+  </div></div>
+  <ol>
+    <li>Run the six quality checks on your golden dataset: relevant? aligned? consistent? formatted? unique? compliant (no real PII)?</li>
+    <li>Ask a colleague to label 10 of your cases with your rubric. Where do you disagree? Update the guideline.</li>
+    <li>Use AI to <b>paraphrase</b> 5 cases three ways each. Verify each new case by hand before adding it.</li>
+    <li>Write 5 <b>counterfactual</b> cases (swap names, gender or role). Does your feature's output change when it shouldn't?</li>
+    <li>Check for duplicates between any examples you used to write prompts and your test set.</li>
+  </ol>
+  <div class="box remember"><span class="label">📌 Coming next (Chapter 9)</span>
+    Inference optimisation: making models faster and cheaper to run, plus the latency metrics you'll performance-test.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>AI Engineering</i> (Chip Huyen, O'Reilly 2025) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
