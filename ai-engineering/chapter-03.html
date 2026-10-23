@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Engineering · Ch 3 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📘 AI Engineering · Chapter 3</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+
+<header class="hero">
+  <div class="kicker">AI Engineering · Chip Huyen · Week 3</div>
+  <h1>Chapter 3: Evaluation Methodology</h1>
+  <p>The toolbox for measuring open-ended AI output: language-model metrics, exact checks, similarity scores, AI as a judge, and ranking models head to head. What each method is good for, and where each one lies to you.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 137–181</span>
+    <span class="chip">⏱ ~5 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🧪 Written for a QA engineer</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    Open-ended AI output can't be checked against one right answer, so you need a <b>mix of methods</b>: <b>exact</b> ones (run the code, compare to references) and <b>subjective</b> ones (an AI judge, or ranking models against each other). Each has blind spots, so <b>never rely on just one</b>.
+  </div>
+
+  <div class="box example"><span class="label">🧩 Why it matters (from the chapter's opening)</span>
+    A chatbot encouraged a man who later took his own life. Lawyers submitted evidence an AI made up. Air Canada had to pay damages after its chatbot gave a passenger false information. Without quality control, AI's risks can outweigh its benefits. For some teams, <b>working out evaluation is most of the development effort</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Evaluation<br/>methodology))
+    Why it is hard
+      Smarter models
+      Many right answers
+      Black boxes
+      Benchmarks saturate
+    Language model metrics
+      Entropy
+      Cross entropy
+      Perplexity
+    Exact evaluation
+      Functional correctness
+      Exact match
+      Lexical similarity
+      Semantic similarity
+    AI as a judge
+      Why and how
+      Prompting a judge
+      Limits and biases
+      Specialised judges
+    Comparative evaluation
+      Win rates
+      Rating algorithms
+      Challenges
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A(["How do I evaluate this output?"]):::start --> E["🎯 Exact evaluation<br/>no ambiguity in the verdict<br/>· functional correctness: run it<br/>· exact match<br/>· lexical similarity<br/>· semantic similarity"]:::blue
+  A --> S["🧑‍⚖️ Subjective evaluation<br/>verdict depends on the judge<br/>· AI as a judge<br/>· comparative ranking"]:::purple
+  A --> H["👩‍💼 Human evaluation<br/>still essential for sanity checks<br/>and high-stakes cases"]:::green
+  classDef start fill:#e0e7ff,stroke:#4f46e5,color:#312e81
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">The three families of evaluation methods in this chapter</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Why it's hard</a>
+    <a class="pill" href="#t2"><b>2</b> Entropy &amp; cross entropy</a>
+    <a class="pill" href="#t3"><b>3</b> Perplexity</a>
+    <a class="pill" href="#t4"><b>4</b> Functional correctness</a>
+    <a class="pill" href="#t5"><b>5</b> Exact &amp; lexical match</a>
+    <a class="pill" href="#t6"><b>6</b> Semantic similarity</a>
+    <a class="pill" href="#t7"><b>7</b> AI as a judge</a>
+    <a class="pill" href="#t8"><b>8</b> Prompting a judge</a>
+    <a class="pill" href="#t9"><b>9</b> Judge limits &amp; biases</a>
+    <a class="pill" href="#t10"><b>10</b> Who should judge</a>
+    <a class="pill" href="#t11"><b>11</b> Comparative ranking</a>
+    <a class="pill" href="#t12"><b>12</b> Ranking's limits</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Why evaluating foundation models is hard</h2>
+    <p class="sub">Five reasons, and why teams settle for "vibe checks" <span class="page">📖 PDF p. 138–142</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile red"><div class="emoji">🎓</div><h4>1 · Smarter = harder to check</h4><p>Anyone can spot a wrong first-grade sum; few can check a PhD proof. A fluent summary may need you to <b>read the whole book</b> to verify it.</p></div>
+    <div class="tile orange"><div class="emoji">🌊</div><h4>2 · Open-ended</h4><p>So many correct answers that you can't list them all to compare against.</p></div>
+    <div class="tile purple"><div class="emoji">📦</div><h4>3 · Black boxes</h4><p>Providers hide architecture and training data, so you can only judge by outputs.</p></div>
+    <div class="tile yellow"><div class="emoji">💯</div><h4>4 · Benchmarks saturate</h4><p>Models hit the top score quickly. GLUE (2018) was saturated within a year; MMLU (2020) was largely replaced by MMLU-Pro (2024).</p></div>
+    <div class="tile blue"><div class="emoji">🔭</div><h4>5 · Wider scope</h4><p>You're not only checking known tasks, but also <b>discovering</b> what the model can and can't do.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap: the vibe check</span>
+    Because evaluation is hard, many teams judge by <b>word of mouth</b> or by <b>eyeballing</b> a few favourite prompts (in one survey, 6 of 70 decision makers chose models by word of mouth). That might do for a prototype, never for iterating a product.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    The book notes that evaluation gets far less investment and tooling than model building. That gap is the opportunity for a <b>QA lead for AI</b>: bring systematic test design where others are eyeballing. Also: <b>design for observability</b>. The book says you may need to redesign a system just so its failures become visible.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>Entropy and cross entropy</h2>
+    <p class="sub">How "surprised" a model is by text <span class="page">📖 PDF p. 142–145</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    These are the scores used while <b>training</b> a language model. They measure how well the model predicts the next token. Lower = better predictions. You won't compute them daily, but they show up in model reports and in a few evaluation tricks (topic 3).
+  </div>
+
+  <div class="box example"><span class="label">🧩 Entropy, with the book's square example</span>
+    <div class="grid">
+      <div class="tile blue"><h4>Language A: 2 tokens</h4><p>"upper" / "lower". Needs <b>1 bit</b> per token. Entropy = 1. Easy to predict.</p></div>
+      <div class="tile purple"><h4>Language B: 4 tokens</h4><p>upper-left / upper-right / lower-left / lower-right. Each token tells you more, but needs <b>2 bits</b>. Entropy = 2. Harder to predict.</p></div>
+    </div>
+    <b>Entropy</b> = how much information each token carries = how hard the next token is to guess. If you can perfectly predict what I'll say, what I say carries no new information.
+  </div>
+
+  <dl class="terms">
+    <dt>Cross entropy</dt><dd>How hard it is for <b>a model</b> to predict the next token in some text. It equals the text's own entropy <b>plus</b> how far the model's learned picture is from the real thing (the <b>KL divergence</b>). A perfect model's cross entropy equals the data's entropy.</dd>
+    <dt>Bits per character (BPC)</dt><dd>Cross entropy per character, so models with different tokenizers can be compared. 6 bits per token ÷ 2 characters per token = 3 BPC.</dd>
+    <dt>Bits per byte (BPB)</dt><dd>Per byte of original text, which avoids character-encoding differences. 3 BPC with 7-bit characters → 3 ÷ ⅞ = 3.43 BPB, i.e. the model could compress text to less than half its size.</dd>
+  </dl>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    All four metrics (cross entropy, perplexity, BPC, BPB) are versions of the same idea: <b>how well the model predicts text</b>. Know one and the others can be calculated. Units can be <b>bits</b> (base 2) or <b>nats</b> (base e, used by PyTorch and TensorFlow), a common source of confusion.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Perplexity, and its surprising uses</h2>
+    <p class="sub">"How many options was the model torn between?" <span class="page">📖 PDF p. 145–149</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Perplexity</b> turns cross entropy into an intuitive number: roughly <b>how many equally likely choices the model felt it had</b> for each next token. A model that perfectly learned the 4-position language has perplexity <b>4</b>. Lower = more confident = better at predicting that text.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Algorithm: perplexity of a sentence (my own numbers)</span>
+<pre><span class="kw">input</span>  probs = [0.5, 0.25, 0.5]        <span class="cm"># probability the model gave each actual next token</span>
+n ← <span class="fn">len</span>(probs)                         <span class="cm"># 3 tokens</span>
+joint ← <span class="fn">product</span>(probs)                 <span class="cm"># 0.5 × 0.25 × 0.5 = 0.0625</span>
+perplexity ← joint ^ (−1 / n)          <span class="cm"># 0.0625 ^ (−1/3) ≈ 2.52</span>
+<span class="cm"># ≈ the model was "choosing between about 2.5 options" per token.</span>
+<span class="cm"># Needs the model's token probabilities (logprobs), which many APIs don't expose.</span></pre>
+  </div>
+
+  <div class="grid">
+    <div class="tile green"><h4>📉 Lower perplexity when…</h4><p>The text is more <b>structured</b> (HTML is more predictable than chat) · the model sees <b>more context</b>.</p></div>
+    <div class="tile red"><h4>📈 Higher perplexity when…</h4><p>The <b>vocabulary is bigger</b> (War and Peace vs a children's book) · the text is <b>unusual or gibberish</b>.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Bigger models, lower perplexity (GPT-2, from the book)</span>
+    <div class="bars">
+      <div class="bar"><span>117M params</span><div class="track"><div class="fill" style="width:100%; background:linear-gradient(90deg,#dc2626,#f87171)">29.41</div></div></div>
+      <div class="bar"><span>345M</span><div class="track"><div class="fill" style="width:77%; background:linear-gradient(90deg,#ea580c,#fb923c)">22.76</div></div></div>
+      <div class="bar"><span>762M</span><div class="track"><div class="fill" style="width:68%; background:linear-gradient(90deg,#ca8a04,#facc15)">19.93</div></div></div>
+      <div class="bar"><span>1,542M</span><div class="track"><div class="fill" style="width:62%; background:linear-gradient(90deg,#16a34a,#4ade80)">18.34</div></div></div>
+    </div>
+    <p class="muted">Perplexity on WikiText2; lower is better.</p>
+  </div>
+
+  <h3>🛠️ Uses beyond training</h3>
+  <div class="grid">
+    <div class="tile purple"><h4>🔍 Detect contamination</h4><p>If a model has suspiciously <b>low perplexity on a benchmark's questions</b>, it probably saw them in training, so its score there can't be trusted.</p></div>
+    <div class="tile blue"><h4>🧹 Deduplicate data</h4><p>Only add new training text if the model finds it surprising (high perplexity).</p></div>
+    <div class="tile orange"><h4>🚨 Spot abnormal text</h4><p>Gibberish ("home cat go eye") or very odd claims get high perplexity.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    Perplexity is a poor guide for <b>post-trained</b> chat models. SFT and RLHF teach a model to complete tasks, which usually makes it worse at raw next-token prediction, so its perplexity <b>goes up</b> even though it's more useful. Quantisation (Chapter 7) can shift it unpredictably too.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    When a vendor reports a great benchmark score, ask whether contamination was checked. Perplexity on the benchmark data is one way to check.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Exact evaluation: functional correctness</h2>
+    <p class="sub">Does it actually do the job? <span class="page">📖 PDF p. 149–151</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🎯 Exact evaluation</h4><p>No ambiguity: answer A was expected, B was given, so it's wrong.</p></div>
+    <div class="tile purple"><h4>🧑‍⚖️ Subjective evaluation</h4><p>Depends on who grades, like essay marking. AI judges fall here: change the judge model or prompt and the score changes.</p></div>
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Functional correctness</b> asks: does the output do what it was meant to? Did the generated website meet the requirements? Did the booking actually happen? It's the <b>ultimate</b> metric, but it's often hard to automate. Code is the easy case: just run it.
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy: unit tests</span>
+    This is exactly how LeetCode and HackerRank grade submissions, and how you already test code: run it against test cases. For AI-written code it's called <b>execution accuracy</b>. Benchmarks: HumanEval, MBPP (code); Spider, BIRD-SQL, WikiSQL (text-to-SQL).
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  P["📝 Problem<br/>write gcd of num1, num2"]:::blue --> G["🤖 Model generates k code samples"]:::purple
+  G --> R["▶️ Run each sample against the test cases<br/>e.g. gcd of 15 and 20 must return 5"]:::orange
+  R --> D{"Any sample passes<br/>every test?"}:::q
+  D -->|Yes| S["✅ Problem solved"]:::green
+  D -->|No| F["❌ Problem not solved"]:::red
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef q fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">How code benchmarks check functional correctness</div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Algorithm: pass@k</span>
+<pre>solved ← 0
+<span class="kw">for</span> problem <span class="kw">in</span> problems:
+    samples ← <span class="fn">generate</span>(problem, k)        <span class="cm"># k attempts per problem</span>
+    <span class="kw">if</span> <span class="fn">any</span>(<span class="fn">passes_all_tests</span>(s) <span class="kw">for</span> s <span class="kw">in</span> samples):
+        solved ← solved + 1
+pass_at_k ← solved / <span class="fn">len</span>(problems)        <span class="cm"># 10 problems, 5 solved with k = 3 → pass@3 = 50%</span>
+<span class="cm"># More attempts = more chances, so pass@1 ≤ pass@3 ≤ pass@10.</span></pre>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Whenever a task has a <b>measurable outcome</b> (code runs, SQL returns the right rows, a game score, energy saved), prefer functional correctness to "does it look right". And when comparing pass@k numbers, check that <b>k is the same</b>.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Why is pass@10 usually higher than pass@1?</summary>
+      <div class="answer">A problem counts as solved if any of the k samples passes. Ten tries give more chances than one.</div></details>
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Reference data: exact match and lexical similarity</h2>
+    <p class="sub">Comparing outputs to known good answers <span class="page">📖 PDF p. 151–156</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    If you can't run the output, compare it with <b>reference answers</b> (also called ground truths). Metrics that need references are <b>reference-based</b>; ones that don't are <b>reference-free</b>. References are usually written by people, increasingly by AI and then reviewed.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>1 · Ask an evaluator</h4><p>A human or AI decides whether two texts mean the same (topic 7).</p></div>
+    <div class="tile green"><h4>2 · Exact match</h4><p>Identical to a reference: yes/no.</p></div>
+    <div class="tile orange"><h4>3 · Lexical similarity</h4><p>How much the <b>words</b> overlap: a score.</p></div>
+    <div class="tile purple"><h4>4 · Semantic similarity</h4><p>How close the <b>meaning</b> is: a score (topic 6).</p></div>
+  </div>
+
+  <h3>✅ Exact match</h3>
+  <p>Works for short, exact answers: "What's 2 + 3?", "What's my account balance?", trivia. A looser version accepts any output that <b>contains</b> the reference ("The answer is 5").</p>
+  <div class="box trap"><span class="label">⚠️ Common trap: "contains" can accept wrong answers</span>
+    Q: "What year was Anne Frank born?" Reference: 1929. The output "September 12, 1929" contains 1929, but the date is wrong (she was born 12 June). And for anything longer than a fact, exact match fails: "How is it going?" is a fine translation of "Comment ça va?" but won't match a reference list that doesn't include it.
+  </div>
+
+  <h3>🔤 Lexical similarity</h3>
+  <div class="box example"><span class="label">🧩 Word overlap (the book's example)</span>
+    Reference: <i>"My cats scare the mice"</i>
+    <div class="bars">
+      <div class="bar"><span>"My cats eat the mice"</span><div class="track"><div class="fill" style="width:80%; background:linear-gradient(90deg,#16a34a,#4ade80)">4 of 5 words · 80%</div></div></div>
+      <div class="bar"><span>"Cats and mice fight all the time"</span><div class="track"><div class="fill" style="width:60%; background:linear-gradient(90deg,#ca8a04,#facc15)">3 of 5 words · 60%</div></div></div>
+    </div>
+  </div>
+  <dl class="terms">
+    <dt>Edit distance</dt><dd>"Fuzzy matching": how many deletions, insertions or substitutions turn one text into another. "bad" → "bard" is 1 edit; "bad" → "cash" is 3.</dd>
+    <dt>n-gram</dt><dd>A run of n tokens. "My cats scare the mice" has 4 bigrams: my cats · cats scare · scare the · the mice. Similarity = how many reference n-grams appear in the output.</dd>
+    <dt>BLEU, ROUGE, METEOR++, TER, CIDEr</dt><dd>Classic lexical metrics, common in translation before foundation models; less used now.</dd>
+  </dl>
+
+  <div class="box trap"><span class="label">⚠️ Three ways lexical scores mislead</span>
+    <ul>
+      <li><b>Missing references:</b> a correct answer scores low if no reference resembles it (Adept's Fuyu model was marked down for correct captions).</li>
+      <li><b>Wrong references:</b> the WMT 2023 organisers found many bad reference translations in their own data.</li>
+      <li><b>Look-alike ≠ correct:</b> on HumanEval, correct and incorrect code got <b>similar BLEU scores</b>.</li>
+    </ul>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Use exact match for short, factual answers and labels, with careful normalisation (case, spacing, number formats). For anything longer, word overlap is a <b>weak signal</b>. Don't gate a release on BLEU alone.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Semantic similarity and embeddings</h2>
+    <p class="sub">Comparing meaning, not wording <span class="page">📖 PDF p. 156–160</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile green"><h4>Different words, same meaning</h4><p>"What's up?" vs "How are you?" Little word overlap, close meaning.</p></div>
+    <div class="tile red"><h4>Same words, different meaning</h4><p>"Let's eat, grandma" vs "Let's eat grandma". Nearly identical, very different.</p></div>
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    An <b>embedding</b> is a list of numbers that tries to capture what a piece of text (or image, or audio) <b>means</b>. Texts with similar meanings should get similar lists. "The cat sits on a mat" might become [0.11, 0.02, 0.54]; real embeddings have 100 to 10,000 numbers.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["📝 Model's answer"]:::blue --> EM["🧠 Embedding model<br/>e.g. BERT, Sentence Transformers, an embeddings API"]:::purple
+  B["📗 Reference answer"]:::green --> EM
+  EM --> VA["🔢 Vector A"]:::blue
+  EM --> VB["🔢 Vector B"]:::green
+  VA --> C["📐 Cosine similarity<br/>1 = same direction, 0 = unrelated, −1 = opposite"]:::orange
+  VB --> C
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">Semantic similarity: embed both texts, then measure the angle between them</div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Algorithm: cosine similarity (my own tiny vectors)</span>
+<pre><span class="kw">input</span>  A = [1, 2, 2],  B = [2, 1, 2]
+dot   ← 1×2 + 2×1 + 2×2               <span class="cm"># = 8</span>
+lenA  ← <span class="fn">sqrt</span>(1² + 2² + 2²)            <span class="cm"># = 3</span>
+lenB  ← <span class="fn">sqrt</span>(2² + 1² + 2²)            <span class="cm"># = 3</span>
+<span class="kw">return</span> dot / (lenA × lenB)             <span class="cm"># 8 / 9 ≈ 0.89 → very similar</span></pre>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Embedding model</th><th>Vector size</th></tr>
+    <tr><td>Google BERT</td><td>768 (base) · 1,024 (large)</td></tr>
+    <tr><td>OpenAI CLIP</td><td>512 for images and text</td></tr>
+    <tr><td>OpenAI Embeddings API</td><td>1,536 (small) · 3,072 (large)</td></tr>
+    <tr><td>Cohere Embed v3</td><td>1,024 · 384 (light)</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    <ul>
+      <li>Metrics: <b>BERTScore</b>, <b>MoverScore</b>. Needs fewer references than lexical matching.</li>
+      <li>A good embedding model puts "the cat sits on a mat" closer to "the dog plays on the grass" than to "AI research is super fun". Benchmark: <b>MTEB</b>.</li>
+      <li><b>Multimodal</b> embeddings (CLIP) put images and text in one space, so a photo of a man fishing lands near the text "a fisherman". That's what makes text-to-image search work.</li>
+      <li>Embeddings return in Chapter 6 (RAG and vector search) and Chapter 8 (deduplication).</li>
+    </ul>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    Semantic similarity is only as good as the <b>embedding model</b>: with bad embeddings, two answers that mean the same can still score low. It also costs compute to run. And note "Let's eat, grandma": embeddings may not catch a small change that flips the meaning.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--pink)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>AI as a judge: why, and three ways to use it</h2>
+    <p class="sub">Using a model to grade a model <span class="page">📖 PDF p. 160–163</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    An <b>AI judge</b> (or LLM-as-a-judge) is an AI model asked to evaluate another AI's output. It became practical around 2020 with GPT-3, and is now one of the most common evaluation methods in production. On LangChain's platform in 2023, <b>58%</b> of evaluations used AI judges.
+  </div>
+
+  <div class="grid">
+    <div class="tile green"><h4>⚡ Fast and cheap</h4><p>Much cheaper and quicker than human reviewers.</p></div>
+    <div class="tile blue"><h4>📭 No reference needed</h4><p>Works in production, where there's no "right answer" to compare against.</p></div>
+    <div class="tile purple"><h4>🎛️ Any criterion</h4><p>Correctness, toxicity, hallucination, tone, "does this sound like Gandalf?"</p></div>
+    <div class="tile orange"><h4>💬 Explains itself</h4><p>Can give the reason for a score, which helps when auditing results.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 How well do judges agree with people?</span>
+    <div class="bars">
+      <div class="bar"><span>GPT-4 vs humans</span><div class="track"><div class="fill" style="width:85%; background:linear-gradient(90deg,#16a34a,#4ade80)">85% agreement</div></div></div>
+      <div class="bar"><span>Humans vs humans</span><div class="track"><div class="fill" style="width:81%; background:linear-gradient(90deg,#2563eb,#60a5fa)">81% agreement</div></div></div>
+    </div>
+    <p class="muted">On the MT-Bench benchmark (Zheng et al., 2023). AlpacaEval's judges also correlated 0.98 with a human-voted leaderboard.</p>
+  </div>
+
+  <h3>🧰 Three ways to use a judge</h3>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Mode</th><th>What the judge sees</th><th class="new">Output</th></tr>
+    <tr><td>1 · Score it alone</td><td>Question + answer</td><td>A score, e.g. 1–5</td></tr>
+    <tr><td>2 · Compare to a reference</td><td>Question + reference + answer</td><td>Same as the reference? True/False</td></tr>
+    <tr><td>3 · Compare two answers</td><td>Question + answer A + answer B</td><td>Which is better: A or B. Also used for preference data and best-of-N</td></tr>
+  </table></div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap: built-in criteria aren't standard</span>
+    Azure AI Studio, MLflow, LangChain and Ragas all ship criteria like "relevance" or "faithfulness", but each tool defines and scores them differently. "Relevance 4" in one tool isn't "relevance 4" in another.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Writing a good judge prompt</h2>
+    <p class="sub">Task, criteria, scoring system, examples <span class="page">📖 PDF p. 164–165</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  T["1️⃣ The task<br/>e.g. judge how relevant the answer is to the question"]:::blue --> C["2️⃣ The criteria, in detail<br/>e.g. does it contain enough information<br/>to answer, according to the reference?"]:::purple
+  C --> S["3️⃣ The scoring system<br/>labels, or a small number scale"]:::orange
+  S --> X["4️⃣ Examples for each score<br/>with the reason it got that score"]:::green
+  X --> J(["🧑‍⚖️ Judge = model + prompt + sampling settings<br/>change any one and you have a different judge"]):::pink
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+</pre>
+    <div class="caption">The four parts of a judge prompt</div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Scoring system</th><th>Example</th><th class="new">How well judges handle it</th></tr>
+    <tr><td>Classification</td><td>good / bad · relevant / irrelevant / neutral</td><td>✅ Best: models are better with words than numbers</td></tr>
+    <tr><td>Discrete numbers</td><td>1 to 5</td><td>👍 OK; the wider the range, the worse it gets</td></tr>
+    <tr><td>Continuous numbers</td><td>0.0 to 1.0</td><td>⚠️ Worst of the three</td></tr>
+  </table></div>
+
+  <div class="box example"><span class="label">🧩 A judge prompt in my own words (built like Azure AI Studio's relevance prompt)</span>
+<pre class="case" style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;white-space:pre-wrap;font:13.5px/1.6 ui-monospace,Menlo,monospace">Task: Score how relevant the ANSWER is to the QUESTION, using the
+REFERENCE as the truth. Use 1–5 and give a one-line reason.
+Criteria: Focus on whether the answer contains enough correct
+information to address the question.
+Scoring: 5 = fully answers and agrees with the reference ...
+         1–2 = contradicts the reference
+Example: Q "Is the sky blue?"  Reference "Yes."  Answer "No, it isn't."
+         → Score 1. Reason: contradicts the reference.</pre>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Treat the judge prompt like test code: <b>version it</b>, review changes, and keep the judge's model and sampling settings fixed. If any of them change, re-check the judge against a small human-labelled set before trusting its new scores.
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Limits and biases of AI judges</h2>
+    <p class="sub">Why a judge's score can't be taken at face value <span class="page">📖 PDF p. 165–169</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile red"><div class="emoji">🎲</div><h4>Inconsistency</h4><p>Same input, different scores. Adding examples raised GPT-4's consistency from <b>65% to 77.5%</b>, but quadrupled its cost. And consistent isn't the same as correct: a judge can make the same mistake every time.</p></div>
+    <div class="tile orange"><div class="emoji">🌫️</div><h4>Criteria ambiguity</h4><p>"Faithfulness" is scored 1–5 in MLflow, 0/1 in Ragas and YES/NO in LlamaIndex. These scores can't be compared.</p></div>
+    <div class="tile yellow"><div class="emoji">🔄</div><h4>The judge changes</h4><p>Coherence went from 90% to 92%. Did the app improve, or did someone fix a typo in the judge prompt and make it more lenient?</p></div>
+    <div class="tile purple"><div class="emoji">💸</div><h4>Cost and latency</h4><p>Judging with the same model doubles API calls; three criteria makes it 4×. Judging before replying adds latency. <b>Spot-checking</b> (judging a sample) cuts cost but can miss failures.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ The book's rule</span>
+    "Do not trust any AI judge if you can't see the model and the prompt used for the judge."
+  </div>
+
+  <h3>🧲 Three common biases</h3>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Bias</th><th>What happens</th><th class="new">Mitigation</th></tr>
+    <tr><td>🪞 Self-bias</td><td>Judges favour their own answers. GPT-4: ~10% higher win rate for itself; Claude-v1: ~25%</td><td>Use a judge from a different model family</td></tr>
+    <tr><td>🥇 First-position bias</td><td>Favours the first answer shown (humans tend to favour the last)</td><td>Run each comparison twice with the order swapped</td></tr>
+    <tr><td>📏 Verbosity bias</td><td>Prefers longer answers: GPT-4 and Claude-1 preferred ~100-word answers <i>with factual errors</i> over correct ~50-word ones</td><td>Put length guidance in the rubric; stronger judges suffer less</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Judges also share every AI risk: <b>privacy</b> (you send data to a provider) and <b>IP</b> (unknown training data). The book's conclusion: use AI judges, but <b>always supplement them</b> with exact evaluation, human evaluation, or both.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    These biases give you ready-made test cases for your judge: swap answer order (does the verdict flip?), pad a wrong answer with extra words (does its score rise?), and include answers written by the judge's own model family.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Your judge prefers answer A in an A-vs-B comparison. What's the cheapest check for position bias?</summary>
+      <div class="answer">Run it again with the order swapped (B shown first). If the verdict flips, position is influencing the judge.</div></details>
+    <details><summary>Your judge became more consistent after you added examples. Does that mean it's more accurate?</summary>
+      <div class="answer">No. Consistency means it gives the same answer each time; it can still be consistently wrong. Check accuracy against human labels.</div></details>
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Which model should be the judge?</h2>
+    <p class="sub">Stronger, weaker, itself, or a specialist <span class="page">📖 PDF p. 169–172</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>💪 Stronger judge</h4><p>Makes sense (the examiner should know more). Pattern: a cheap model generates; a strong model checks a sample, e.g. 1%, or runs in the background and swaps in its own answer when needed. Catch: who judges the strongest model?</p></div>
+    <div class="tile yellow"><h4>🪞 Self-evaluation</h4><p>Sounds like cheating (self-bias), but useful as a sanity check, and asking a model to critique itself can make it revise: "10+3 = 30" → "Is this correct?" → "No, it's 13."</p></div>
+    <div class="tile purple"><h4>🐜 Weaker judge</h4><p>Judging may be easier than creating: anyone can say whether a song is good. Stronger judges did correlate better with humans in one study, though.</p></div>
+  </div>
+
+  <h3>🎯 Specialised judges</h3>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Type</th><th>Input → output</th><th class="new">Examples</th></tr>
+    <tr><td>Reward model</td><td>(prompt, answer) → quality score</td><td>Google's Cappy: 360M parameters, score 0–1</td></tr>
+    <tr><td>Reference-based judge</td><td>(answer, reference) → similarity or quality score</td><td>BLEURT (odd range, about −2.5 to 1) · Prometheus: adds a rubric, scores 1–5</td></tr>
+    <tr><td>Preference model</td><td>(prompt, answer 1, answer 2) → which is better</td><td>PandaLM (explains its choice) · JudgeLM</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    The book is excited about <b>small, specialised judges</b>: trained for one criterion and one scoring system, they can be more reliable than big general models for that judgement, and much cheaper.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Ranking models with comparative evaluation</h2>
+    <p class="sub">Head-to-head matches instead of individual scores <span class="page">📖 PDF p. 172–175</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📝 Pointwise</h4><p>Score each model on its own, then sort. Like scoring each dancer separately.</p></div>
+    <div class="tile orange"><h4>🥊 Comparative</h4><p>Put models side by side and ask which is better. Like a dance-off. Usually easier for subjective quality: picking the better of two songs is easier than scoring each.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  P["💬 A prompt"]:::blue --> M["🤖🤖 Two models answer<br/>anonymously"]:::purple
+  M --> V["🗳️ An evaluator picks the winner<br/>human or AI; ties allowed"]:::orange
+  V --> H["📒 Match history<br/>many matches across many pairs"]:::yellow
+  H --> R["🧮 Rating algorithm<br/>Elo, Bradley–Terry, TrueSkill"]:::green
+  R --> L(["🏆 Leaderboard<br/>e.g. LMSYS Chatbot Arena"]):::pink
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+</pre>
+    <div class="caption">How a comparative leaderboard is built</div>
+  </div>
+
+  <dl class="terms">
+    <dt>Win rate</dt><dd>The share of A-vs-B matches that A won.</dd>
+    <dt>Rating algorithm</dt><dd>Turns match results into a score per model. Borrowed from chess and games. Chatbot Arena moved from <b>Elo</b> to <b>Bradley–Terry</b> because Elo was sensitive to the order of evaluators and prompts.</dd>
+    <dt>A correct ranking</dt><dd>One that <b>predicts future matches</b>: if A ranks above B, A should win more than half the time. There's no single ground truth.</dd>
+  </dl>
+
+  <div class="box trap"><span class="label">⚠️ Common trap: preference isn't correctness</span>
+    Don't decide factual questions by vote. "Is there a link between phone radiation and brain tumours? Yes / No" should be answered by evidence, not popularity, and training on such votes can misalign a model. Voting works best when voters know the subject: AI as an <b>assistant</b> for tasks the user can do, not tasks they can't.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Comparative ≠ A/B testing</span>
+    In A/B testing, each user sees <b>one</b> version. In comparative evaluation, a user sees <b>several at once</b> and picks.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>The limits, and the future, of comparative evaluation</h2>
+    <p class="sub">Scale, quality control, and "better" vs "good enough" <span class="page">📖 PDF p. 176–180</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile red"><div class="emoji">📈</div><h4>Scale</h4><p>Pairs grow with the square of the number of models. In January 2024, LMSYS ran <b>244,000</b> comparisons for 57 models, only ~<b>153 per pair</b> across 1,596 pairs. Rankings assume <b>transitivity</b> (A&gt;B and B&gt;C means A&gt;C), which may not hold for AI. New and private models are hard to slot in.</p></div>
+    <div class="tile orange"><div class="emoji">🎭</div><h4>Quality control</h4><p>Crowd voters may not fact-check, may reward rude answers, or pick at random. Of 33,000 published Arena prompts, <b>180</b> were just "hello" or "hi"; one brainteaser appeared 44 times. Easy prompts don't separate models.</p></div>
+    <div class="tile purple"><div class="emoji">⚖️</div><h4>Better ≠ good enough</h4><p>"B beats A" doesn't say whether either is good. If A resolves 70% of support tickets and B wins 51% of matches, how many tickets will B resolve? And is it worth B's extra cost?</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Why it still has a future</span>
+    <ul>
+      <li>Comparing stays possible even when models outgrow human experts' ability to <b>score</b> them.</li>
+      <li>It measures what we care about: <b>human preference</b>.</li>
+      <li>It <b>never saturates</b>: new models keep arriving.</li>
+      <li>It's <b>hard to game</b>: no reference answers to train on.</li>
+    </ul>
+    Fixes in use: filter to hard prompts (LMSYS), trained private evaluators (Scale), comparisons built into products.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Public leaderboards don't test <b>your</b> prompts, your documents (RAG) or your users. Use them to shortlist models, then run your own evaluation, and include cost in the decision.
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🚨 Evaluation is the biggest hurdle to shipping AI, and it's under-invested. Avoid <b>vibe checks</b>.</li>
+    <li>📉 <b>Cross entropy</b> and <b>perplexity</b> measure how well a model predicts text; lower = better. Perplexity ≈ number of options it was torn between.</li>
+    <li>🔍 Perplexity helps <b>detect contamination</b> (suspiciously low on a benchmark), deduplicate data and spot abnormal text. Post-trained models have higher perplexity.</li>
+    <li>🎯 <b>Exact</b> evaluation = unambiguous verdict. <b>Subjective</b> = depends on the judge.</li>
+    <li>▶️ <b>Functional correctness</b> (run it) is the ultimate metric where possible. <b>pass@k</b> = solved by any of k samples.</li>
+    <li>🔤 <b>Exact match</b> for short answers only; "contains" can accept wrong answers. <b>Lexical</b> scores (BLEU, ROUGE) measure word overlap, not correctness.</li>
+    <li>🧠 <b>Semantic similarity</b> compares embeddings with cosine similarity; only as good as the embedding model.</li>
+    <li>🧑‍⚖️ <b>AI judges</b> are fast, cheap and need no reference. GPT-4 agreed with humans 85% of the time.</li>
+    <li>✍️ Judge prompt = task + criteria + scoring system + examples. Labels beat numbers; small ranges beat big ones.</li>
+    <li>⚠️ Judges are inconsistent, non-standard and can drift. Biases: <b>self</b>, <b>first-position</b>, <b>verbosity</b>. Never trust a judge you can't inspect.</li>
+    <li>🐜 Judges can be stronger, weaker, the same model, or <b>small specialists</b> (reward, reference-based, preference models).</li>
+    <li>🥊 <b>Comparative evaluation</b> ranks models from head-to-head matches; doesn't scale easily and doesn't tell you "good enough".</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>This week's Saturday lab</h2>
+    <p class="sub">Build your first golden dataset</p>
+  </div></div>
+  <ol>
+    <li>Pick a small LLM feature, e.g. summarising bug reports.</li>
+    <li>Write <b>30 test cases</b>: input plus a reference summary or a checklist of must-have facts.</li>
+    <li>Score with three methods: <b>exact-match</b> checks for key fields (severity, component), <b>word overlap</b> against the reference, and <b>embedding similarity</b>.</li>
+    <li>Find a case where word overlap is high but the summary is wrong, and one where overlap is low but the summary is fine. Those are the limits from topic 5.</li>
+    <li>Bonus: write a judge prompt using topic 8's four parts, judge 10 summaries twice with the order swapped, and see whether any verdicts flip.</li>
+  </ol>
+  <div class="box remember"><span class="label">📌 Coming next (Chapter 4)</span>
+    How to use these methods in practice: defining evaluation criteria for your app, choosing models, and building an evaluation pipeline.
+  </div>
+  <div class="box extra"><span class="label">➕ Read alongside</span>
+    <i>LLM Evaluation for Production Systems</i> Ch 1 (topics 8–9 there) covers judge calibration and evaluator drift from a release-gating angle.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>AI Engineering</i> (Chip Huyen, O'Reilly 2025) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
