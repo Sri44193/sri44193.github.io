@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Engineering · Ch 7 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📘 AI Engineering · Chapter 7</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+
+<header class="hero">
+  <div class="kicker">AI Engineering · Chip Huyen · Week 7 (lighter reading)</div>
+  <h1>Chapter 7: Finetuning</h1>
+  <p>Adapting a model by changing its weights: when it's worth it (and when RAG or better prompts win), why it needs so much memory, how tricks like quantisation and LoRA make it affordable, how models can be merged, and the practical knobs to turn.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 331–386</span>
+    <span class="chip">⏱ ~4 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🧪 Written for a QA engineer</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    <b>Finetuning</b> changes a model's weights to fit your task. It's powerful but costly, so try prompting and RAG first. "<b>Finetuning is for form, RAG is for facts.</b>" Most of the clever techniques (quantisation, PEFT, LoRA) exist to cut finetuning's huge memory needs.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why a QA lead should read this</span>
+    You may never finetune yourself, but you'll <b>test finetuned models</b>: did the target task improve, did <b>other tasks get worse</b>, does a smaller or quantised version keep quality? This chapter tells you what can go wrong.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Finetuning))
+    Should you
+      Reasons to
+      Reasons not to
+      Finetuning vs RAG
+    Memory
+      Backpropagation
+      Memory maths
+      Number formats
+      Quantisation
+    Techniques
+      Full vs partial
+      PEFT
+      LoRA and QLoRA
+      Model merging
+    Tactics
+      Base model paths
+      Frameworks
+      Hyperparameters
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> What finetuning is</a>
+    <a class="pill" href="#t2"><b>2</b> Reasons for &amp; against</a>
+    <a class="pill" href="#t3"><b>3</b> Domain models</a>
+    <a class="pill" href="#t4"><b>4</b> Finetuning vs RAG</a>
+    <a class="pill" href="#t5"><b>5</b> How training works</a>
+    <a class="pill" href="#t6"><b>6</b> Memory maths</a>
+    <a class="pill" href="#t7"><b>7</b> Number formats</a>
+    <a class="pill" href="#t8"><b>8</b> Quantisation</a>
+    <a class="pill" href="#t9"><b>9</b> PEFT</a>
+    <a class="pill" href="#t10"><b>10</b> LoRA</a>
+    <a class="pill" href="#t11"><b>11</b> Model merging</a>
+    <a class="pill" href="#t12"><b>12</b> Practical tactics</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>What finetuning is</h2>
+    <p class="sub">Transfer learning by further training <span class="page">📖 PDF p. 331–335</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Prompting and RAG change what goes <b>into</b> a model. <b>Finetuning</b> changes the model <b>itself</b> by training it a bit more on your data. It's most often used to improve <b>instruction following</b>, especially sticking to a required style or format.
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy: transfer learning</span>
+    Knowing piano makes learning another instrument easier. A model that learned general language can learn legal Q&amp;A from a <b>few hundred</b> examples instead of millions. Google's translator even learned Portuguese→Spanish without any Portuguese–Spanish examples, by transferring from Portuguese→English and English→Spanish.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Type of finetuning</th><th>Data it uses</th><th class="new">Example</th></tr>
+    <tr><td>Continued pre-training</td><td>Cheap raw text, no labels</td><td>Raw legal documents before legal Q&amp;A; Vietnamese text before Vietnamese summarisation</td></tr>
+    <tr><td>Infilling</td><td>Fill-in-the-blank examples</td><td>Text editing, code debugging</td></tr>
+    <tr><td>Supervised (SFT)</td><td>(instruction, response) pairs</td><td>Teach a format or behaviour</td></tr>
+    <tr><td>Preference</td><td>(instruction, winner, loser)</td><td>Align with what users prefer (Ch 2)</td></tr>
+    <tr><td>Long-context</td><td>Long sequences + architecture changes</td><td>Code Llama: 4,096 → 16,384 tokens. Hard, and can hurt short inputs</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    InstructGPT's paper describes finetuning as <b>unlocking</b> abilities the model already has but that are hard to reach by prompting. App developers usually finetune an already post-trained model: the closer it is to your task, the less work.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>Reasons to finetune, and reasons not to</h2>
+    <p class="sub">Start with prompting; finetune only when it isn't enough <span class="page">📖 PDF p. 335–338</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile green"><h4>✅ Reasons to finetune</h4><p>
+      • Better quality on <b>your</b> task (e.g. a rare SQL dialect, customer-specific queries)<br>
+      • Reliable structured output (JSON, YAML)<br>
+      • <b>Bias mitigation</b>: finetuning on text with female CEOs, or written by women or by African authors, reduced biases<br>
+      • Make a <b>small model</b> excellent: Grammarly's finetuned Flan-T5 beat a GPT-3 text-editing variant while <b>60× smaller</b>, using 82,000 examples<br>
+      • <b>Distillation</b>: train a small model to imitate a big one (Ch 8)</p></div>
+    <div class="tile red"><h4>❌ Reasons not to</h4><p>
+      • Better at one task, <b>worse at others</b><br>
+      • Needs <b>data</b> (slow and costly to label)<br>
+      • Needs <b>ML skills</b>: optimisers, learning rates, overfitting<br>
+      • You must <b>host and serve</b> it<br>
+      • <b>Maintenance</b>: new base models may soon beat your finetuned one</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 The "other tasks got worse" problem</span>
+    A model handles product recommendations and general feedback well but is weak at changing orders. You finetune it on order changes: those improve, and the other two <b>get worse</b>. Fixes: finetune on <b>all</b> the query types, use separate models, or merge models (topic 11).
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ A story practitioners keep telling the author</span>
+    Someone insists prompting doesn't work and they need to finetune. On inspection, the prompt experiments were <b>minimal and unsystematic</b>: unclear instructions, unrepresentative examples, poorly defined metrics. With a proper prompt process, the prompts turned out good enough.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    After any finetune, run the <b>full regression suite</b>, not just the target task's tests. The book calls the drop in other skills an "alignment tax". Your existing evaluation pipeline from prompting is exactly what makes finetuning safe.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Do you need a domain-specific model?</h2>
+    <p class="sub">The BloombergGPT lesson <span class="page">📖 PDF p. 338–340</span></p>
+  </div></div>
+
+  <div class="box example"><span class="label">🧩 BloombergGPT vs GPT-4</span>
+    Bloomberg trained a 50B-parameter finance model in 2023: <b>1.3 million</b> GPU hours, about <b>$1.3–2.6 million</b> in compute. The same month, general-purpose GPT-4 came out and beat it on finance benchmarks:
+    <div class="bars">
+      <div class="bar"><span>FiQA sentiment · GPT-4</span><div class="track"><div class="fill" style="width:87%; background:linear-gradient(90deg,#16a34a,#4ade80)">87.15</div></div></div>
+      <div class="bar"><span>FiQA · BloombergGPT</span><div class="track"><div class="fill" style="width:75%; background:linear-gradient(90deg,#94a3b8,#cbd5e1)">75.07</div></div></div>
+      <div class="bar"><span>ConvFinQA · GPT-4</span><div class="track"><div class="fill" style="width:76%; background:linear-gradient(90deg,#16a34a,#4ade80)">76.48</div></div></div>
+      <div class="bar"><span>ConvFinQA · BloombergGPT</span><div class="track"><div class="fill" style="width:43%; background:linear-gradient(90deg,#94a3b8,#cbd5e1)">43.41</div></div></div>
+    </div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    <ul>
+      <li>Be wary of "general models can't do our domain". As general models improve, they often <b>beat</b> specialist ones.</li>
+      <li>Finetuning used to save tokens (examples baked in rather than in every prompt); <b>prompt caching</b> (Ch 9) now covers much of that. Finetuning still allows <b>unlimited</b> examples; prompts are limited by context length.</li>
+      <li>Prompt experiments build the evaluation pipeline, annotation guideline and experiment tracking you'll need for finetuning anyway.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Finetuning or RAG?</h2>
+    <p class="sub">"Finetuning is for form, RAG is for facts" <span class="page">📖 PDF p. 340–343</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  F{"Why does the model fail?"}:::q --> I["📚 Information failures<br/>wrong or outdated facts, missing private data<br/>e.g. says 10 albums when there are 11"]:::blue
+  F --> B["🎭 Behaviour failures<br/>right facts but irrelevant, wrong format,<br/>unsafe, broken syntax"]:::purple
+  I --> R["🔎 Use RAG<br/>start simple: BM25 keyword search"]:::green
+  B --> T["🔧 Use finetuning"]:::orange
+  I -. "both kinds?" .-> R
+  classDef q fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">Diagnose the type of failure first. With both kinds of failure, start with RAG: it's usually easier</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 RAG vs finetuning on current-events questions (Ovadia et al., 2024)</span>
+    <div class="table-wrap"><table class="compare">
+      <tr><th>Mistral-7B setup</th><th>Score</th></tr>
+      <tr><td>Base model</td><td>0.481</td></tr>
+      <tr><td>Finetuned (two methods)</td><td>0.504 · 0.588</td></tr>
+      <tr><td>Finetuned + RAG</td><td>0.810 · 0.830</td></tr>
+      <tr><td style="color:var(--green)">Base model + RAG</td><td style="color:var(--green);font-weight:700">0.875 · best</td></tr>
+    </table></div>
+    RAG on the plain base model beat everything. Across MMLU, adding RAG to a finetuned model helped only <b>43%</b> of the time.
+  </div>
+
+  <h3>🪜 A typical adaptation path (always with an evaluation pipeline first)</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  S1["1️⃣ Prompting alone<br/>versioned prompts, best practices"]:::blue --> S2["2️⃣ Add examples<br/>1–50 depending on the task"]:::blue
+  S2 --> S3["3️⃣ Missing information? add simple RAG"]:::green
+  S3 --> S4a["4a · Still information failures?<br/>more advanced RAG, e.g. embeddings"]:::green
+  S3 --> S4b["4b · Behaviour failures?<br/>irrelevant, malformed, unsafe → finetune"]:::orange
+  S4a --> S5["5️⃣ Combine RAG + finetuning"]:::purple
+  S4b --> S5
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+</pre>
+    <div class="caption">Advanced RAG makes <i>serving</i> more complex; finetuning makes <i>model development</i> more complex</div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Tag every failing test case as <b>information</b> or <b>behaviour</b>. The ratio tells your team whether to invest in retrieval or finetuning, and it's an evidence-based way for a QA lead to steer the roadmap.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>How training works (just enough to understand the memory problem)</h2>
+    <p class="sub">Forward pass, loss, gradients, optimiser <span class="page">📖 PDF p. 343–346</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  X["📥 Training example"]:::blue --> FP["➡️ Forward pass<br/>compute the model's output"]:::purple
+  FP --> L["📉 Loss<br/>how far is the output from the expected one?"]:::red
+  L --> G["🧮 Gradients<br/>how much did each trainable parameter<br/>contribute to the mistake? one per parameter"]:::orange
+  G --> O["🔧 Optimiser, e.g. Adam<br/>adjusts each parameter, keeping extra<br/>'state' values per parameter"]:::green
+  O -. "next example" .-> X
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">One training step (backpropagation). Using a model (inference) needs only the forward pass</div>
+  </div>
+
+  <dl class="terms">
+    <dt>Trainable parameter</dt><dd>A weight that gets updated during finetuning. Unchanged ones are <b>frozen</b>.</dd>
+    <dt>Gradient</dt><dd>One extra number per trainable parameter, saying how to adjust it.</dd>
+    <dt>Optimiser state</dt><dd>Extra numbers the optimiser keeps per trainable parameter: SGD 0, momentum 1, <b>Adam 2</b> (most common for transformers).</dd>
+  </dl>
+
+  <div class="box remember"><span class="label">📌 The key insight</span>
+    <b>More trainable parameters = more memory</b>, because each one drags along a gradient and optimiser states. Reducing trainable parameters is the whole point of PEFT (topic 9).
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Memory maths</h2>
+    <p class="sub">Back-of-the-napkin estimates for hardware <span class="page">📖 PDF p. 346–349</span></p>
+  </div></div>
+
+  <div class="algo"><span class="label">⚙️ Algorithm: memory to RUN a model (inference)</span>
+<pre>N ← 13 billion parameters
+M ← 2 bytes per parameter                <span class="cm"># 16-bit format</span>
+weights ← N × M                          <span class="cm"># = 26 GB</span>
+total   ← weights × 1.2                  <span class="cm"># +20% for activations and attention keys/values ≈ 31.2 GB</span>
+<span class="cm"># A 24 GB GPU won't fit it. A 70B model needs 140 GB just for its weights.</span>
+<span class="cm"># Longer contexts or bigger batches need more than the 20% allowance.</span></pre>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Algorithm: extra memory to TRAIN with Adam</span>
+<pre>training ← weights + activations + gradients + optimizer_states
+<span class="cm"># Per trainable parameter: 1 gradient + 2 Adam states = 3 values, at 2 bytes each</span>
+all 13B trainable:   13 billion × 3 × 2 bytes = <span class="st">78 GB</span> extra
+only 1B trainable:    1 billion × 3 × 2 bytes =  <span class="st">6 GB</span> extra</pre>
+  </div>
+
+  <div class="bars">
+    <div class="bar"><span>13B: run it</span><div class="track"><div class="fill" style="width:29%; background:linear-gradient(90deg,#2563eb,#60a5fa)">≈31 GB</div></div></div>
+    <div class="bar"><span>13B: train every parameter</span><div class="track"><div class="fill" style="width:97%; background:linear-gradient(90deg,#dc2626,#f87171)">26 GB weights + 78 GB extra ≈ 104 GB+</div></div></div>
+  </div>
+  <p class="muted">Before counting activations, which during training can be <b>far larger</b> than the weights.</p>
+
+  <div class="box remember"><span class="label">📌 Gradient checkpointing</span>
+    Don't store activations; recompute them when needed. Saves memory, costs training time.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    The book notes you're not really doing AI until you've seen a "CUDA out of memory" error. For performance tests of self-hosted models, include <b>long inputs and bigger batches</b>: memory grows with both, and that's where out-of-memory failures appear.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Number formats</h2>
+    <p class="sub">How many bits each value uses <span class="page">📖 PDF p. 349–352</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Every weight is stored as a number in a format. Fewer bits = less memory, but less <b>range</b> (how big or small a number can be) and/or less <b>precision</b> (how many digits survive).
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Format</th><th>Bits</th><th>Notes</th></tr>
+    <tr><td>FP64 (double)</td><td>64</td><td>Default in NumPy/pandas; rarely used in neural networks</td></tr>
+    <tr><td>FP32 (single)</td><td>32</td><td>The traditional standard for training</td></tr>
+    <tr><td>TF32</td><td>19 (!)</td><td>NVIDIA's format, named to sound compatible with FP32</td></tr>
+    <tr><td>FP16 (half)</td><td>16</td><td>More precision, less range</td></tr>
+    <tr><td>BF16</td><td>16</td><td>Google's format: more range, less precision</td></tr>
+    <tr><td>INT8 / INT4</td><td>8 / 4</td><td>Integer formats, increasingly popular for serving</td></tr>
+  </table></div>
+
+  <div class="box example"><span class="label">🧩 What happens when FP32 values are squeezed (from the book's table)</span>
+    <div class="table-wrap"><table class="compare">
+      <tr><th>FP32 value</th><th>FP16</th><th>BF16</th></tr>
+      <tr><td>1234.56789</td><td>1235.0 (0.035% off)</td><td>1232.0 (0.208% off)</td></tr>
+      <tr><td>123456.789</td><td style="color:var(--red);font-weight:700">INF: out of range</td><td>123392.0</td></tr>
+    </table></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap: loading the wrong format</span>
+    Llama 2's weights were released in BF16. Many teams loaded them in FP16 and found quality much worse than advertised. <b>Always load a model in the format it was made for.</b>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    "Same model, different format" is a real source of regressions. When a team changes how a model is loaded or served, re-run the quality suite and compare against the reference format.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--pink)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Quantisation</h2>
+    <p class="sub">Fewer bits per value: cheaper, smaller, often faster <span class="page">📖 PDF p. 352–356</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Quantisation</b> = storing values with fewer bits. A 10B model needs 40 GB in 32-bit and <b>20 GB</b> in 16-bit. It's cheap, easy and works across tasks and architectures. (Strictly, the word means converting to integers; the book uses it for any precision reduction.)
+  </div>
+
+  <div class="grid">
+    <div class="tile pink"><h4>❓ What to quantise</h4><p>Usually the <b>weights</b> (more stable) rather than activations.</p></div>
+    <div class="tile blue"><h4>⏰ When</h4><p><b>Post-training quantisation (PTQ)</b>, after training, is by far the most common: a few lines of code in PyTorch or Hugging Face.</p></div>
+  </div>
+
+  <div class="bars">
+    <div class="bar"><span>32-bit</span><div class="track"><div class="fill" style="width:100%; background:#94a3b8">traditional</div></div></div>
+    <div class="bar"><span>16-bit</span><div class="track"><div class="fill" style="width:50%; background:#2563eb">common for serving</div></div></div>
+    <div class="bar"><span>8 / 4-bit</span><div class="track"><div class="fill" style="width:20%; background:#7c3aed">LLM.int8 · QLoRA</div></div></div>
+    <div class="bar"><span>~1.58-bit</span><div class="track"><div class="fill" style="width:6%; background:#db2777"></div></div></div>
+  </div>
+  <p class="muted">Bar length ≈ bits per value. Apple serves on-device models at about 3.5 bits per weight (a mix of 2- and 4-bit); NVIDIA's Blackwell GPUs support 4-bit floats. Microsoft's <b>BitNet b1.58</b> (1.58 bits) roughly matched 16-bit Llama 2 at sizes up to 3.9B.</p>
+
+  <div class="grid">
+    <div class="tile green"><h4>✅ Benefits</h4><p>Less memory, bigger batches, often faster maths (16 bits can be processed in roughly half the time of 32).</p></div>
+    <div class="tile red"><h4>⚠️ Costs</h4><p>Many small rounding changes can add up to a big quality drop; out-of-range values become infinity; format conversion can eat the speed gain.</p></div>
+  </div>
+
+  <dl class="terms">
+    <dt>Quantisation-aware training (QAT)</dt><dd>Simulate low precision while training so the model works well when quantised later. Doesn't speed training up.</dd>
+    <dt>Low-precision training</dt><dd>Actually train in fewer bits. Character.AI trained entirely in INT8. Harder: training is sensitive to rounding.</dd>
+    <dt>Mixed precision</dt><dd>Sensitive parts in higher precision, the rest lower; often set automatically (AMP).</dd>
+  </dl>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    A quantised model is effectively a <b>new model</b>: run your evaluation suite on it, compare with the full-precision baseline per slice, and decide with a threshold (e.g. "no more than 1% drop on critical intents").
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Parameter-efficient finetuning (PEFT)</h2>
+    <p class="sub">Train a tiny fraction of the parameters <span class="page">📖 PDF p. 356–362</span></p>
+  </div></div>
+
+  <div class="box example"><span class="label">🧩 Why full finetuning is out of reach (7B model, 16-bit, Adam)</span>
+    Weights 14 GB + gradients and optimiser states 7B × 3 × 2 bytes = 42 GB → <b>56 GB</b>, before activations. Consumer GPUs have about 12–24 GB (high-end 48 GB). One workaround: <b>CPU offloading</b> (DeepSpeed) moves the overflow to CPU memory.
+  </div>
+
+  <div class="grid">
+    <div class="tile orange"><h4>🧊 Partial finetuning</h4><p>Freeze most layers, train the last ones. Saves memory but is <b>parameter-inefficient</b>: BERT needed ~25% of its parameters trained to match full finetuning.</p></div>
+    <div class="tile green"><h4>🔌 Adapters (the first PEFT)</h4><p>Insert small new modules and train only those. Got within <b>0.4%</b> of full finetuning with only <b>3%</b> of the parameters. Downside: extra layers add inference latency.</p></div>
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>➕ Adapter-based (additive)</h4><p>Add small trainable modules: <b>LoRA</b> (by far the most popular), BitFit, IA3, LongLoRA.</p></div>
+    <div class="tile purple"><h4>🔡 Soft prompts</h4><p>Trainable "tokens" fed in with the input: vectors, not readable words, tuned by training. Variants (prefix-tuning, P-tuning, prompt tuning) differ in where they're inserted. A middle ground between prompting and finetuning.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    PEFT is also <b>sample-efficient</b>: a few thousand examples can be enough, versus tens of thousands to millions for full finetuning. In the author's count of GitHub issues on Hugging Face's PEFT library, <b>LoRA dominates</b>.
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>LoRA and QLoRA</h2>
+    <p class="sub">Small trainable add-ons with no extra latency <span class="page">📖 PDF p. 362–371</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>LoRA (low-rank adaptation)</b> leaves the big weight matrix <b>W</b> frozen and trains two thin matrices <b>A</b> and <b>B</b> whose product has the same shape as W. Afterwards, A×B can be <b>merged back</b> into W, so serving is no slower.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  W["🧊 Original matrix W<br/>n × m, frozen"]:::grey --> P["➕ W' = W + (α / r) · A × B"]:::purple
+  A["🔥 A · n × r, trained"]:::orange --> AB["A × B has the same shape as W"]:::yellow
+  B["🔥 B · r × m, trained"]:::orange --> AB
+  AB --> P
+  P --> O(["🤖 Finetuned layer"]):::green
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">r is the "rank": how thin A and B are. α controls how strongly A×B counts</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Why it saves so much (the book's example)</span>
+    A 9 × 9 matrix has <b>81</b> numbers; a 9 × 1 matrix times a 1 × 9 matrix has only <b>18</b>. For GPT-3, LoRA matched or beat full finetuning on several tasks while training only ~<b>4.7 million</b> parameters, <b>0.0027%</b> of the model.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Why can so little training work?</span>
+    Research suggests pre-trained LLMs have a low "intrinsic dimension": pre-training compresses what they know, and bigger, better-trained models compress more, so a small adjustment goes a long way.
+  </div>
+
+  <h3>⚙️ LoRA settings</h3>
+  <ul>
+    <li><b>Which matrices:</b> usually the attention ones (query, key, value, output). On a fixed budget for GPT-3, all four at rank 2 did best; if only two, <b>query and value</b>. Adding the feedforward layers often helps more (Databricks).</li>
+    <li><b>Rank r:</b> 4–64 is usually enough; higher didn't help in the original paper, though one practitioner found 256 best for his tasks.</li>
+    <li><b>α:</b> the ratio α : r usually between 1:8 and 8:1; experiment.</li>
+  </ul>
+
+  <h3>📦 Serving many LoRA models</h3>
+  <div class="box example"><span class="label">🧩 100 customers, one finetuned model each (W = 4096 × 4096, rank 8)</span>
+    <div class="bars">
+      <div class="bar"><span>Merge each into W</span><div class="track"><div class="fill" style="width:100%; background:linear-gradient(90deg,#dc2626,#f87171)">100 full matrices = 1.68B parameters</div></div></div>
+      <div class="bar"><span>Keep adapters separate</span><div class="track"><div class="fill" style="width:2%; background:#16a34a"></div></div></div>
+    </div>
+    <p class="muted">Separate: one W (16.8M) + 100 small A,B pairs (65,536 each) ≈ <b>23.3M</b> parameters, and switching customer just means loading a tiny adapter (at a small latency cost). Apple used several LoRA adapters on one 3B on-device model for different iPhone features.</p>
+  </div>
+
+  <div class="grid">
+    <div class="tile purple"><h4>🗜️ QLoRA</h4><p>Stores the frozen weights in <b>4 bits</b> (a format called NF4) and uses "paged" optimisers that spill to CPU memory. Result: a <b>65B</b> model finetuned on a <b>single 48 GB GPU</b>. Its Guanaco 65B scored Elo 1022 vs ChatGPT's 966 in GPT-4-judged comparisons. Downside: quantising back and forth slows training.</p></div>
+    <div class="tile red"><h4>⚠️ LoRA's catch</h4><p>Usually not quite as strong as full finetuning, and harder to set up for less popular models. Frameworks (Hugging Face PEFT, Axolotl, unsloth, LitGPT) support popular ones out of the box.</p></div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    With multi-LoRA serving, each customer or feature has its <b>own adapter version</b>. Version and test adapters like separate releases, and check that a request never gets served with <b>another customer's adapter</b>.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Model merging and multi-task finetuning</h2>
+    <p class="sub">Combining models instead of retraining one <span class="page">📖 PDF p. 371–381</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Model merging</b> combines several (often finetuned) models into one. Goals: better performance (one model answers the first 60% of questions, another the last 60%, together maybe 80%), or one smaller model doing several jobs, e.g. on a phone. Often doable <b>without GPUs</b>.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Way to teach several tasks</th><th>Problem</th></tr>
+    <tr><td>All tasks at once</td><td>Harder to learn several skills together; more data and training</td></tr>
+    <tr><td>One task after another</td><td><b>Catastrophic forgetting</b>: learning task B erases task A</td></tr>
+    <tr><td style="color:var(--green)">Each task separately, then merge</td><td style="color:var(--green)">Less forgetting; each task learned well</td></tr>
+  </table></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🗳️ Ensemble (not merging)</h4><p>Run several models and combine their <b>outputs</b> (e.g. majority vote). Better results, but several calls per request.</p></div>
+    <div class="tile green"><h4>🧬 Merging</h4><p>Combine their <b>parameters</b> into one model: one call per request. Many top models on Hugging Face's leaderboard are merged models.</p></div>
+  </div>
+
+  <h3>🧪 Three ways to merge</h3>
+  <div class="grid">
+    <div class="tile orange"><h4>➕ Summing</h4><p><b>Average</b> or weighted-average the weights ("model soups"). Works best on models finetuned from the same base. <b>Task vectors</b> = finetuned weights minus base weights; you can add them to combine skills or <b>subtract</b> them to remove a behaviour (like a bias). <b>SLERP</b> blends two along a sphere's shortest path. <b>TIES/DARE</b> first prune tiny changes: keeping only the top 20% of a task vector performed about as well as keeping all of it.</p></div>
+    <div class="tile purple"><h4>🥞 Layer stacking</h4><p>"Frankenmerging": take layers from different models and stack them. Goliath-120B used 72 of the 80 layers from each of two Llama 2-70B models. Usually needs more finetuning. Can build mixture-of-experts models, or <b>upscale</b>: SOLAR 10.7B was built from one 32-layer 7B model → 32 × 2 − 16 = <b>48</b> layers.</p></div>
+    <div class="tile red"><h4>🔗 Concatenation</h4><p>Join parameters side by side (two LoRA adapters of rank r₁ and r₂ → rank r₁ + r₂). Not recommended: no memory saving.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Merging is also a route to <b>federated learning</b>: copies of a model learn on different devices' private data, then get merged. Many merging techniques are experimental and may date quickly.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Practical finetuning tactics</h2>
+    <p class="sub">Base model, method, framework, hyperparameters <span class="page">📖 PDF p. 381–385</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📈 Progression path (OpenAI)</h4><p>1 · Test the code on the cheapest, fastest model. 2 · Test the data on a middling model (does loss fall?). 3 · Push the best model. 4 · Train all sizes and pick the best price/performance.</p></div>
+    <div class="tile purple"><h4>⚗️ Distillation path</h4><p>1 · Small dataset + strongest affordable model. 2 · Use it to generate more data. 3 · Train a cheaper model on that data.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Choosing a method and framework</span>
+    Start with <b>LoRA</b>; try full finetuning later. Full finetuning usually needs thousands of examples or more; with a few hundred, it may not beat LoRA. Need many finetuned variants? LoRA serves them more cheaply. <b>Finetuning APIs</b> are quick but limit models and knobs; frameworks (LLaMA-Factory, unsloth, PEFT, Axolotl, LitGPT) give control; multiple machines need DeepSpeed, PyTorch Distributed or ColossalAI.
+  </div>
+
+  <h3>🎛️ Key hyperparameters</h3>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Knob</th><th>What it does</th><th class="new">How to read the signs</th></tr>
+    <tr><td>Learning rate</td><td>Step size for each update (typically 1e-7 to 1e-3)</td><td>Loss jumps around → too big. Stable but very slow → too small. Schedules can start big and shrink.</td></tr>
+    <tr><td>Batch size</td><td>Examples per update</td><td>Under ~8 can be unstable; bigger needs more memory. <b>Gradient accumulation</b> fakes a bigger batch.</td></tr>
+    <tr><td>Epochs</td><td>Passes over the data</td><td>Millions of examples: 1–2; thousands: 4–10. Training loss ↓ but validation loss ↑ → <b>overfitting</b>, use fewer.</td></tr>
+    <tr><td>Prompt loss weight</td><td>How much the model learns from prompts vs responses</td><td>Default ~10%: learn mostly from responses</td></tr>
+  </table></div>
+
+  <div class="box example"><span class="label">🧩 A cautionary tale from the author</span>
+    In college she let a model train overnight, and it crashed after eight hours because it tried to save to a folder that didn't exist. That's why the progression path tests the code on a cheap model first.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Validation loss rising while training loss falls is the training version of "the tests we tuned against pass, but the hold-out set fails". Same lesson as protecting your hold-out test set (<i>LLM Evaluation</i> Ch 1).
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🔧 Finetuning = further training to change weights; mostly for format and instruction following. A form of <b>transfer learning</b>.</li>
+    <li>⚖️ Reasons: quality on your task, structure, bias fixes, small specialised models, distillation. Against: other tasks degrade, data, skills, serving, maintenance.</li>
+    <li>🏦 General models often beat domain models (GPT-4 vs BloombergGPT). Prompt properly first.</li>
+    <li>📚 <b>Finetuning is for form, RAG is for facts.</b> Information failures → RAG; behaviour failures → finetune. Base + RAG beat finetuning on current events.</li>
+    <li>🔁 Training = forward pass → loss → gradients → optimiser. More trainable parameters → more memory.</li>
+    <li>🧮 Inference ≈ params × bytes × 1.2 (13B at 16-bit ≈ 31 GB). Training with Adam adds 3 values per trainable parameter (13B → +78 GB).</li>
+    <li>🔢 Formats: FP32, FP16, BF16, TF32, INT8, INT4. Range vs precision. Load models in their intended format.</li>
+    <li>🗜️ <b>Quantisation</b> cuts memory (32→16 bit halves it); post-training quantisation is standard; test quality after.</li>
+    <li>🔌 <b>PEFT</b> trains a tiny fraction: adapters (within 0.4% using 3% of params), soft prompts.</li>
+    <li>🎯 <b>LoRA</b>: frozen W + trainable A×B, mergeable, so no extra latency. Rank 4–64. Multi-LoRA serving is cheap. <b>QLoRA</b>: 4-bit base, 65B on one 48 GB GPU.</li>
+    <li>🧬 <b>Merging</b>: summing (averages, task vectors, SLERP, TIES/DARE), layer stacking, concatenation. Avoids catastrophic forgetting.</li>
+    <li>🎛️ Start with LoRA; test code on cheap models; watch learning rate, batch size, epochs, validation loss.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it (optional, Week 7 is mainly Chapter 10)</h2>
+    <p class="sub">Practise the reasoning without training anything</p>
+  </div></div>
+  <ol>
+    <li>Pick an open model you know the size of. Calculate the memory to <b>run</b> it at 16-bit and 4-bit, and to <b>fully finetune</b> it with Adam. Which GPU sizes would fit?</li>
+    <li>Look at your failing test cases from earlier labs. Label each as an <b>information</b> or <b>behaviour</b> failure. Would RAG or finetuning help more?</li>
+    <li>If you can run a model locally (e.g. via Ollama), compare a full-precision and a quantised version on your 30 golden cases. Any quality drop?</li>
+  </ol>
+  <div class="box remember"><span class="label">📌 Coming next (Chapter 8)</span>
+    Dataset engineering: the hard part of finetuning is getting good data. Quality, coverage, quantity, and AI-generated (synthetic) data.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>AI Engineering</i> (Chip Huyen, O'Reilly 2025) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
