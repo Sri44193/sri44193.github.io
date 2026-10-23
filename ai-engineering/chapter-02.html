@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Engineering · Ch 2 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📘 AI Engineering · Chapter 2</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+
+<header class="hero">
+  <div class="kicker">AI Engineering · Chip Huyen · Week 2</div>
+  <h1>Chapter 2: Understanding Foundation Models</h1>
+  <p>What goes into a model (data, architecture, size), how it's taught to behave (post-training), and how it picks each word (sampling), which explains why AI answers vary and sometimes invent things.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 73–136</span>
+    <span class="chip">⏱ ~6 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🧪 Written for a QA engineer</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    A model's behaviour comes from four choices: <b>what data it learned from</b>, <b>how it's built and how big it is</b>, <b>how it was taught to behave</b> after training, and <b>how it picks each next word</b>. That last step, <b>sampling</b>, is why the same question can get different answers.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why a tester should care most about this chapter</span>
+    The book's author calls sampling "one of the most underrated concepts in AI". It explains <b>flaky outputs</b> (inconsistency) and <b>made-up facts</b> (hallucination), the two things you'll spend the most time testing.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Foundation<br/>models))
+    Training data
+      Mostly web text
+      English-heavy
+      Domain gaps
+    Modelling
+      Transformer and attention
+      Other architectures
+      Size: parameters, tokens, FLOPs
+      Scaling law
+    Post-training
+      Supervised finetuning
+      Preference finetuning
+      Reward model and RLHF
+    Sampling
+      Temperature
+      Top-k and top-p
+      Best of N
+      Structured outputs
+    Probabilistic nature
+      Inconsistency
+      Hallucination
+</pre>
+    <div class="caption">Chapter map: five branches</div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  D["📚 Training data<br/>mostly scraped web text"]:::blue --> P["🏗️ Pre-training<br/>learn to predict the next token"]:::purple
+  P --> S["🎓 Supervised finetuning<br/>learn to answer, not just continue text"]:::green
+  S --> R["👍 Preference finetuning<br/>learn which answers people prefer"]:::orange
+  R --> M(["🤖 Finished model"]):::pink
+  M --> SA["🎲 Sampling<br/>picks each next token at answer time"]:::yellow
+  SA --> O["💬 The answer you see<br/>can vary, can be wrong"]:::red
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">The life of a model, from data to the answer you test</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Training data</a>
+    <a class="pill" href="#t2"><b>2</b> Languages</a>
+    <a class="pill" href="#t3"><b>3</b> Domains</a>
+    <a class="pill" href="#t4"><b>4</b> The transformer</a>
+    <a class="pill" href="#t5"><b>5</b> Other architectures</a>
+    <a class="pill" href="#t6"><b>6</b> Model size</a>
+    <a class="pill" href="#t7"><b>7</b> Scaling law &amp; limits</a>
+    <a class="pill" href="#t8"><b>8</b> Post-training</a>
+    <a class="pill" href="#t9"><b>9</b> Preference &amp; RLHF</a>
+    <a class="pill" href="#t10"><b>10</b> Sampling &amp; temperature</a>
+    <a class="pill" href="#t11"><b>11</b> Top-k, top-p, stopping</a>
+    <a class="pill" href="#t12"><b>12</b> Test time compute</a>
+    <a class="pill" href="#t13"><b>13</b> Structured outputs</a>
+    <a class="pill" href="#t14"><b>14</b> Inconsistency &amp; hallucination</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Training data: a model is only as good as what it read</h2>
+    <p class="sub">Where the data comes from and why quality beats quantity <span class="page">📖 PDF p. 74–75</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A model can only do what its training data showed it. No Vietnamese in the data means no English-to-Vietnamese translation. Model makers mostly use <b>whatever data is available</b>, not exactly the data they'd want.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><div class="emoji">🕸️</div><h4>Common Crawl</h4><p>A non-profit crawl of the web: about 2–3 billion pages a month in 2022–23. Used, in some form, by most models that reveal their data (GPT-3, Gemini).</p></div>
+    <div class="tile green"><div class="emoji">🧹</div><h4>C4</h4><p>Google's "cleaned" subset of Common Crawl. Cleaner, but still not clean.</p></div>
+    <div class="tile red"><div class="emoji">🗑️</div><h4>The problem</h4><p>Clickbait, misinformation, propaganda, conspiracy theories, racism. In plain terms: <b>plenty of fake news</b>.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Quality beats quantity</span>
+    A team trained a small <b>1.3-billion-parameter</b> model on just <b>7 billion tokens of high-quality code</b>. It beat much larger models on several coding benchmarks.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    The model has absorbed the internet's mistakes and biases. Include tests for <b>confidently wrong facts</b> and <b>biased answers</b>, not just "does it respond".
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Why do model makers train on messy web data instead of perfect data?</summary>
+      <div class="answer">Because it's available in huge amounts. Perfect, task-specific data is expensive and slow to collect, so they "use what we have, not what we want".</div></details>
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>Multilingual models: English rules the internet</h2>
+    <p class="sub">Why models are worse, slower and pricier in many languages <span class="page">📖 PDF p. 75–79</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Almost half of Common Crawl is English. Languages spoken by hundreds of millions of people barely appear, so models handle them much worse. Languages with little training data are called <b>low-resource</b>.
+  </div>
+
+  <h3>📊 Share of Common Crawl</h3>
+  <div class="bars">
+    <div class="bar"><span>English</span><div class="track"><div class="fill" style="width:91.8%; background:linear-gradient(90deg,#2563eb,#60a5fa)">45.88%</div></div></div>
+    <div class="bar"><span>Russian</span><div class="track"><div class="fill" style="width:12%; background:linear-gradient(90deg,#7c3aed,#a78bfa)">5.97%</div></div></div>
+  </div>
+  <p class="muted">Drawn to scale. Bengali (0.093%) and Telugu (0.0183%) would be thinner than a hairline on this chart.</p>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Language</th><th>% of world population</th><th>% of Common Crawl</th><th class="new">Under-representation</th></tr>
+    <tr><td>Punjabi</td><td>1.41%</td><td>0.0061%</td><td>~232× too little</td></tr>
+    <tr><td>Telugu</td><td>1.19%</td><td>0.0183%</td><td>~65× too little</td></tr>
+    <tr><td>Bengali</td><td>3.40%</td><td>0.0930%</td><td>~37× too little</td></tr>
+    <tr><td>English</td><td>18.15%</td><td>45.88%</td><td>over-represented (0.4)</td></tr>
+  </table></div>
+
+  <div class="grid">
+    <div class="tile red"><h4>📉 Lower quality</h4><p>GPT-4 scored worst on a big benchmark (MMLU) in <b>Telugu, Marathi and Punjabi</b>, among the least-represented languages. It solved math problems in English over 3× as often as in Armenian or Farsi.</p></div>
+    <div class="tile orange"><h4>💸 Slower and pricier</h4><p>Same meaning, more tokens. Median length: English <b>7</b> tokens, Hindi <b>32</b>, Burmese <b>72</b>. Burmese is ~10× slower and ~10× more expensive.</p></div>
+    <div class="tile purple"><h4>🛡️ Different safety</h4><p>One study: ChatGPT refused 6 of 7 misinformation requests in English but complied 7 of 7 times in Chinese.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap: "just translate to English and back"</span>
+    You need a model good enough to translate the low-resource language in the first place, and translation loses information. Vietnamese pronouns encode the relationship between speakers; in English they all collapse into "I" and "you".
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Treat <b>each language as its own test slice</b>, with its own quality, safety <i>and</i> cost/latency thresholds. A feature that passes in English can fail, or cost 10× more, in another language.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Why does the same answer cost more in Hindi than in English?</summary>
+      <div class="answer">APIs charge (and take time) per token, and Hindi needs many more tokens to say the same thing (median 32 vs 7 in the book's data).</div></details>
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Domain-specific models</h2>
+    <p class="sub">When general knowledge isn't enough <span class="page">📖 PDF p. 80–81</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    General models know a bit of everything that's on the web. Tasks whose data <b>isn't</b> on the web (protein structures, X-rays, factory plans) need <b>specially collected data</b> and often a specialised model.
+  </div>
+  <div class="grid">
+    <div class="tile green"><div class="emoji">🧬</div><h4>AlphaFold</h4><p>DeepMind. Trained on ~100,000 known protein structures.</p></div>
+    <div class="tile blue"><div class="emoji">💊</div><h4>BioNeMo</h4><p>NVIDIA. Biomolecular data for drug discovery.</p></div>
+    <div class="tile pink"><div class="emoji">🩺</div><h4>Med-PaLM 2</h4><p>Google. An LLM combined with medical data for medical questions.</p></div>
+  </div>
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    When you test a domain feature (legal, medical, finance), don't assume general benchmark scores carry over. Build <b>domain test cases with expert-checked answers</b>.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>The transformer and attention</h2>
+    <p class="sub">The design behind almost every language model today <span class="page">📖 PDF p. 82–88</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Before transformers, models (called <b>seq2seq</b>) read the input <b>one word at a time</b> and squeezed it all into one summary before answering. Transformers fixed two problems: they let the model <b>look back at any input word</b> while answering (<b>attention</b>), and they <b>read the whole input at once</b> instead of word by word.
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 The book's analogy</span>
+    Old seq2seq = answering questions about a book using only <b>its summary</b>. Transformer with attention = answering while able to <b>flip to any page</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  subgraph PF["⚡ Step 1 · Prefill: all input tokens at once"]
+    direction LR
+    i1["How"]:::blue
+    i2["are"]:::blue
+    i3["you"]:::blue
+    i4["?"]:::blue
+  end
+  PF --> DC["🐢 Step 2 · Decode: one output token at a time<br/>each new token looks back at everything so far"]:::orange
+  DC --> o1["I'm"]:::green --> o2["fine"]:::green --> o3["END"]:::grey
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+</pre>
+    <div class="caption">Reading the input is fast (parallel); writing the answer is still one token at a time</div>
+  </div>
+
+  <h3>🔍 Attention: query, key, value</h3>
+  <div class="grid">
+    <div class="tile purple"><h4>❓ Query (Q)</h4><p>"What am I looking for right now?" The person searching the book.</p></div>
+    <div class="tile blue"><h4>🔑 Key (K)</h4><p>One per earlier token: like a <b>page number</b>, used to decide relevance.</p></div>
+    <div class="tile green"><h4>📄 Value (V)</h4><p>One per earlier token: the <b>page's content</b>, what actually gets used.</p></div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Algorithm: attention for one new token (simplified, my own numbers)</span>
+<pre><span class="kw">input</span>  q                              <span class="cm"># query for the token being written</span>
+<span class="kw">input</span>  keys, values                   <span class="cm"># one key and one value per earlier token</span>
+scores ← [ <span class="fn">dot</span>(q, k) <span class="kw">for</span> k <span class="kw">in</span> keys ]  <span class="cm"># how relevant is each earlier token?  e.g. [2, 1, 0]</span>
+weights ← <span class="fn">softmax</span>(scores)              <span class="cm"># turn into shares that add up to 1:    [0.67, 0.24, 0.09]</span>
+output ← <span class="fn">sum</span>(w × v <span class="kw">for</span> w, v <span class="kw">in</span> weights, values)
+                                         <span class="cm"># mostly the first token's content, a little of the others</span>
+<span class="cm"># Real models: scores are also divided by √(dimension), and this runs in many "heads" at once.</span></pre>
+  </div>
+
+  <dl class="terms">
+    <dt>Multi-head attention</dt><dd>Several attentions in parallel, each free to focus on different words. Llama 2-7B splits its 4,096-number vectors into 32 heads of 128.</dd>
+    <dt>Transformer block</dt><dd>One attention module + one <b>MLP</b> (feedforward) module. A model stacks many blocks; the count is its number of <b>layers</b>.</dd>
+    <dt>Embedding module</dt><dd>Before the blocks: turns each token and its position into numbers.</dd>
+    <dt>Output layer</dt><dd>After the blocks: turns the final numbers into a probability for every token (topic 10).</dd>
+    <dt>Activation function</dt><dd>A simple non-linear step between layers. ReLU just turns negative numbers into 0. Fancier ones didn't work better.</dd>
+  </dl>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Every earlier token needs a stored key and value. <b>Longer context = more to compute and store</b>, which is why long context windows are hard and expensive (Chapters 7 and 9).
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Prefill is fast, decode is slow. That's why <b>time to first token</b> and <b>time per output token</b> (Chapter 1) are separate metrics, and why long answers take longer. Measure both in your performance tests.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>What two problems with seq2seq did the transformer solve?</summary>
+      <div class="answer">It answered using only a final summary of the input (fixed by attention, which can look at any input token), and it processed input one token at a time (fixed by reading all input tokens in parallel).</div></details>
+    <details><summary>Why is generating a long answer still slow with transformers?</summary>
+      <div class="answer">Output is still produced one token at a time (decode), because each token depends on the ones before it.</div></details>
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--pink)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Other architectures</h2>
+    <p class="sub">Who might replace the transformer <span class="page">📖 PDF p. 89–91</span></p>
+  </div></div>
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The transformer has dominated since 2017, which is unusually long. Replacing it is hard because it's been heavily optimised. The main pressure point is <b>long inputs</b>: attention's cost grows with the square of the length.
+  </div>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Architecture</th><th>Idea</th><th class="new">Why it's interesting</th></tr>
+    <tr><td>RWKV</td><td>An RNN that can still be trained in parallel</td><td>No hard context limit in theory (but long context isn't automatically good)</td></tr>
+    <tr><td>SSMs (S4, H3)</td><td>State space models, built for long-range memory</td><td>More efficient ways to recall early tokens</td></tr>
+    <tr><td>Mamba</td><td>An SSM scaled to 3B parameters</td><td>Matches transformers twice its size; cost grows <b>linearly</b> with length, not quadratically</td></tr>
+    <tr><td>Jamba</td><td>Hybrid: transformer + Mamba layers</td><td>52B total parameters (12B active), up to 256K tokens, fits on one 80 GB GPU</td></tr>
+  </table></div>
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Even if the architecture changes, the book expects the <b>application techniques</b> (prompting, RAG, evaluation) to stay largely the same.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Model size: three numbers that matter</h2>
+    <p class="sub">Parameters, training tokens, FLOPs <span class="page">📖 PDF p. 91–95</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile orange"><div class="emoji">🧠</div><h4>Parameters</h4><p>How much the model <b>can</b> learn. "Llama-13B" = 13 billion parameters.</p></div>
+    <div class="tile blue"><div class="emoji">📚</div><h4>Training tokens</h4><p>How much it <b>did</b> learn from. Llama 1: 1.4T · Llama 2: 2T · Llama 3: 15T.</p></div>
+    <div class="tile red"><div class="emoji">💰</div><h4>FLOPs</h4><p>How much compute (and money) training took. GPT-3: 3.14 × 10²³.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Worked numbers from the book</span>
+    <ul>
+      <li><b>Memory:</b> 7B parameters × 2 bytes each = at least <b>14 GB</b> of GPU memory just to run it.</li>
+      <li><b>Time:</b> GPT-3 on 256 H100 GPUs at full speed ≈ <b>236 days</b>.</li>
+      <li><b>Cost:</b> at 70% utilisation and $2 per GPU-hour, over <b>$4 million</b>.</li>
+    </ul>
+  </div>
+
+  <h3>🧩 Sparse models and mixture of experts</h3>
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A <b>mixture-of-experts (MoE)</b> model has several groups of parameters ("experts") but uses only a few for each token. So it can be big on paper but cheap to run.
+  </div>
+  <div class="bars">
+    <div class="bar"><span>Mixtral 8x7B: total</span><div class="track"><div class="fill" style="width:100%; background:linear-gradient(90deg,#7c3aed,#c084fc)">46.7B parameters</div></div></div>
+    <div class="bar"><span>Active per token</span><div class="track"><div class="fill" style="width:27.6%; background:linear-gradient(90deg,#16a34a,#22c55e)">12.9B</div></div></div>
+  </div>
+  <p class="muted">Costs and speed behave like a 12.9B model, because only 2 of the 8 experts work on each token.</p>
+
+  <dl class="terms">
+    <dt>Epoch</dt><dd>One full pass through the training data. 1T tokens × 2 epochs = 2T training tokens.</dd>
+    <dt>FLOPs vs FLOP/s</dt><dd>FLOPs = total work a task needs. FLOP/s = how fast a machine can work. Easy to mix up; watch the "/s".</dd>
+    <dt>Utilisation</dt><dd>Share of a machine's peak speed you actually get. 50% is OK; over 70% is great.</dd>
+  </dl>
+
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    Bigger isn't automatically better: a huge model trained on one sentence is useless. And newer small models can beat older big ones (Llama 3-8B beats Llama 2-70B on MMLU).
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Scaling law, and the limits of scaling</h2>
+    <p class="sub">How big to build, and what might stop growth <span class="page">📖 PDF p. 95–101</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Teams start from a <b>compute budget</b> and ask: what model size and data size give the best model for that money? The <b>Chinchilla scaling law</b> answers: about <b>20 training tokens per parameter</b>, and grow both together.
+  </div>
+
+  <div class="box example"><span class="label">🧩 Example</span>
+    A 3B-parameter model should be trained on about <b>60B tokens</b>. Double the model to 6B and you should double the tokens to 120B.
+  </div>
+
+  <div class="grid">
+    <div class="tile yellow"><h4>🦙 Quality isn't everything</h4><p>Llama's makers deliberately chose <b>smaller</b> models than the budget allowed: easier and cheaper to run, so more people adopted them.</p></div>
+    <div class="tile red"><h4>🏔️ The last mile again</h4><p>Going from 3% to 2% error can need <b>10× more</b> data, compute or energy.</p></div>
+    <div class="tile purple"><h4>🔄 Inverse scaling</h4><p>Sometimes bigger is worse, e.g. on some memorisation tasks, but no real-world failure won the top prize in a contest that looked for one.</p></div>
+  </div>
+
+  <dl class="terms">
+    <dt>Parameter</dt><dd>Learned by the model during training.</dd>
+    <dt>Hyperparameter</dt><dd>Set by people: number of layers, learning rate, batch size… Big models can only be trained once, so teams <b>test settings on small models and extrapolate</b> (e.g. from 40M to 6.7B).</dd>
+    <dt>Emergent abilities</dt><dd>Abilities that only show up at large scale, which makes small-model predictions less reliable.</dd>
+  </dl>
+
+  <h3>🚧 Two bottlenecks</h3>
+  <div class="grid">
+    <div class="tile blue"><div class="emoji">📉</div><h4>Running out of data</h4><p>Datasets grow faster than the internet. More web text is now AI-generated. Sites are blocking scrapers: about <b>45% of C4</b> is now restricted. Proprietary data (books, contracts, medical records) becomes a competitive advantage.</p></div>
+    <div class="tile orange"><div class="emoji">⚡</div><h4>Electricity</h4><p>Data centres use about 1–2% of world electricity, estimated to reach 4–20% by 2030.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap: anything online may be training data</span>
+    Assume anything published online is, or will be, in some model's training data, including text written on purpose to <b>influence future models</b> (a route for prompt injection, Chapter 5). Deleted posts may still be "remembered".
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Post-training and supervised finetuning (SFT)</h2>
+    <p class="sub">Turning a text-completer into an assistant <span class="page">📖 PDF p. 102–107</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    After pre-training, a model has two problems: it <b>completes text instead of answering</b>, and it can be <b>rude, biased or wrong</b> (it learned from the raw internet). Post-training fixes both, in two steps: <b>supervised finetuning</b>, then <b>preference finetuning</b>.
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy (from the book)</span>
+    Pre-training is like <b>reading to gain knowledge</b>; post-training is <b>learning how to use it</b>. A friend of the author put it this way: a pre-trained model talks like a web page, not a human.
+  </div>
+
+  <div class="box example"><span class="label">🧩 Why SFT is needed</span>
+    Type "How to make pizza" into a raw pre-trained model. Valid continuations include "…for a family of six?", or more questions, or the actual recipe. Only the recipe is a helpful answer. SFT teaches the model to pick that kind of response.
+  </div>
+
+  <dl class="terms">
+    <dt>Demonstration data</dt><dd>Examples in the form (prompt, ideal response), written by people. The model copies the behaviour, so this is also called <b>behaviour cloning</b>.</dd>
+    <dt>Labelers</dt><dd>The people writing those responses. For InstructGPT, ~90% had a college degree and over a third a master's.</dd>
+  </dl>
+
+  <div class="box remember"><span class="label">📌 Numbers to remember</span>
+    <ul>
+      <li>One good (prompt, response) pair can take up to <b>30 minutes</b>. At $10 each, InstructGPT's 13,000 pairs ≈ <b>$130,000</b>, before design and quality control.</li>
+      <li>Post-training used only <b>2%</b> of InstructGPT's compute (pre-training 98%). It mostly <b>unlocks</b> abilities the model already has.</li>
+      <li>Volunteer-written data is cheaper but can be skewed: in one project, 90% of volunteers identified as male.</li>
+    </ul>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    The people who write demonstration data shape the model's behaviour. If they're not representative of your users, expect blind spots. Test with <b>prompts from real user groups</b>, not just your team.
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Preference finetuning, reward models and RLHF</h2>
+    <p class="sub">Teaching which answers people prefer <span class="page">📖 PDF p. 107–112</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    SFT teaches <i>how</i> to hold a conversation, not <i>which</i> conversations to have. Should the model help with something harmful? How should it handle a controversial topic? <b>Preference finetuning</b> nudges it towards answers people prefer. The classic method is <b>RLHF</b> (reinforcement learning from human feedback).
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["🧑‍🏫 Labelers compare two answers<br/>to the same prompt: which is better?"]:::blue --> B["📦 Comparison data<br/>prompt, winning answer, losing answer"]:::purple
+  B --> C["⚖️ Train a reward model<br/>it learns to score any answer"]:::orange
+  C --> D["🔁 Reinforcement learning, e.g. PPO<br/>the assistant writes answers, the reward model scores them,<br/>the assistant shifts towards high scores"]:::green
+  D --> E(["😊 Model that better matches preferences"]):::pink
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+</pre>
+    <div class="caption">RLHF in two parts: train a scorer, then train the model to please the scorer</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile red"><h4>❌ Scoring each answer alone</h4><p>Called <b>pointwise</b>. Inconsistent: one person gives 5/10, another 7/10, even the same person changes their mind.</p></div>
+    <div class="tile green"><h4>✅ Comparing two answers</h4><p>Easier and more consistent. Still slow: 3–5 minutes each (fact-checking both), about <b>$3.50</b> per comparison vs <b>$25</b> to write an answer.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    <ul>
+      <li>Labelers agreed with each other only about <b>73%</b> of the time. Human preference isn't one fixed thing.</li>
+      <li>Ranking three answers A &gt; B &gt; C gives three comparison pairs: A&gt;B, A&gt;C, B&gt;C.</li>
+      <li><b>DPO</b> is a simpler alternative (Meta moved from RLHF in Llama 2 to DPO in Llama 3). <b>RLAIF</b> uses AI feedback instead of humans.</li>
+      <li>Some companies skip the RL step: they generate several answers and keep the one the reward model scores highest (<b>best of N</b>, topic 12).</li>
+    </ul>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Two ideas you'll reuse in evaluation (Chapters 3–4): <b>comparing two outputs is more reliable than scoring one</b>, and a <b>scoring model</b> can judge outputs automatically. Also, 73% agreement means your own human reviewers will disagree too, so measure agreement.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Why compare two answers instead of scoring each one from 1 to 10?</summary>
+      <div class="answer">Independent scores vary a lot between people and even for the same person. Choosing the better of two is easier and gives more consistent data.</div></details>
+    <details><summary>What does the reward model do in RLHF?</summary>
+      <div class="answer">It scores (prompt, answer) pairs. The assistant is then trained to produce answers that get high scores.</div></details>
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Sampling and temperature</h2>
+    <p class="sub">How the model picks each next token <span class="page">📖 PDF p. 112–117</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    For every next token, the model gives <b>each token in its vocabulary a score</b>. Those scores become probabilities, and one token is <b>picked at random, weighted by those probabilities</b>. That random pick is called <b>sampling</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  L["🔢 Logits<br/>raw scores, one per token<br/>can be negative, don't add up to 1"]:::grey --> T["🌡️ Divide by temperature"]:::orange
+  T --> SM["🧮 Softmax<br/>turns scores into probabilities that add up to 1"]:::blue
+  SM --> PK["🎲 Pick one token<br/>weighted random draw"]:::green
+  SM --> LP["📝 Logprobs<br/>log of each probability,<br/>avoids tiny numbers rounding to 0"]:::purple
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+</pre>
+    <div class="caption">From raw scores to the chosen token</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🎯 Greedy</h4><p>Always pick the most likely token. Fine for classification (spam / not spam), but makes text <b>boring and repetitive</b>.</p></div>
+    <div class="tile green"><h4>🎲 Sampling</h4><p>If "green" is 50% likely and "red" 30%, then green is picked 50% of the time and red 30%.</p></div>
+  </div>
+
+  <h3>🌡️ Temperature: the creativity dial</h3>
+  <p>The book's example: a model with only two tokens, A and B, with logits <b>[1, 2]</b>. How often is B (the more likely one) picked?</p>
+  <div class="bars">
+    <div class="bar"><span>T = 0.5</span><div class="track"><div class="fill" style="width:88%; background:linear-gradient(90deg,#2563eb,#60a5fa)">B 88% · A 12%</div></div></div>
+    <div class="bar"><span>T = 1 (default)</span><div class="track"><div class="fill" style="width:73%; background:linear-gradient(90deg,#7c3aed,#a78bfa)">B 73% · A 27%</div></div></div>
+    <div class="bar"><span>T = 2</span><div class="track"><div class="fill" style="width:62%; background:linear-gradient(90deg,#ea580c,#f59e0b)">B 62% · A 38%</div></div></div>
+  </div>
+  <p class="muted">The T = 2 row is my own calculation using the same method.</p>
+
+  <div class="algo"><span class="label">⚙️ Algorithm: sampling with temperature (worked with the numbers above)</span>
+<pre><span class="kw">input</span>  logits = [1, 2]                <span class="cm"># raw scores for A and B</span>
+<span class="kw">input</span>  T = 0.5                        <span class="cm"># temperature</span>
+<span class="kw">if</span> T == 0: <span class="kw">return</span> <span class="fn">argmax</span>(logits)       <span class="cm"># "temperature 0" just means: always take the top token</span>
+adjusted ← [x / T <span class="kw">for</span> x <span class="kw">in</span> logits]    <span class="cm"># [2, 4]  (low T stretches the gap)</span>
+exps ← [<span class="fn">e</span>^x <span class="kw">for</span> x <span class="kw">in</span> adjusted]         <span class="cm"># [7.39, 54.6]</span>
+probs ← [v / <span class="fn">sum</span>(exps) <span class="kw">for</span> v <span class="kw">in</span> exps]  <span class="cm"># [0.12, 0.88]  softmax</span>
+<span class="kw">return</span> <span class="fn">random_choice</span>([A, B], weights = probs)</pre>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    <ul>
+      <li><b>Low temperature</b> = more predictable, more boring. <b>High temperature</b> = more creative, less coherent.</li>
+      <li>Providers usually allow 0–2. About <b>0.7</b> is common for creative tasks; <b>0</b> for consistency.</li>
+      <li><b>Logprobs</b> are useful for classification and evaluation, but many providers expose them only partly or not at all.</li>
+    </ul>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    <b>Temperature is a test setting.</b> Record it with every result, keep it fixed when comparing versions, and run each case several times at the temperature production actually uses. A test that passes at 0 can fail at 0.7.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>What happens to the less likely token's chance when you raise the temperature?</summary>
+      <div class="answer">It goes up. Higher temperature flattens the probabilities, so rarer tokens get picked more often.</div></details>
+    <details><summary>Why is "temperature 0" not really dividing by zero?</summary>
+      <div class="answer">In practice the model skips the maths and just picks the highest-scoring token (argmax).</div></details>
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Top-k, top-p and stopping</h2>
+    <p class="sub">Limiting which tokens can be picked, and when to stop <span class="page">📖 PDF p. 118–119</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🔟 Top-k</h4><p>Only consider the <b>k</b> highest-scoring tokens (often 50–500). Saves computation; smaller k = more predictable.</p></div>
+    <div class="tile purple"><h4>🥧 Top-p ("nucleus")</h4><p>Only consider the smallest group of top tokens whose probabilities <b>add up to p</b> (often 0.9–0.95). The group size changes with the situation.</p></div>
+    <div class="tile green"><h4>⬇️ Min-p</h4><p>Only consider tokens above a minimum probability.</p></div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Algorithm: top-p (my own numbers; same outcome as the book's example)</span>
+<pre>probs ← { yes: 0.60, maybe: 0.35, no: 0.04, other: 0.01 }
+p ← 0.9
+keep ← [];  total ← 0
+<span class="kw">for</span> token <span class="kw">in</span> tokens sorted by probability, highest first:
+    keep.<span class="fn">append</span>(token);  total ← total + probs[token]
+    <span class="kw">if</span> total ≥ p: <span class="kw">stop</span>                <span class="cm"># yes (0.60) + maybe (0.35) = 0.95 ≥ 0.9</span>
+<span class="kw">return</span> <span class="fn">sample</span>(keep)                    <span class="cm"># only "yes" or "maybe" can be chosen</span>
+<span class="cm"># with p = 0.99 the loop also keeps "no" (0.60 + 0.35 + 0.04 = 0.99)</span></pre>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Why top-p adapts</span>
+    "Answer yes or no" should only ever consider 2 tokens. "What's the meaning of life?" should consider many. Top-k always uses the same k; top-p adjusts to the situation.
+  </div>
+
+  <h3>🛑 Stopping conditions</h3>
+  <p>Stop after a maximum number of tokens, or at a <b>stop token</b> (like the end-of-sequence token). Shorter outputs keep latency and cost down.</p>
+  <div class="box trap"><span class="label">⚠️ Common trap: truncated JSON</span>
+    If the token limit cuts the answer off, a JSON reply can lose its closing brackets and fail to parse. Test <b>long inputs near the max-token limit</b>.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Test time compute: generate several, keep the best</h2>
+    <p class="sub">Spend more at answer time for better answers <span class="page">📖 PDF p. 120–123</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Instead of one answer per question, generate <b>several</b> and choose the best one. This is called <b>test time compute</b> ("test time" here just means "when the model is used"). Simplest form: <b>best of N</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  Q["❓ One question"]:::start --> G["🎲 Generate N answers<br/>vary the sampling settings for more variety"]:::blue
+  G --> H{"How do we pick?"}:::q
+  H --> P1["📈 Highest average logprob<br/>the model's own confidence"]:::purple
+  H --> P2["⚖️ Reward model or verifier<br/>scores each answer"]:::green
+  H --> P3["🗳️ Majority vote<br/>most common answer, for exact-answer tasks"]:::orange
+  H --> P4["📏 App rule<br/>shortest, or first one that's valid SQL"]:::yellow
+  H --> P5["🙋 Show several<br/>let the user choose"]:::pink
+  classDef start fill:#e0e7ff,stroke:#4f46e5,color:#312e81
+  classDef q fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+</pre>
+    <div class="caption">Five ways to choose among several generated answers</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 How a sentence's probability is computed (from the book)</span>
+    p("I love food") = p(I) × p(love | I) × p(food | I, love) = 0.2 × 0.1 × 0.3 = <b>0.006</b>.
+    Longer sentences multiply more numbers below 1, so they always look less likely. Using the <b>average</b> logprob per token removes that bias.
+  </div>
+
+  <div class="grid">
+    <div class="tile green"><h4>🚀 Verifiers are powerful</h4><p>OpenAI found a verifier gave about the same boost as making the model <b>30× bigger</b>: a 100M model with a verifier matched a 3B model without one.</p></div>
+    <div class="tile orange"><h4>📉 But not forever</h4><p>In one OpenAI test, more samples helped up to <b>400</b>, then got worse (more chances to fool the verifier). Another study saw gains up to 10,000. Nobody does that in production: it's too expensive.</p></div>
+    <div class="tile blue"><h4>⏱️ Beat latency</h4><p>One team generates several answers in parallel and shows the <b>first one that's complete and valid</b>.</p></div>
+    <div class="tile purple"><h4>🗳️ Majority vote</h4><p>Google sampled <b>32</b> answers per question and took the most common one when testing Gemini on MMLU.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Fragile models benefit most (from the book)</span>
+    A product-label reader managed to read a given image only half the time; the other half it claimed the image was too blurry. <b>Trying three times</b> per image got the correct information for most images.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Two generations cost about twice as much as one. If your product uses best-of-N or majority voting, <b>test cost and latency as well as quality</b>, and check which selection rule is in use. And remember the Gemini lesson from Chapter 1: compare scores only when the number of samples is the same.
+  </div>
+</section>
+
+<!-- ===== 13 ===== -->
+<section class="card" id="t13" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">13</div><div>
+    <h2>Structured outputs: getting reliable JSON, SQL and labels</h2>
+    <p class="sub">Five ways to make output follow a format <span class="page">📖 PDF p. 123–128</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile purple"><h4>🧾 The task needs structure</h4><p><b>Semantic parsing</b>: turning plain language into something machines run, like text-to-SQL ("average monthly revenue over 6 months"), regexes, or valid class labels.</p></div>
+    <div class="tile blue"><h4>🔗 Another program reads it</h4><p>The text itself is free-form (an email), but the app downstream needs it as, say, JSON with "title" and "body". Essential for agents passing outputs to tools.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["✍️ 1 · Prompting<br/>ask for the format; optionally a second<br/>AI call checks or fixes it"]:::blue
+  B["🩹 2 · Post-processing<br/>a script fixes the model's usual<br/>small mistakes, e.g. a missing bracket"]:::green
+  C["🔁 3 · Test time compute<br/>regenerate until an output is valid"]:::yellow
+  D["🧰 4 · Constrained sampling<br/>only allow tokens the format's<br/>grammar permits at each step"]:::orange
+  E["🎓 5 · Finetuning<br/>train on correctly formatted examples,<br/>or add a classifier head"]:::purple
+  A -->|"still too many invalid"| B
+  B -->|"mistakes too varied to script"| C
+  C -->|"too slow or costly"| D
+  D -->|"want it built into the model"| E
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+</pre>
+    <div class="caption">An escalation ladder: the book calls steps 1–3 "bandages" and steps 4–5 the "intensive treatment"</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Example: post-processing works</span>
+    LinkedIn's "defensive" YAML parser raised correct YAML outputs from <b>90% to 99.99%</b>. They chose YAML over JSON because it needs fewer output tokens.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap: "JSON mode" ≠ correct JSON</span>
+    A provider's JSON mode usually guarantees <b>valid JSON syntax only</b>, not the right keys or values. It can still be <b>cut off</b> by the token limit. The author has seen valid-JSON rates anywhere from 0% to the high 90s.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    A schema validator is your cheapest, most reliable test (a deterministic check, as in <i>LLM Evaluation</i> Ch 1). Measure the <b>% of outputs that parse and match the schema</b> across many runs, not just one.
+  </div>
+</section>
+
+<!-- ===== 14 ===== -->
+<section class="card" id="t14" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">14</div><div>
+    <h2>The probabilistic nature: inconsistency and hallucination</h2>
+    <p class="sub">The two problems you'll test most <span class="page">📖 PDF p. 129–135</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    If a model thinks "Vietnamese cuisine" is 70% likely to be the best answer and "Italian" 30%, it will answer Vietnamese about 7 times in 10 and Italian about 3 times. It's <b>probabilistic</b>, not <b>deterministic</b> (always the same). Anything with a probability above zero, however unlikely, can come out.
+  </div>
+
+  <div class="box remember"><span class="label">📌 From the field</span>
+    In three months of support requests at one AI company, <b>one in five</b> was about inconsistency. Industry leaders agree hallucination is the biggest blocker for many enterprise uses.
+  </div>
+
+  <h3>🔀 Inconsistency</h3>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Type</th><th>Example</th><th class="new">What helps</th></tr>
+    <tr><td>Same input, different outputs</td><td>The author asked ChatGPT to score the same essay twice: 3/5, then 5/5</td><td>Cache answers · fix temperature, top-p, top-k · fix the random <b>seed</b>. Even then, different hardware can change results.</td></tr>
+    <tr><td>Slightly different input, very different output</td><td>Capitalising one letter changes the answer</td><td>Careful prompts (Ch 5) and memory systems (Ch 6). Fixing settings doesn't solve it.</td></tr>
+  </table></div>
+
+  <h3>👻 Hallucination: answers not grounded in facts</h3>
+  <p>A law firm was fined in 2023 for submitting made-up legal research generated by ChatGPT. Nobody fully knows why models hallucinate; the book gives two hypotheses that work together:</p>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  Q["❓ Who is Chip Huyen?"]:::blue --> W["✍️ Model writes:<br/>Chip Huyen is an architect."]:::orange
+  W --> T["🤔 Model treats its own sentence<br/>as if it were a given fact"]:::yellow
+  T --> M["❌ Builds more wrong details<br/>on top of the first mistake"]:::red
+  M -.->|"snowball"| T
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">Hypothesis 1, "self-delusion" or snowballing hallucination</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile orange"><h4>1️⃣ Self-delusion</h4><p>The model can't tell <b>what it was given</b> from <b>what it wrote</b>. One odd first sentence snowballs. In the book's example, a vision model decided a shampoo bottle was milk, then listed milk as an ingredient. A wrong start can even make it fail questions it would otherwise get right.</p></div>
+    <div class="tile purple"><h4>2️⃣ Knowledge mismatch</h4><p>During SFT, the model copies answers written by people who know things <b>the model doesn't</b>. So it learns to answer confidently without the knowledge, which is effectively being taught to make things up.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 What helps (partly)</span>
+    Ask the model to <b>cite the sources</b> it relied on · train it to separate given text from its own text · reward functions that punish making things up · prompts like "if you're unsure, say you don't know" · <b>shorter answers</b> (fewer tokens, fewer chances to invent). Note: in the InstructGPT paper, RLHF actually made hallucination <i>worse</i>, even though people preferred the RLHF model overall.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    <ul>
+      <li><b>Run every test case several times.</b> One pass tells you almost nothing about a probabilistic system.</li>
+      <li>Add <b>near-duplicate inputs</b> (casing, spacing, word order) to test the second kind of inconsistency.</li>
+      <li>Add <b>"bait" questions</b> about things that don't exist or aren't in the provided context, and check the model says it doesn't know.</li>
+      <li>Detecting and measuring hallucination properly is covered in Chapter 4.</li>
+    </ul>
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>You fixed temperature, top-p and the seed, and outputs still sometimes differ. Why?</summary>
+      <div class="answer">The hardware running the model can also change results, and with a hosted API you don't control that. Fixed settings reduce variation but don't guarantee identical outputs.</div></details>
+    <details><summary>Explain the "knowledge mismatch" cause of hallucination in one sentence.</summary>
+      <div class="answer">During supervised finetuning the model imitates answers written by people who know things it doesn't, so it learns to produce confident answers without the underlying knowledge.</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>📚 Models learn mostly from <b>messy web data</b> (Common Crawl, C4). Quality can beat quantity.</li>
+    <li>🌍 English is ~46% of the web; many big languages are tiny. Expect <b>worse quality, more tokens, higher cost</b> outside English. Test per language.</li>
+    <li>🧬 Specialist domains need specialist data.</li>
+    <li>🔍 Transformers use <b>attention</b> (query, key, value) to look back at any earlier token. Input is read in parallel (<b>prefill</b>); output is written one token at a time (<b>decode</b>).</li>
+    <li>🐍 Challengers like Mamba and Jamba target cheaper long inputs.</li>
+    <li>📏 Size = <b>parameters</b> (capacity) + <b>training tokens</b> (what it learned) + <b>FLOPs</b> (cost). MoE models are big but run like small ones.</li>
+    <li>⚖️ Chinchilla: ~<b>20 tokens per parameter</b>. Data and electricity may limit future growth.</li>
+    <li>🎓 Post-training = <b>SFT</b> (learn to answer) + <b>preference finetuning</b> (learn what people prefer).</li>
+    <li>⚖️ RLHF: compare answers → train a <b>reward model</b> → train the model to score well. People agree only ~73%.</li>
+    <li>🎲 <b>Sampling</b> picks each token by probability. <b>Temperature</b>: low = predictable, high = creative.</li>
+    <li>🥧 <b>Top-k</b> keeps the top k tokens; <b>top-p</b> keeps the top tokens adding up to p. Token limits can cut JSON off.</li>
+    <li>🔁 <b>Best of N</b> / verifiers / majority vote improve quality at extra cost.</li>
+    <li>🧾 Structured output: prompt → post-process → regenerate → constrained sampling → finetune. JSON mode ≠ correct content.</li>
+    <li>👻 Probabilistic models are <b>inconsistent</b> and <b>hallucinate</b>. Test with repeated runs, near-duplicate inputs and bait questions.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>This week's Saturday lab</h2>
+    <p class="sub">See sampling with your own eyes</p>
+  </div></div>
+  <ol>
+    <li>Pick one prompt with a short factual answer and one creative prompt.</li>
+    <li>Run each <b>20 times</b> at temperature <b>0</b>, <b>0.7</b> and <b>1.5</b>. Save every output.</li>
+    <li>For each setting, count distinct answers and any wrong facts. Make a small table.</li>
+    <li>Ask for a JSON reply with a low max-token limit. How often does it come back cut off?</li>
+    <li>Bonus: ask about a made-up product ("What does the Zorblax 9 do?"). Does the model admit it doesn't know?</li>
+  </ol>
+  <div class="box remember"><span class="label">📌 Coming next (Chapter 3)</span>
+    Evaluation methodology: how to measure open-ended, probabilistic outputs, including the metrics behind "AI as a judge". This is the heart of your QA-for-AI goal.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>AI Engineering</i> (Chip Huyen, O'Reilly 2025) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
