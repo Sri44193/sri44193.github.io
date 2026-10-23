@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Engineering · Ch 1 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📘 AI Engineering · Chapter 1</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+
+<!-- ===== HERO ===== -->
+<header class="hero">
+  <div class="kicker">AI Engineering · Chip Huyen · Week 1</div>
+  <h1>Chapter 1: Building AI Applications with Foundation Models</h1>
+  <p>Where today's AI came from, what people build with it, how to decide what to build, and how the AI engineer's job differs from the classic ML engineer's.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 25–72</span>
+    <span class="chip">⏱ ~5 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🧪 Written for a QA engineer</span>
+  </div>
+</header>
+
+<!-- ===== LEGEND ===== -->
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    Huge, ready-made AI models are now available to everyone through an API, so the hard part of building AI products has moved from <b>making models</b> to <b>adapting and evaluating</b> them, and that new job is called <b>AI engineering</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((AI Engineering<br/>Chapter 1))
+    Where it came from
+      Language models
+      Tokens
+      Self-supervision
+      Foundation models
+    What people build
+      Coding
+      Writing and images
+      Chatbots
+      Summaries and search
+      Workflow automation and agents
+    Should we build it?
+      Why build
+      Role of AI and humans
+      Success metrics
+      The last mile
+      Maintenance
+    The AI stack
+      Application layer
+      Model layer
+      Infrastructure layer
+    AI vs ML engineering
+      Adapt, don't train
+      Bigger models
+      Open-ended outputs, so evaluation is harder
+</pre>
+    <div class="caption">Chapter map: five branches, one for each part of the chapter</div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["📝 Language model<br/>predicts the next word"]:::blue -->|"self-supervision lets it<br/>learn from all text online"| B["📚 Large language model<br/>(LLM)"]:::purple
+  B -->|"add images, audio, video"| C["🧠 Foundation model<br/>multimodal + general-purpose"]:::pink
+  C -->|"offered through an API<br/>to anyone"| D["🛠️ AI engineering<br/>build products on top"]:::green
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">The four-step story of the chapter's first half</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Language models &amp; tokens</a>
+    <a class="pill" href="#t2"><b>2</b> Two kinds of models</a>
+    <a class="pill" href="#t3"><b>3</b> Self-supervision</a>
+    <a class="pill" href="#t4"><b>4</b> Foundation models</a>
+    <a class="pill" href="#t5"><b>5</b> Adapting a model</a>
+    <a class="pill" href="#t6"><b>6</b> Why now?</a>
+    <a class="pill" href="#t7"><b>7</b> What people build</a>
+    <a class="pill" href="#t8"><b>8</b> Should we build it?</a>
+    <a class="pill" href="#t9"><b>9</b> Goals &amp; the last mile</a>
+    <a class="pill" href="#t10"><b>10</b> The AI stack</a>
+    <a class="pill" href="#t11"><b>11</b> AI vs ML engineering</a>
+    <a class="pill" href="#t12"><b>12</b> Evaluation, prompts, interfaces</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Language models and tokens</h2>
+    <p class="sub">What a language model actually is <span class="page">📖 PDF p. 26–28</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A <b>language model</b> has learned, from huge amounts of text, <b>how likely each word is to come next</b>. That's all it knows: likelihoods.
+    Given "My favourite colour is ___", it has learned that "blue" is far more likely than "car".
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    Your phone keyboard's next-word suggestions, trained on most of the internet instead of your old messages.
+  </div>
+
+  <h3>🧱 Tokens: the model's building blocks</h3>
+  <p>Models don't read whole words or single letters. They read <b>tokens</b>: chunks that can be a whole word, part of a word, or a character. The book's examples:</p>
+  <div class="tokens"><span class="tok">cooking</span><span class="arrow">→</span><span class="tok">cook</span><span class="tok">ing</span></div>
+  <div class="tokens"><span class="tok">chatgpting</span><span class="arrow">→</span><span class="tok">chatgpt</span><span class="tok">ing</span></div>
+  <div class="tokens"><span class="tok">can't</span><span class="arrow">→</span><span class="tok">can</span><span class="tok">'t</span></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>Why not whole words?</h4><p>There are too many words. Tokens keep the list of building blocks (the <b>vocabulary</b>) smaller, which makes the model more efficient.</p></div>
+    <div class="tile green"><h4>Why not single letters?</h4><p>Letters carry no meaning. "cook" + "ing" still carries meaning.</p></div>
+    <div class="tile purple"><h4>Bonus</h4><p>Made-up words still work: the model splits them into pieces it already knows.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    <ul>
+      <li>For GPT-4, <b>100 tokens ≈ 75 words</b> (a token is about ¾ of a word).</li>
+      <li><b>Vocabulary</b> = every token a model knows. GPT-4 has about 100,000; Mixtral 8x7B has 32,000.</li>
+      <li><b>Tokenization</b> = splitting text into tokens. Each model family does it differently.</li>
+    </ul>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    API pricing and length limits are counted in <b>tokens, not words or characters</b>. When you test a "max length" rule or estimate the cost of a test run, count tokens. Non-English text often uses more tokens per character, so give it its own boundary tests.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Roughly how many tokens is a 300-word bug report for GPT-4?</summary>
+      <div class="answer">About 400. If 100 tokens ≈ 75 words, then 300 words ≈ 300 ÷ 0.75 = 400 tokens.</div></details>
+    <details><summary>Why do models use tokens instead of whole words?</summary>
+      <div class="answer">A smaller vocabulary (more efficient), pieces that still carry meaning, and the ability to handle words the model has never seen.</div></details>
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>Two kinds of language models</h2>
+    <p class="sub">Fill-in-the-blank vs. predict-what's-next <span class="page">📖 PDF p. 28–30</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile purple">
+      <h4>🎭 Masked model (e.g. BERT)</h4>
+      <p><b>Fills in a blank</b> anywhere, using words on <b>both sides</b>.</p>
+      <p><code>My favourite ___ is blue</code> → <b>colour</b></p>
+      <p class="muted">Used for: classifying text, sentiment, understanding code around a bug.</p>
+    </div>
+    <div class="tile green">
+      <h4>➡️ Autoregressive model (e.g. GPT)</h4>
+      <p><b>Predicts the next token</b>, using only what came <b>before</b>.</p>
+      <p><code>My favourite colour is ___</code> → <b>blue</b></p>
+      <p class="muted">Used for: generating text. This is what ChatGPT and Claude are.</p>
+    </div>
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    An autoregressive model is a <b>completion machine</b>. You give it the start of a text (the <b>prompt</b>) and it keeps adding the most likely next token, one at a time, until it decides to stop.
+    Many jobs can be phrased as "complete this text": translating, summarising, coding, even classifying spam ("Is this email spam? Answer: ___").
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Algorithm: how a completion is generated</span>
+<pre><span class="kw">input</span>  prompt                       <span class="cm"># e.g. "To be or not to be"</span>
+tokens ← <span class="fn">tokenize</span>(prompt)
+<span class="kw">repeat</span>:
+    probs ← <span class="fn">model</span>(tokens)             <span class="cm"># a likelihood for every token in the vocabulary</span>
+    next  ← <span class="fn">pick_one</span>(probs)          <span class="cm"># usually a likely one, not always the top one (Ch 2)</span>
+    <span class="kw">if</span> next = <span class="st">&lt;END&gt;</span>: <span class="kw">stop</span>          <span class="cm"># the special "end of sequence" token</span>
+    tokens.<span class="fn">append</span>(next)            <span class="cm"># the new token becomes part of the input</span>
+<span class="kw">output</span> <span class="fn">detokenize</span>(tokens after the prompt)</pre>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant U as 🙂 You
+  participant M as 🤖 Model
+  U->>M: "To be or not to be"
+  M->>M: likeliest next token? → ","
+  M->>M: likeliest next token? → " that"
+  M->>M: … one token at a time …
+  M->>M: next token = END, so stop
+  M-->>U: ", that is the question."
+</pre>
+    <div class="caption">One token per step. That's why long answers take longer to arrive.</div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    A completion is a <b>prediction based on probabilities, not a looked-up fact</b>. It can sound confident and still be wrong. And a plain completion machine isn't a chat partner: ask it a question and it might "complete" it with another question. Extra training after the first round (Chapter 2) teaches models to actually answer.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Because the next token is <b>picked from probabilities</b>, the same prompt can give different outputs. Exact-match assertions on free text will be flaky. You'll learn how to test this properly in Chapters 3–4.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Which type of model is ChatGPT, and how do you know?</summary>
+      <div class="answer">Autoregressive. It generates text left to right, one token at a time, using only what came before.</div></details>
+    <details><summary>How could a completion machine act as a spam classifier?</summary>
+      <div class="answer">Write the prompt so the most natural completion is the label: "Is this email spam? Email: … Answer:" and let it complete with "Likely spam" or "Not spam".</div></details>
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Self-supervision: the trick that made models huge</h2>
+    <p class="sub">Why language models could grow when other models couldn't <span class="page">📖 PDF p. 30–32</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Most models learn from <b>labelled examples</b>: someone has to mark each photo "cat" or each transaction "fraud". Labelling is slow and expensive.
+    A language model doesn't need anyone to label anything. <b>Every sentence already contains its own answers</b>: hide the next word, and the real next word is the label.
+  </div>
+
+  <div class="box example"><span class="label">🧩 Example (my own sentence, same idea as the book's)</span>
+    The sentence <i>"Tests catch bugs early."</i> gives free training questions:
+    <div class="table-wrap"><table class="compare">
+      <tr><th>Model sees (context)</th><th class="new">Must predict (label)</th></tr>
+      <tr><td>&lt;START&gt;</td><td>Tests</td></tr>
+      <tr><td>&lt;START&gt; Tests</td><td>catch</td></tr>
+      <tr><td>&lt;START&gt; Tests catch</td><td>bugs</td></tr>
+      <tr><td>&lt;START&gt; Tests catch bugs</td><td>early</td></tr>
+      <tr><td>&lt;START&gt; Tests catch bugs early</td><td>.</td></tr>
+      <tr><td>&lt;START&gt; Tests catch bugs early .</td><td>&lt;END&gt;</td></tr>
+    </table></div>
+    The <b>&lt;END&gt;</b> marker matters: it's how the model learns when to stop talking.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Learning style</th><th>Where the labels come from</th><th>Example</th></tr>
+    <tr><td>🏷️ Supervised</td><td>Humans label every example (costly)</td><td>Fraud / not fraud on each transaction</td></tr>
+    <tr><td>🔁 Self-supervised</td><td>The data labels itself</td><td>Next word in a sentence</td></tr>
+    <tr><td>🌫️ Unsupervised</td><td>No labels needed at all</td><td>Grouping similar customers</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    <ul>
+      <li>Labelling cost grows fast: the book estimates $50,000 to label a million images at 5¢ each, and labelling cancer scans would cost far more.</li>
+      <li><b>Parameters</b> are the numbers inside a model that change during training. More parameters usually means more capacity to learn, and a need for more data.</li>
+      <li>"Large" keeps moving: GPT-1 (2018) had 117 million parameters; now 100 billion counts as large.</li>
+    </ul>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    The model learned from <b>whatever text was online</b>, nobody checked it line by line. So it absorbs the internet's errors and biases. That's a reason to test for wrong facts and biased answers, not just whether the output looks right.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Self-supervised vs unsupervised: what's the difference?</summary>
+      <div class="answer">Self-supervised learning still has labels, but they're taken from the data itself (the next word). Unsupervised learning uses no labels at all.</div></details>
+    <details><summary>Why did self-supervision let language models become "large"?</summary>
+      <div class="answer">It removed the labelling bottleneck. Any text anywhere becomes training data for free, so the training sets (and models) could grow enormously.</div></details>
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--pink)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>From LLMs to foundation models</h2>
+    <p class="sub">More senses, and one model for many jobs <span class="page">📖 PDF p. 32–35</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Text-only models were extended to understand <b>images, audio, video</b> too. A model that handles more than one kind of input is <b>multimodal</b>.
+    The book calls these big, general models <b>foundation models</b>, because so many products are built on top of them.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph OLD["🧩 Before: one model per job"]
+    direction TB
+    o1["Spam filter model"]:::grey
+    o2["Translation model"]:::grey
+    o3["Image labeller model"]:::grey
+  end
+  subgraph NEW["🧠 Now: one foundation model"]
+    direction TB
+    F["Foundation model<br/>text + images + more"]:::pink
+    F --> n1["spam check"]:::green
+    F --> n2["translation"]:::green
+    F --> n3["describe a photo"]:::green
+    F --> n4["write code"]:::green
+  end
+  OLD ==> NEW
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">From task-specific models to general-purpose models</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Example from the book</span>
+    CLIP learned to match images with text using <b>400 million image–caption pairs found online</b>, with no hand labelling. It's an <b>embedding model</b>, not a generator: it turns images and text into lists of numbers (<b>embeddings</b>) that capture meaning. Embeddings return in Chapter 6 (RAG).
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>What makes a model a "foundation" model?</summary>
+      <div class="answer">It's large, often multimodal, works for many tasks out of the box, and others build their products on top of it.</div></details>
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Three ways to adapt a model to your job</h2>
+    <p class="sub">Prompt engineering, RAG, finetuning <span class="page">📖 PDF p. 34–36, 64</span></p>
+  </div></div>
+
+  <div class="box example"><span class="label">🧩 The book's scenario</span>
+    A shop wants AI-written product descriptions. Out of the box, the model writes accurate text, but it doesn't sound like the brand and is full of clichés. Three ways to fix it:
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  M(("🤖 Base model")):::base
+  P["✍️ Prompt engineering<br/>Give clear instructions and<br/>a few good examples"]:::blue
+  R["📚 RAG<br/>Fetch helpful info from a database,<br/>e.g. customer reviews, into the prompt"]:::green
+  T["🔧 Finetuning<br/>Train the model further on<br/>great product descriptions"]:::purple
+  M --> P --> O1["✅ No change to the model itself<br/>Fast, cheap, little data"]:::ok
+  M --> R --> O2["✅ No change to the model itself<br/>Adds fresh, specific facts"]:::ok
+  M --> T --> O3["⚠️ The model itself changes<br/>More data and effort,<br/>can boost quality, speed, cost"]:::warn
+  classDef base fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef ok fill:#ecfdf5,stroke:#10b981,color:#065f46
+  classDef warn fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">The key question: does the technique change the model's weights?</div>
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy: a new hire</span>
+    <b>Prompt engineering</b> = a clear brief for each task. <b>RAG</b> = handing them the right documents for each task. <b>Finetuning</b> = sending them on a training course so the skill becomes part of them.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Adapting an existing model is <b>far cheaper</b> than building one. The book contrasts roughly <i>ten examples and a weekend</i> with <i>a million examples and six months</i>.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Someone "trained ChatGPT" by pasting their old diary into the chat. What did they really do?</summary>
+      <div class="answer">Prompt engineering. They gave the model context in the input; the model's weights never changed. (The book uses exactly this example, PDF p. 66.)</div></details>
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Why AI engineering took off now</h2>
+    <p class="sub">Three forces at once <span class="page">📖 PDF p. 36–39</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>AI engineering</b> = building applications on top of models <b>someone else already trained</b>. Classic ML engineering mostly meant building your own models.
+  </div>
+
+  <div class="grid">
+    <div class="tile purple"><div class="emoji">🦾</div><h4>1 · Models can do much more</h4><p>Anything involving communication can be partly automated: emails, support replies, explaining contracts, images, code.</p></div>
+    <div class="tile green"><div class="emoji">💰</div><h4>2 · Money is pouring in</h4><p>Cheaper and faster to build means better returns. One team saw their AI costs drop about 100× in a year.</p></div>
+    <div class="tile orange"><div class="emoji">🚪</div><h4>3 · Easy to start</h4><p>One API call gets you a powerful model, and you can instruct it in plain English. No GPUs or ML degree needed.</p></div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    "Low barrier to entry" means <b>many teams ship AI features without ML experience</b>, which is where QA becomes essential. Someone has to ask "how do we know it works?".
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>What people build with foundation models</h2>
+    <p class="sub">Eight families of use cases <span class="page">📖 PDF p. 40–52</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><div class="emoji">💻</div><h4>Coding</h4><p>The #1 use case: completion, tests, docs, translating between languages. Biggest gains on simple tasks.</p></div>
+    <div class="tile pink"><div class="emoji">🎨</div><h4>Images &amp; video</h4><p>Creative work suits AI's randomness: ads, headshots, design.</p></div>
+    <div class="tile purple"><div class="emoji">✍️</div><h4>Writing</h4><p>Emails, reports, marketing copy. In one study, people were ~40% faster with ~18% better quality.</p></div>
+    <div class="tile yellow"><div class="emoji">🎓</div><h4>Education</h4><p>Personalised lessons, quizzes, tutoring (like these notes!).</p></div>
+    <div class="tile teal"><div class="emoji">💬</div><h4>Conversational bots</h4><p>Customer support, product copilots, companions, smart game characters.</p></div>
+    <div class="tile green"><div class="emoji">🗞️</div><h4>Information aggregation</h4><p>Summaries and "talk to your documents".</p></div>
+    <div class="tile orange"><div class="emoji">🗂️</div><h4>Data organisation</h4><p>Pull structured data out of PDFs, receipts, contracts; search photos.</p></div>
+    <div class="tile red"><div class="emoji">🤖</div><h4>Workflow automation</h4><p>Booking, invoicing, data entry. AI that plans and uses tools is called an <b>agent</b> (Ch 6).</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Companies ship <b>internal tools first</b> (lower risk), and many AI apps are still <b>close-ended</b> (e.g. classification) because those are <b>easier to evaluate</b>.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Notice the pattern: <b>how easy something is to evaluate shapes what companies dare to ship.</b> As a QA lead, making open-ended features measurable is how you unlock riskier, more valuable products.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Should we even build this?</h2>
+    <p class="sub">Planning questions before writing code <span class="page">📖 PDF p. 52–56</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A cool demo is easy. A product that makes money is hard. Before building, answer: <b>why</b>, <b>build or buy</b>, <b>what role AI plays</b>, <b>what role humans play</b>, and <b>what stops a competitor from copying it</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  S(["💡 AI feature idea"]):::start --> W{"Why build it?"}:::q
+  W -->|"Competitors with AI could<br/>make us obsolete"| H["🔴 Highest priority<br/>consider building in-house"]:::red
+  W -->|"Missing profit and<br/>productivity gains"| M["🟠 Strong case<br/>buying may be cheaper"]:::orange
+  W -->|"Not sure, don't want<br/>to fall behind"| L["🟡 Explore through R&amp;D<br/>if you can afford it"]:::yellow
+  H --> R{"What role does AI play?"}:::q
+  M --> R
+  L --> R
+  R --> R1["Critical vs complementary<br/>more critical = must be more reliable"]:::blue
+  R --> R2["Reactive vs proactive<br/>proactive = higher quality bar"]:::blue
+  R --> R3["Dynamic vs static<br/>learns per user, or updated in releases?"]:::blue
+  R1 --> HU["🧑 Decide the human's role<br/>Crawl → Walk → Run"]:::green
+  R2 --> HU
+  R3 --> HU
+  classDef start fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef q fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Decision flow for a new AI feature</div>
+  </div>
+
+  <h3>🚶 Crawl → Walk → Run (how much to trust the AI)</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  C["🐢 Crawl<br/>A human must approve<br/>everything the AI does"]:::c -->|"humans accept most<br/>AI suggestions"| Wk["🚶 Walk<br/>AI talks directly to<br/>internal staff"]:::w
+  Wk -->|"quality proven<br/>internally"| Rn["🏃 Run<br/>AI talks directly to<br/>customers"]:::r
+  classDef c fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef w fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef r fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Increase automation only as quality is proven (a Microsoft framework cited in the book)</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Example</span>
+    A support chatbot starts by <b>suggesting replies</b> to human agents. If agents send ~95% of suggestions for simple requests unchanged, let the bot <b>answer those simple requests directly</b>.
+  </div>
+
+  <div class="box extra"><span class="label">🛡️ Defensibility (moats)</span>
+    If it's easy for you to build, it's easy for competitors too. The three advantages are <b>technology</b> (mostly the same for everyone now), <b>distribution</b> (big companies win), and <b>data</b>: usage data from shipping first can become your edge.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Crawl-Walk-Run is a <b>release-gating strategy</b>, and QA owns the gates. "% of AI suggestions accepted unchanged by humans" is a measurable exit criterion for moving from Crawl to Walk.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Why do proactive AI features need a higher quality bar than reactive ones?</summary>
+      <div class="answer">Users didn't ask for them. A poor unrequested suggestion feels intrusive, while a poor answer to a question you asked is more easily forgiven.</div></details>
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Setting goals, and the "last mile"</h2>
+    <p class="sub">Success metrics, milestones, maintenance <span class="page">📖 PDF p. 56–60</span></p>
+  </div></div>
+
+  <h3>🎯 Two kinds of goals</h3>
+  <div class="grid">
+    <div class="tile blue"><h4>📈 Business metrics</h4><p>For a support bot: % of messages automated, messages handled, response speed, staff hours saved, <b>plus customer satisfaction</b>.</p></div>
+    <div class="tile green"><h4>🚦 Usefulness threshold</h4><p>How good it must be before customers see it: <b>quality</b>, <b>latency</b>, <b>cost per request</b>, plus fairness and explainability.</p></div>
+  </div>
+
+  <dl class="terms">
+    <dt>TTFT</dt><dd>Time to first token: how long until the answer <i>starts</i> appearing.</dd>
+    <dt>TPOT</dt><dd>Time per output token: how fast it keeps typing after that.</dd>
+    <dt>Total latency</dt><dd>Time for the whole answer. "Fast enough" depends on the use case: if humans take an hour today, a minute is a big win.</dd>
+  </dl>
+
+  <h3>🏔️ The last mile is the hardest</h3>
+  <p>LinkedIn's experience, quoted in the book:</p>
+  <div class="bars">
+    <div class="bar"><span>Month 1</span><div class="track"><div class="fill" style="width:80%; background:linear-gradient(90deg,#16a34a,#22c55e)">80% of the target experience</div></div></div>
+    <div class="bar"><span>Months 2–5</span><div class="track"><div class="fill" style="width:95%; background:linear-gradient(90deg,#ea580c,#f59e0b)">4 more months to pass 95%</div></div></div>
+  </div>
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    A great demo in a weekend makes teams <b>badly underestimate</b> the remaining work. Going from 0 to 60 is easy; from 60 to 100 is very hard, mostly fixing rough edges and <b>hallucinations</b> (confident, made-up answers).
+  </div>
+
+  <h3>🚄 Maintenance: riding a bullet train</h3>
+  <p>Models, prices and laws change fast. The cheapest option today can be the most expensive in three months. Switching models is getting easier because APIs look alike, but <b>each model has its own quirks</b>, so prompts and data need re-tuning.</p>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    The book says that without <b>versioning and evaluation</b> infrastructure, switching models "can cause a lot of headaches". That's a <b>regression suite for AI</b>: fixed test cases you re-run whenever the model, prompt or provider changes. You'll build one in Week 3.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Your demo answered 8 of 10 test questions correctly after one week. What should you tell your manager about the release date?</summary>
+      <div class="answer">That the last 20% will likely take much longer than the first 80% (the "last mile"). Agree on a usefulness threshold, measure against a larger test set, and plan for months, not days.</div></details>
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--pink)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>The three layers of the AI stack</h2>
+    <p class="sub">Start at the top, go down only when needed <span class="page">📖 PDF p. 60–63</span></p>
+  </div></div>
+
+  <div class="stack">
+    <div class="layer l1"><b>🧩 Application development</b><span>Prompts and context, <b>evaluation</b>, user interface. Most activity happens here, and it's where you start.</span></div>
+    <div class="layer l2"><b>🧠 Model development</b><span>Training and finetuning, dataset engineering, inference optimisation, evaluation.</span></div>
+    <div class="layer l3"><b>🏗️ Infrastructure</b><span>Serving models, managing data and compute (GPUs), monitoring.</span></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 What didn't change</span>
+    Old ML lessons still apply: link business metrics to model metrics, <b>experiment systematically</b> (now with models, prompts and retrieval settings instead of only hyperparameters), make things faster and cheaper, and <b>learn from production feedback</b>.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Notice that <b>evaluation appears in two layers</b>. It isn't a phase at the end; it runs through the whole stack.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>AI engineering vs ML engineering</h2>
+    <p class="sub">What's actually different <span class="page">📖 PDF p. 63–68</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><div class="emoji">🔁</div><h4>1 · Adapt, don't build</h4><p>You use someone else's model, so the work is adapting it, not training it.</p></div>
+    <div class="tile orange"><div class="emoji">🐘</div><h4>2 · Bigger models</h4><p>More compute and slower responses, so speed and cost tuning matter more.</p></div>
+    <div class="tile red"><div class="emoji">🌊</div><h4>3 · Open-ended outputs</h4><p>Many possible good answers, so <b>evaluation is a much bigger problem</b>.</p></div>
+  </div>
+
+  <h3>📖 Vocabulary: is it training or not?</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  Q{"Do the model's<br/>weights change?"}:::q
+  Q -->|No| PE["✍️ Prompt engineering<br/>instructions and context in the input"]:::blue
+  Q -->|Yes| Q2{"Starting from<br/>random weights?"}:::q
+  Q2 -->|Yes| PT["🏗️ Pre-training<br/>from scratch, by far the most costly<br/>(~98% of compute for InstructGPT)"]:::red
+  Q2 -->|"No, continuing<br/>from a trained model"| Q3{"Who is doing it?"}:::q
+  Q3 -->|"The model maker,<br/>e.g. OpenAI"| PO["🎓 Post-training<br/>e.g. teach it to follow instructions"]:::purple
+  Q3 -->|"You, the app builder"| FT["🔧 Finetuning<br/>adapt it to your task"]:::green
+  classDef q fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">A decision tree for the training words people mix up</div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Model-layer job</th><th class="old">Classic ML</th><th class="new">With foundation models</th></tr>
+    <tr><td>Modelling &amp; training</td><td>ML knowledge required</td><td>Nice to have (some disagree), still useful for debugging</td></tr>
+    <tr><td>Dataset engineering</td><td>Feature engineering on tables</td><td>Removing duplicates, tokenizing, retrieving context, quality checks, stripping sensitive or toxic data</td></tr>
+    <tr><td>Inference optimisation</td><td>Important</td><td>Even more important</td></tr>
+  </table></div>
+
+  <div class="box example"><span class="label">🧩 Latency maths (from the book)</span>
+    Tokens come out <b>one after another</b>. At 10 ms per token, a 100-token answer takes <b>1 second</b>, and users expect ~100 ms from typical web apps. That's why speed tuning matters so much.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Labelling <b>open-ended</b> outputs is much harder than labelling close-ended ones: deciding "spam or not" is easy, judging an essay is hard. Expect to spend real effort building <b>reference answers and scoring rules</b>. That's the core of the job you're training for.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>The application layer: evaluation, prompts, interfaces</h2>
+    <p class="sub">Where teams now compete <span class="page">📖 PDF p. 68–72</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    When everyone uses the same few models, <b>the model is no longer your advantage. How you use it is.</b> That happens in three places: evaluation, prompt engineering (plus context), and the AI interface.
+  </div>
+
+  <h3>🔍 Evaluation: the lesson from Google Gemini</h3>
+  <p>Google reported Gemini beating GPT-4 on a well-known benchmark (MMLU). But Gemini had been tested with a <b>different prompting method</b> (32 worked examples vs 5). Same model, different prompting:</p>
+  <div class="bars">
+    <div class="bar"><span>Gemini Ultra · 5 examples</span><div class="track"><div class="fill" style="width:83.7%; background:linear-gradient(90deg,#2563eb,#60a5fa)">83.7%</div></div></div>
+    <div class="bar"><span>Gemini Ultra · CoT@32</span><div class="track"><div class="fill" style="width:90.04%; background:linear-gradient(90deg,#7c3aed,#c084fc)">90.04%</div></div></div>
+  </div>
+  <div class="box test"><span class="label">🧪 Testing angle: compare like with like</span>
+    A score only means something <b>together with how it was measured</b>. When you compare two models or two prompt versions, fix everything else: same test set, same prompting method, same settings. In QA terms, <b>control your test conditions</b>.
+  </div>
+
+  <h3>✍️ Prompt engineering and context</h3>
+  <p>Prompting is more than instructions. It's also giving the model the <b>context and tools</b> it needs, and for long tasks, a way to remember what happened earlier (Chapters 5–6).</p>
+
+  <h3>🖥️ AI interfaces</h3>
+  <p>Standalone apps (ChatGPT), plug-ins (Copilot in VS Code), browser extensions, bots in Slack or WhatsApp, voice. Chat makes it easy for users to give feedback in plain language, but that feedback is harder to analyse (Chapter 10).</p>
+
+  <h3>🔄 A new workflow: product first</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph ML["Classic ML engineering"]
+    direction LR
+    a1["📊 Data"]:::grey --> a2["🧠 Model"]:::grey --> a3["📦 Product"]:::grey
+  end
+  subgraph AI["AI engineering"]
+    direction LR
+    b1["📦 Product<br/>demo with an existing model"]:::green --> b2["📊 Data<br/>once it shows promise"]:::blue --> b3["🧠 Model<br/>finetune only if needed"]:::purple
+  end
+  ML ~~~ AI
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+</pre>
+    <div class="caption">AI engineering rewards fast iteration, which brings it closer to full-stack development (and to JavaScript/TypeScript tooling)</div>
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>A vendor says "our model scores 90%, theirs scores 87%". What's your first question?</summary>
+      <div class="answer">"Measured how?" Same test set? Same prompting method and number of examples? Same settings? Without equal conditions, the comparison means nothing.</div></details>
+    <details><summary>Name the three parts of the application layer.</summary>
+      <div class="answer">Evaluation, prompt engineering (and context construction), and the AI interface.</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🔤 A <b>language model</b> predicts likely next tokens. <b>100 tokens ≈ 75 words.</b></li>
+    <li>➡️ <b>Autoregressive</b> models (GPT, Claude) generate one token at a time. Outputs are <b>probabilistic</b>, not guaranteed facts.</li>
+    <li>🔁 <b>Self-supervision</b>: text labels itself, so models could train on the whole internet and become "large".</li>
+    <li>🧠 <b>Foundation models</b> = large, often multimodal, general-purpose, and built upon.</li>
+    <li>🛠️ Adapt a model with <b>prompting</b> (no weight change), <b>RAG</b> (add retrieved facts), or <b>finetuning</b> (change weights).</li>
+    <li>🚀 AI engineering grew from <b>capability + investment + easy access</b>.</li>
+    <li>🤔 Before building, ask <b>why</b>, the AI's <b>role</b>, the human's role (<b>Crawl → Walk → Run</b>), and your <b>moat</b>.</li>
+    <li>🎯 Set <b>business metrics</b> and a <b>usefulness threshold</b> (quality, latency TTFT/TPOT, cost).</li>
+    <li>🏔️ The <b>last mile</b> (60→100%) takes far longer than the demo (0→60%).</li>
+    <li>🏗️ Stack: <b>application → model → infrastructure</b>. Start at the top.</li>
+    <li>🌊 AI vs ML engineering: less training, bigger models, <b>open-ended outputs, which makes evaluation the hard part</b>.</li>
+    <li>🔍 Compare scores only under <b>equal test conditions</b> (the Gemini lesson).</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>This week's Saturday lab</h2>
+    <p class="sub">Turn the reading into something you've done</p>
+  </div></div>
+  <ol>
+    <li>Get an LLM API key and make your first call from Python or TypeScript.</li>
+    <li>Send the same prompt 5 times and note how the answers differ (Topic 2 in action).</li>
+    <li>Paste a long bug report into a token counter and check the "100 tokens ≈ 75 words" rule.</li>
+    <li>List 5 places in your product where an LLM is used or could be. For each, write: <i>critical or complementary? reactive or proactive? which Crawl/Walk/Run stage?</i> and <i>how would I know it works?</i></li>
+  </ol>
+  <div class="box remember"><span class="label">📌 Coming next (Chapter 2)</span>
+    How models are trained after pre-training, and <b>sampling</b>: why the same prompt gives different answers. It's the root problem for testing AI.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>AI Engineering</i> (Chip Huyen, O'Reilly 2025) · page numbers are PDF pages</footer>
+</main>
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>

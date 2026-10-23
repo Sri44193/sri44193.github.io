@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Evaluation · Ch 1 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📗 LLM Evaluation · Chapter 1</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<style>
+/* page-specific: confidence-interval strip */
+.ci { margin: 14px 0; }
+.ci .row { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; margin: 8px 0; font-size: .9rem; }
+.ci .track { position: relative; height: 26px; background: var(--code-bg); border-radius: 999px; }
+.ci .range { position: absolute; top: 4px; bottom: 4px; border-radius: 999px; }
+.ci .dot { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--ink); }
+.ci .gate { position: absolute; top: -4px; bottom: -4px; width: 3px; background: var(--red); }
+.ci .gate::after { content: "gate"; position: absolute; top: -18px; left: -12px; font-size: .72rem; color: var(--red); font-weight: 700; }
+.ci .scale { display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: .75rem; color: var(--muted); }
+.ci .scale div:last-child { display: flex; justify-content: space-between; }
+@media (max-width: 560px) { .ci .row, .ci .scale { grid-template-columns: 1fr; } .ci .scale div:first-child { display: none; } }
+.ladder { display: grid; gap: 6px; margin: 12px 0; }
+.ladder div { border-radius: 12px; padding: 9px 14px; color: #fff; display: grid; grid-template-columns: 130px 1fr; gap: 10px; font-size: .93rem; }
+.ladder b { font-size: .98rem; }
+@media (max-width: 560px) { .ladder div { grid-template-columns: 1fr; gap: 2px; } }
+pre.case { background: var(--code-bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; overflow-x: auto;
+  font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 12px 0; }
+</style>
+
+<header class="hero" style="background: linear-gradient(135deg, #0f766e 0%, #0891b2 45%, #2563eb 100%);">
+  <div class="kicker">LLM Evaluation for Production Systems · Ammar Mohanna · Reference book</div>
+  <h1>Chapter 1: Foundations of LLM Evaluation</h1>
+  <p>How to test an LLM product the way a release manager needs: evidence, thresholds and gates that decide whether to ship, block or roll back. This is the QA playbook for AI.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 36–87</span>
+    <span class="chip">⏱ ~6 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🔗 Read with AI Engineering Ch 3–4</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 In your QA work</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in this book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    You don't ship a model, you ship a <b>system</b> (model + prompt + documents + tools + rules + settings). Evaluating it means <b>collecting evidence about that whole system and using it to make a ship/block/roll-back decision</b>, not just reporting a score.
+  </div>
+
+  <div class="box example"><span class="label">🧩 The story that opens the chapter</span>
+    A support team ships an AI assistant after a great demo. A week later it tells a customer their refund is done, but it <b>never called the billing system</b> to check. The reply sounded confident. The real failure: <b>no evaluation process could have caught a skipped tool call</b> before release.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((LLM evaluation<br/>Chapter 1))
+    What it is
+      A decision system
+      Evidence, uncertainty, threshold, action
+      Not a benchmark or a demo
+    Why it is hard
+      Many right answers
+      Random outputs
+      Whole system changes
+      Agents take steps
+    What working means
+      Quality
+      Safety
+      Cost
+      Reliability
+      Risk tiers
+    Building blocks
+      Primitives to log
+      Test suites and slices
+      Evaluator types
+      Statistics under noise
+    Putting it to work
+      Offline and online pipelines
+      Gates
+      Granularity ladder
+      Tooling
+      7-step blueprint
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["🧱 Define the system<br/>exactly what version is being tested"]:::blue --> B["🔎 Collect evidence<br/>run test suites, log outputs and traces"]:::green
+  B --> C["📏 Account for uncertainty<br/>is the change bigger than normal noise?"]:::yellow
+  C --> D["🚦 Compare to thresholds<br/>agreed before anyone argues"]:::orange
+  D --> E["🎬 Take an action<br/>ship · block · investigate · mitigate · roll back"]:::pink
+  E -. "failures become new test cases" .-> B
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+</pre>
+    <div class="caption">The operating model the whole book reuses</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> A decision system</a>
+    <a class="pill" href="#t2"><b>2</b> What it's not</a>
+    <a class="pill" href="#t3"><b>3</b> The running example</a>
+    <a class="pill" href="#t4"><b>4</b> Why old methods break</a>
+    <a class="pill" href="#t5"><b>5</b> What "working" means</a>
+    <a class="pill" href="#t6"><b>6</b> Primitives</a>
+    <a class="pill" href="#t7"><b>7</b> Test suites</a>
+    <a class="pill" href="#t8"><b>8</b> Evaluator types</a>
+    <a class="pill" href="#t9"><b>9</b> Statistics under noise</a>
+    <a class="pill" href="#t10"><b>10</b> Pipelines &amp; gates</a>
+    <a class="pill" href="#t11"><b>11</b> Benchmarks</a>
+    <a class="pill" href="#t12"><b>12</b> Granularity</a>
+    <a class="pill" href="#t13"><b>13</b> Tooling</a>
+    <a class="pill" href="#t14"><b>14</b> The blueprint</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Evaluation is a decision system, not a score</h2>
+    <p class="sub">The four parts every evaluation needs <span class="page">📖 PDF p. 38–41</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A number like "helpfulness 8.2/10" on its own changes nothing. Evaluation only counts as evaluation when it <b>can change what the team does</b>. Otherwise it's just reporting.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><div class="emoji">🔎</div><h4>Evidence</h4><p>What you measured: a rule check, a metric, an AI judge's score, a human rating, a trace check.</p></div>
+    <div class="tile yellow"><div class="emoji">🎲</div><h4>Uncertainty</h4><p>How much to trust it. Outputs vary, samples are small, judges wobble.</p></div>
+    <div class="tile orange"><div class="emoji">🚧</div><h4>Threshold</h4><p>The line you commit to <b>before</b> looking at results.</p></div>
+    <div class="tile pink"><div class="emoji">🎬</div><h4>Action</h4><p>What happens when the line is crossed: ship, block, investigate, roll back, mitigate.</p></div>
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy: a CI quality gate</span>
+    "Code coverage 78%" is a <b>metric</b>. "Fail the build if coverage &lt; 80%" is a <b>decision</b>. You already work this way in CI; the book applies the same idea to AI behaviour.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Metric (a measurement)</th><th class="new">Decision (a policy)</th></tr>
+    <tr><td>Routing accuracy is 92%</td><td>Ship only if accuracy ≥ 90% overall <b>and</b> ≥ 88% on every critical ticket type</td></tr>
+    <tr><td>Policy violation rate is 0.2%</td><td>Don't ship if high-risk violations exceed 0.1%, or if <b>any</b> zero-tolerance violation appears</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    <ul>
+      <li><b>Quality is only one axis.</b> A brilliant answer that's too slow, too expensive, or occasionally unsafe is still a failure (topic 5).</li>
+      <li>Thresholds are <b>product policy</b>, not afterthoughts. Start from baselines, risk tolerance, SLAs or legal rules, then <b>recalibrate</b> as data arrives.</li>
+      <li>"Without thresholds, metrics are not actionable, and releases become debates."</li>
+    </ul>
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Your dashboard shows "helpfulness 8.4". Why isn't that an evaluation yet?</summary>
+      <div class="answer">There's no threshold or action attached. You'd need to know what score is acceptable, how much it normally varies, which slices matter, and what you'll do if it drops.</div></details>
+    <details><summary>Name the four parts of an evaluation decision system.</summary>
+      <div class="answer">Evidence, uncertainty, threshold, action.</div></details>
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>What evaluation is <i>not</i>, and the loop it really is</h2>
+    <p class="sub">Four look-alikes that give false confidence <span class="page">📖 PDF p. 41–42</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile red"><div class="emoji">🏆</div><h4>❌ "Run a benchmark once"</h4><p>Benchmarks test a bare model. Your product adds prompts, tools, policies, real traffic.</p></div>
+    <div class="tile red"><div class="emoji">👀</div><h4>❌ "Ask teammates if it looks good"</h4><p>That's a demo review: biased, low coverage, not repeatable.</p></div>
+    <div class="tile red"><div class="emoji">🔧</div><h4>❌ "Tweak the prompt until the demo works"</h4><p>The fix may break other cases, cost more, or weaken safety. Prompt edits are code changes.</p></div>
+    <div class="tile red"><div class="emoji">1️⃣</div><h4>❌ "A one-time step"</h4><p>Evaluation is a loop that never stops.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  S["🚀 Ship"]:::green --> O["👁️ Observe live signals"]:::blue
+  O --> L["💡 Learn what failed"]:::purple
+  L --> T["🧪 Add tests for those failures"]:::orange
+  T --> I["🔧 Improve"]:::yellow
+  I -->|"and again"| S
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+</pre>
+    <div class="caption">The evaluation loop: before release (offline tests), during rollout (canary), after release (monitoring)</div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 In your QA work</span>
+    "Prompt changes should be tested like code changes" is your strongest argument when a developer says "I just changed one line of the prompt". Same rule as code: <b>run the regression suite</b>.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>The running example: a support assistant</h2>
+    <p class="sub">One product used throughout the chapter <span class="page">📖 PDF p. 42–44</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The assistant does three jobs on each support ticket: <b>routes</b> it to a category (billing, bug, account access, cancellation, escalation), <b>drafts a reply</b> in the right tone and format, and <b>calls tools</b> (billing lookup, account status, policy search) when it needs verified facts.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant C as 🙂 Customer
+  participant A as 🤖 Assistant
+  participant B as 💳 Billing tool
+  C->>A: "I was charged twice, please refund"
+  A->>A: route → billing_refund
+  alt ✅ Correct behaviour
+    A->>B: billing_lookup(account_id)
+    B-->>A: result, or "missing identifier"
+    A-->>C: asks for the order ID, explains it must verify first
+  else ❌ The opening story's failure
+    A-->>C: "Your refund has been processed!" with no lookup at all
+  end
+</pre>
+    <div class="caption">Same input, two behaviours. Only a trace (topic 6) shows which one happened.</div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Why this example is useful</span>
+    It mixes every hard part of LLM testing in one product: <b>classification</b> (routing), <b>open-ended text</b> (replies), <b>tool use</b>, <b>policy and safety rules</b>, plus <b>latency and cost</b>. And not all failures are equal: a typo ≠ confirming a refund nobody checked.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Why classic ML evaluation breaks</h2>
+    <p class="sub">Four reasons "compare prediction to the right answer" isn't enough <span class="page">📖 PDF p. 44–48</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Classic ML testing assumes: one input → one correct answer → compare. LLM products break that in four ways.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><div class="emoji">🌊</div><h4>1 · Many right answers</h4><p>Two good replies can share almost no words. Exact-match testing would fail a correct one. <b>Test the behaviour</b>, not the wording.</p></div>
+    <div class="tile yellow"><div class="emoji">🎲</div><h4>2 · Randomness</h4><p>Same input, different output (temperature, tools changing, load). Test a <b>distribution of outputs</b>, not one run.</p></div>
+    <div class="tile purple"><div class="emoji">🧩</div><h4>3 · The whole setup matters</h4><p>A prompt edit can change behaviour more than a model upgrade. Prompt × documents × tools × policy × settings = too many combinations to test them all.</p></div>
+    <div class="tile red"><div class="emoji">🤖</div><h4>4 · Agents take steps</h4><p>The final reply can look fine even though a step was wrong: wrong tool, bad arguments, skipped check.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Example: randomness in numbers</span>
+    Run the same 50 replies 5 times at temperature 0.7. Helpfulness looks fine in one run and borderline in another. The billing tool call happens <i>most</i> of the time but is <b>skipped occasionally</b>. If those skips land on refund or account-access tickets, that's not noise, it's a <b>production risk</b>.
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy: flaky tests</span>
+    You know flaky UI tests. An LLM is "flaky by design". You don't fix it by demanding identical output; you <b>measure how much it varies</b> and decide whether the variation matters.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    Logging only the <b>model version</b>. If the prompt or the document index also changed, you'll blame the wrong thing. And even when you see "retrieval changed the same day accuracy dropped", that's a <b>hypothesis, not proof</b>. Confirm with a controlled rerun that changes one thing at a time.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>What should a test check instead of "does the reply match the reference text"?</summary>
+      <div class="answer">Whether the reply meets the task's behaviour contract: no unverified refund claim, asks for missing info, correct tone and format, follows policy.</div></details>
+    <details><summary>In this chapter, what does "repeatable" mean for an LLM?</summary>
+      <div class="answer">Bounded variation and stable decisions, not identical text every time.</div></details>
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>What "working" means: Quality, Safety, Cost, Reliability</h2>
+    <p class="sub">Four axes, risk tiers, and a written definition of done <span class="page">📖 PDF p. 48–52</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile green"><div class="emoji">✅</div><h4>Quality</h4><p>Helpful, correct, complete, right format. <i>Routes tickets correctly, useful replies.</i></p></div>
+    <div class="tile red"><div class="emoji">🛡️</div><h4>Safety</h4><p>Policy, privacy, security. <i>No leaked personal data, no invented account actions.</i></p></div>
+    <div class="tile yellow"><div class="emoji">💰</div><h4>Cost</h4><p>Within budget. <i>No wasted tokens, over-fetching or needless tool calls.</i></p></div>
+    <div class="tile blue"><div class="emoji">⚙️</div><h4>Reliability</h4><p>Consistent and fast. <i>p95 latency, tool success rate, safe fallbacks.</i></p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap: "sounds better = is better"</span>
+    A version that improves tone but adds unsupported refund claims is <b>worse</b>. A more complete answer that doubles cost may be undeployable. Trade-offs are fine; <b>hidden</b> trade-offs turn releases into arguments.
+  </div>
+
+  <h3>🏋️ Load-bearing vs diagnostic metrics</h3>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Load-bearing: decide ship / block / roll back</th><th class="old">Diagnostic: explain <i>why</i> something moved</th></tr>
+    <tr><td>High-risk policy violation rate · routing accuracy on critical types · p95 latency · cost per ticket</td><td>Retrieval hit rate · documents fetched · fallback frequency · judge-score spread · tool latency per endpoint</td></tr>
+  </table></div>
+  <p>Rule of thumb from the book: <b>2–3 load-bearing metrics per axis</b>; the rest are for debugging.</p>
+
+  <h3>🔺 Risk tiers: not all failures are equal</h3>
+  <div class="ladder">
+    <div style="background:linear-gradient(90deg,#dc2626,#f43f5e)"><b>🔴 High</b><span>Identity, access, payment disputes, security, legal, personal data → serious harm possible. <b>Zero tolerance</b> and human review.</span></div>
+    <div style="background:linear-gradient(90deg,#ea580c,#f59e0b)"><b>🟠 Medium</b><span>Account details, billing processes, interpreting policy → escalations or user harm.</span></div>
+    <div style="background:linear-gradient(90deg,#16a34a,#22c55e)"><b>🟢 Low</b><span>General guidance → inconvenient, unlikely to harm. <b>Risk budget</b> (a small error rate is allowed) and light sampling.</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="tile red"><h4>🚫 Zero-tolerance failure</h4><p>Blocks release <b>however rare</b>. E.g. showing another user's data; claiming a refund without verification.</p></div>
+    <div class="tile green"><h4>🎟️ Risk-budgeted failure</h4><p>Allowed up to an agreed rate, <b>unless</b> it clusters in a critical slice. E.g. minor formatting slips.</p></div>
+  </div>
+
+  <h3>✔️ A definition of "done" for the assistant</h3>
+  <ul>
+    <li>🛡️ High-risk violations under the strict limit; <b>zero</b> catastrophic failures</li>
+    <li>✅ Routing accuracy &gt; 90% overall and on target for critical ticket types</li>
+    <li>⚙️ Required tool verification succeeds &gt; 98% where tools are needed</li>
+    <li>⏱️ p95 end-to-end latency &lt; 3 seconds at normal load</li>
+    <li>💰 Average cost per ticket within budget</li>
+    <li>🧭 No critical slice regresses enough to trigger review or rollback</li>
+  </ul>
+  <p class="muted">Plus <b>rollback triggers</b>, because shipping isn't one-way: spikes in high-risk violations, tool failures causing false claims, sustained latency, cost spikes.</p>
+
+  <div class="box test"><span class="label">🧪 In your QA work</span>
+    This is a <b>release exit criteria</b> document for an AI feature, the same kind of artefact a QA lead already owns. Write it <b>before</b> testing starts so nobody can move the goalposts after seeing the results.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>A release improves average helpfulness but adds one unsupported refund claim in the gating suite. Ship?</summary>
+      <div class="answer">No. Unsupported refund claims are a zero-tolerance failure; one case blocks release however good the averages look.</div></details>
+    <details><summary>What's the difference between a load-bearing and a diagnostic metric?</summary>
+      <div class="answer">Load-bearing metrics drive decisions (ship, block, roll back). Diagnostic metrics help explain why a load-bearing metric moved.</div></details>
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Evaluation primitives: the shared vocabulary</h2>
+    <p class="sub">Name the parts so you can log, version and debug them <span class="page">📖 PDF p. 52–57</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Two layers. <b>System primitives</b> are what the product receives, uses, produces and records. <b>Evaluation constructs</b> are how you measure that and act on it.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🧱 System primitives</h4><p>📥 Input · 📝 Prompt · 📚 Context (retrieved documents, policies) · 🛠️ Tools · 📤 Output · 🧵 Traces (the event timeline)</p></div>
+    <div class="tile purple"><h4>📐 Evaluation constructs</h4><p>🔍 Evaluators · 📊 Metrics · 🚧 Thresholds · 🎬 Actions · 🏷️ Metadata (versions)</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  P["🧱 Primitives<br/>input, prompt, context, tools, output, trace"]:::blue -->|"feed"| E["🔍 Evaluators<br/>rule, metric, AI judge, human"]:::purple
+  E -->|"produce"| M["📊 Metrics<br/>e.g. unsupported refund-claim rate"]:::green
+  M -->|"compared to"| T["🚧 Thresholds<br/>e.g. zero in high-risk billing"]:::orange
+  T -->|"trigger"| A["🎬 Actions<br/>e.g. block release, roll back canary"]:::pink
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+</pre>
+    <div class="caption">The chain to memorise. Every check in this book follows it.</div>
+  </div>
+
+  <h3>🏷️ Version everything (including data and judges)</h3>
+  <p>Each run should record: model · prompt · retrieval settings · <b>document index snapshot</b> · policy version · tool schemas · inference settings · <b>evaluator, judge model, judge prompt, rubric</b> · test suite version · code commit.</p>
+  <div class="box trap"><span class="label">⚠️ Common trap: a silent change of ruler</span>
+    If you swap the AI judge or reword its rubric, scores move even though the assistant didn't change. Refreshing the document index is a <b>data change</b> too. Unversioned, you'll blame the model for something the test setup did.
+  </div>
+
+  <h3>📒 Minimum logging (condensed from Table 1.1)</h3>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Layer</th><th>Log at least</th><th class="new">So you can…</th></tr>
+    <tr><td>Input</td><td>Request ID, raw input, time, slice tags (locale, segment, risk tier)</td><td>Reproduce cases, measure per slice</td></tr>
+    <tr><td>Task spec</td><td>Task label, expected-behaviour checklist, required policies</td><td>Judge outputs that can be worded many ways</td></tr>
+    <tr><td>Prompt</td><td>Prompt ID/version, template, inference settings</td><td>Explain behaviour changes</td></tr>
+    <tr><td>Context</td><td>Retrieved doc IDs and scores, index snapshot, policy version</td><td>Debug "it used the wrong document"</td></tr>
+    <tr><td>Tools</td><td>Tool name, arguments, valid?, success/failure, latency, timeout</td><td>Catch wrong tool or bad-argument failures</td></tr>
+    <tr><td>Output</td><td>Final reply, format-valid, schema-valid</td><td>Catch contract failures fast</td></tr>
+    <tr><td>Trace</td><td>Timeline of retrievals, tool calls, retries, fallbacks, policy checks</td><td>Check the steps, not just the ending</td></tr>
+    <tr><td>Evaluator, data, run</td><td>Judge and rubric versions, suite snapshot, run ID, commit</td><td>Fair comparisons and reruns</td></tr>
+  </table></div>
+
+  <div class="box test"><span class="label">🧪 In your QA work</span>
+    A trace check is like <b>verifying a mock was called</b> in a unit test: "assert <code>billing_lookup</code> succeeded <i>before</i> the reply says 'refunded'". You can't write that check if tool calls were never logged, so <b>agree the logging with developers early</b>.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Building test suites and datasets</h2>
+    <p class="sub">Cases, slices, and five kinds of datasets <span class="page">📖 PDF p. 57–61</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A <b>test case</b> is more than a prompt: input + task label + slice tags + expected behaviour + risk tier + tool conditions (+ sometimes a reference answer). A <b>suite</b> is a curated set of cases aimed at decisions, not "everything".
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  R(["🧰 Your test suite"]):::base
+  R --> SL["🍰 Slice-based<br/>coverage by intent, segment,<br/>risk tier, tool condition, locale"]:::blue
+  R --> G["🥇 Gold set<br/>inputs + expected behaviour,<br/>with a clean hold-out set"]:::yellow
+  R --> AD["😈 Adversarial<br/>prompt injection, missing IDs,<br/>conflicting rules, broken tools"]:::red
+  R --> SY["🧪 Synthetic<br/>generated variants, used<br/>to widen a real-data core"]:::purple
+  R --> RG["🔁 Regression<br/>grows from every incident<br/>and near miss"]:::green
+  classDef base fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Five dataset types that make up a suite</div>
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy: equivalence partitioning</span>
+    <b>Slices</b> are your equivalence classes. An average over all tickets can look great while the "account access" class quietly gets worse. Report and gate <b>per slice</b>.
+  </div>
+
+  <div class="grid">
+    <div class="tile yellow"><h4>🥇 "Gold" for open-ended answers</h4><p>A <b>checklist of required behaviour</b>, not one perfect reply. Use exact reference answers only where there's one right answer: category, priority, extracted fields, tool choice.</p></div>
+    <div class="tile red"><h4>🔒 Protect the hold-out</h4><p>If you tune prompts against the same examples, they stop telling the truth. Keep a <b>clean hold-out set</b> only for release decisions.</p></div>
+    <div class="tile purple"><h4>🧪 Synthetic: scale with care</h4><p>Great for phrasing variety and rare cases. Risky if the <b>same model family</b> both generates the cases and judges the answers (it finds its own cases easy). Keep a real-data core, label synthetic cases, score them separately.</p></div>
+    <div class="tile green"><h4>🌱 Suites are living things</h4><p>After every incident: capture it, add it <b>plus a few variants</b> (so the fix doesn't overfit one wording), and give the suite an owner.</p></div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Suite by purpose</th><th>Used for</th><th>Changes</th></tr>
+    <tr><td>🛠️ Development</td><td>Day-to-day prompt and system iteration</td><td>Often</td></tr>
+    <tr><td>🚦 Release-gating</td><td>Fair version-to-version comparison</td><td>Rarely, controlled</td></tr>
+    <tr><td>🔒 Hold-out</td><td>Big release decisions, guards against overfitting</td><td>Almost never; look sparingly</td></tr>
+    <tr><td>🔭 Exploration</td><td>Discovering new failure types</td><td>Fast</td></tr>
+  </table></div>
+
+  <div class="box test"><span class="label">🧪 In your QA work</span>
+    "Bug found → add a regression test" is already your habit. The book's twist: also add <b>variants</b> of the failing input, and tag every case with a <b>risk tier</b> so you know which failures block release.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Why is a single "perfect reply" a weak gold answer for a support response?</summary>
+      <div class="answer">Correct replies can be worded very differently, so text similarity measures wording rather than quality. A behaviour checklist captures what actually matters.</div></details>
+    <details><summary>What's the danger of using the same model family to generate and to judge test cases?</summary>
+      <div class="answer">A self-reinforcing bias: it creates cases it finds natural and easy, so the system looks better than it really is.</div></details>
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Evaluator types: pick the cheapest one that's reliable</h2>
+    <p class="sub">Rules → reference metrics → AI judges → humans <span class="page">📖 PDF p. 61–66</span></p>
+  </div></div>
+
+  <div class="stack">
+    <div class="layer l3"><b>1 · 🤖 Deterministic validators</b><span>Rule-based, true/false: valid JSON? required fields? correct tool arguments? billing lookup happened before "refunded"? Fast, cheap, stable. <b>The backbone.</b></span></div>
+    <div class="layer" style="background:linear-gradient(90deg,#2563eb,#0ea5e9)"><b>2 · 🎯 Reference-based metrics</b><span>Compare to a known label: routing category, priority, extracted fields, tool choice. Exact match, precision, recall, F1.</span></div>
+    <div class="layer l2"><b>3 · 🧑‍⚖️ LLM-as-judge</b><span>An AI scores subjective things (helpfulness, completeness, tone, policy) against a rubric. Scales well but is <b>noisy</b>.</span></div>
+    <div class="layer l1"><b>4 · 👩‍💼 Human review</b><span>High risk, ambiguous intent, policy nuance, empathy. Expensive; run it as a structured operation.</span></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  Q1{"Is it objectively<br/>true or false?<br/>format, field, tool called"}:::q
+  Q1 -->|Yes| D["🤖 Deterministic validator"]:::teal
+  Q1 -->|No| Q2{"Is there one clear<br/>correct label?"}:::q
+  Q2 -->|Yes| R["🎯 Reference metric<br/>accuracy, precision, recall, F1"]:::blue
+  Q2 -->|No| Q3{"High risk, ambiguous<br/>or policy nuance?"}:::q
+  Q3 -->|No| J["🧑‍⚖️ LLM judge with a rubric<br/>calibrated against humans"]:::purple
+  Q3 -->|Yes| H["👩‍💼 Human review<br/>rubric, double-scoring"]:::pink
+  J -. "judges disagree or<br/>the slice is high-risk" .-> H
+  classDef q fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef teal fill:#ccfbf1,stroke:#0f766e,color:#134e4a
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+</pre>
+    <div class="caption">Choosing an evaluator for a failure type</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile purple"><h4>🧑‍⚖️ A judge rubric, one dimension at a time</h4><p><b>Helpfulness:</b> addresses the real request? · <b>Completeness:</b> next steps or asks for missing info? · <b>Tone:</b> professional, empathetic? · <b>Policy:</b> no unsupported claims?</p></div>
+    <div class="tile red"><h4>⚠️ Judges aren't neutral rulers</h4><p>They can be inconsistent run to run, sensitive to rubric wording, <b>favour longer answers</b>, and trust fluent-but-wrong replies.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Making AI judges usable</span>
+    Fixed, specific rubric · simple scale · <b>calibrate against a small human-scored set</b> · make the judge <b>cite evidence</b> · version the judge model, prompt, rubric and scoring code · treat scores as <b>noisy measurements</b>.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Human review as an operation, not "looks good"</span>
+    A rubric with anchors · pass/fail rules for critical issues · trained, calibrated reviewers · <b>double-score a subset</b> and check agreement · sample by slice and <b>oversample high-risk and incident cases</b>.
+  </div>
+
+  <div class="box test"><span class="label">🧪 In your QA work</span>
+    Map evaluators to the test pyramid: deterministic checks ≈ <b>unit/contract tests</b> (many, cheap, run first), AI judges ≈ automated <b>UI checks</b> (useful, flakier), humans ≈ <b>exploratory testing</b> (few, targeted, high value). Don't spend judge or human time on outputs that already fail a JSON check.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Which evaluator checks "the reply claimed a refund but no successful billing lookup happened"?</summary>
+      <div class="answer">A trace-based deterministic check. It's a factual process question, not a subjective quality judgement.</div></details>
+    <details><summary>Your judge's helpfulness score jumped after a model upgrade. Name two possible causes besides "the assistant got better".</summary>
+      <div class="answer">The judge model, judge prompt or rubric changed (evaluator drift), or the judge favours the new version's longer answers.</div></details>
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Repeatability and statistics under randomness</h2>
+    <p class="sub">Tell real changes from noise <span class="page">📖 PDF p. 66–70</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Since outputs vary, <b>one number is misleading</b>. Report a <b>range</b> (confidence interval) and only treat changes <b>outside normal variation</b> as real.
+  </div>
+
+  <h3>📏 Why a range beats a single number</h3>
+  <div class="ci">
+    <div class="scale"><div></div><div><span>7.6</span><span>7.8</span><span>8.0</span><span>8.2</span><span>8.4</span></div></div>
+    <div class="row"><span>Helpfulness 8.1<br/><span class="muted">range 7.9–8.3</span></span>
+      <div class="track">
+        <div class="range" style="left:37.5%; width:50%; background:linear-gradient(90deg,#ca8a04,#f59e0b)"></div>
+        <div class="gate" style="left:50%"></div>
+        <div class="dot" style="left:62.5%"></div>
+      </div></div>
+  </div>
+  <p>The average (8.1) passes a gate of 8.0, but the range <b>crosses the gate</b>. The honest answer is "not sure yet": collect more samples, use a stricter evaluator, or get human review.</p>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Where the variation comes from</th><th class="new">What it really is, and the fix</th></tr>
+    <tr><td>The model sampled a different answer</td><td>Generation: adjust sampling settings or tighten the prompt contract</td></tr>
+    <tr><td>The billing tool timed out</td><td><b>Reliability</b>, not language quality: fix or measure the tool</td></tr>
+    <tr><td>The judge prompt changed</td><td><b>Evaluator drift</b>, not assistant behaviour</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Variance controls</span>
+    Fix inference settings for offline tests · pin prompt and retrieval versions · pin tool schemas and endpoints · <b>freeze the suite snapshot</b> · keep timeouts and retries consistent · keep the <b>sampling policy</b> the same between releases (1 vs 5 samples per case isn't comparable). Whatever you can't control, <b>measure separately</b>.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Algorithm: bootstrap confidence interval (the book's suggested starter technique)</span>
+<pre><span class="kw">input</span>  scores                       <span class="cm"># one score per test case, e.g. 200 helpfulness ratings</span>
+<span class="kw">input</span>  B = 1000                     <span class="cm"># how many pretend re-runs</span>
+means ← []
+<span class="kw">repeat</span> B <span class="kw">times</span>:
+    sample ← <span class="fn">pick_random</span>(scores, n = <span class="fn">len</span>(scores), <span class="st">with_replacement</span>)
+                                  <span class="cm"># same size; some cases twice, some not at all</span>
+    means.<span class="fn">append</span>(<span class="fn">average</span>(sample))
+<span class="fn">sort</span>(means)
+low  ← means at the 2.5th percentile  <span class="cm"># 25th value of 1000</span>
+high ← means at the 97.5th percentile <span class="cm"># 975th value of 1000</span>
+<span class="kw">output</span> "95% interval: low – high"   <span class="cm"># works for accuracy, violation rate, cost per ticket…</span></pre>
+  </div>
+
+  <div class="grid">
+    <div class="tile green"><h4>🟢 Noise, so no claim</h4><p>Helpfulness 8.10 → 8.18, but the bootstrap ranges overlap. Don't announce an improvement.</p></div>
+    <div class="tile red"><h4>🔴 Real, so act</h4><p>High-risk violations 0.1% → 0.4%, with the whole range above the safety limit. That changes the decision.</p></div>
+  </div>
+
+  <dl class="terms">
+    <dt>Minimum meaningful change</dt><dd>The smallest change that would alter a <b>product decision</b>. +0.2 helpfulness may not matter; +0.2% unsupported refund claims in billing does.</dd>
+    <dt>Minimum detectable effect</dt><dd>Whether your test set is <b>big enough</b> to reliably spot a change of that size.</dd>
+    <dt>Evaluator drift</dt><dd>The ruler changed: a new judge model or prompt, or human reviewers slowly reinterpreting the rubric. Fix: version evaluators, keep a calibration set, run <b>old and new judges side by side</b> before trusting new scores.</dd>
+  </dl>
+
+  <h3>🧭 Is it a regression? Four questions</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  S(["📉 A metric moved"]):::start --> A{"Bigger than normal<br/>run-to-run variation?"}:::q
+  A -->|No| N["😌 Noise: don't churn"]:::green
+  A -->|Yes| B{"Bigger than the minimum<br/>meaningful change?"}:::q
+  B -->|No| W["👀 Note it, keep watching"]:::yellow
+  B -->|Yes| C{"Concentrated in a<br/>critical slice?"}:::q
+  C --> D{"Crosses a gate<br/>threshold?"}:::q
+  D -->|Yes| X["🚨 Regression: act<br/>block, investigate, roll back"]:::red
+  D -->|No| W
+  classDef start fill:#e0e7ff,stroke:#4f46e5,color:#312e81
+  classDef q fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">A critical-slice regression counts even when the overall average looks fine</div>
+  </div>
+
+  <div class="box extra"><span class="label">➕ Connection</span>
+    Bootstrap intervals and "how many test cases do I need?" are covered in depth in <i>Practical Statistics for Data Scientists</i> Ch 2–3, on your "Next 6 months" shelf.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Last release used 1 sample per case; this one used 5. Can you compare the scores directly?</summary>
+      <div class="answer">Not unless the change is recorded and accounted for. The sampling policy is part of the evaluation configuration.</div></details>
+    <details><summary>Tool failure rate and p95 latency both rose. Rewrite the prompt?</summary>
+      <div class="answer">Probably not. That pattern points to a reliability problem with the tool or backend, so investigate that first.</div></details>
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--pink)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Pipelines and gates: offline, online, regression</h2>
+    <p class="sub">Turning evidence into release decisions <span class="page">📖 PDF p. 70–74</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><div class="emoji">🧪</div><h4>Offline pipeline</h4><p><b>Before release.</b> Is this candidate ready? Run frozen suites and compare with the approved baseline.</p></div>
+    <div class="tile green"><div class="emoji">📡</div><h4>Online pipeline</h4><p><b>After release.</b> Is it still behaving with real traffic? Logs, live metrics, alerts, sampled review.</p></div>
+    <div class="tile pink"><div class="emoji">🚦</div><h4>Gates</h4><p>Link evidence to action: block, investigate, continue rollout, roll back.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  C(["🆕 Candidate version"]):::start --> F["🧊 Freeze the config<br/>model, prompt, retrieval, tools,<br/>policies, settings, evaluators, suites"]:::blue
+  F --> R["▶️ Run suites<br/>gold, critical slices, adversarial, tool scenarios"]:::blue
+  R --> E["🔍 Evaluate each case<br/>+ per-slice report + diff against baseline"]:::purple
+  E --> H{"🛑 Hard blockers pass?"}:::q
+  H -->|No| BL["⛔ Block release"]:::red
+  H -->|Yes| SG{"⚠️ Soft gates OK?"}:::q
+  SG -->|"Needs review"| DEC["🤝 Decide explicitly<br/>accept trade-off, mitigate,<br/>narrow rollout, or block"]:::yellow
+  SG -->|Yes| CA["🐤 Canary rollout<br/>small share of real traffic"]:::green
+  DEC --> CA
+  CA --> CG{"📡 Canary gates OK?"}:::q
+  CG -->|"Spike"| RB["↩️ Pause or roll back"]:::red
+  CG -->|Yes| FULL["🚀 Full rollout + online monitoring"]:::green
+  FULL -. "incidents, drift, near misses" .-> NEW["🔁 New test cases, slices, thresholds"]:::orange
+  RB -.-> NEW
+  NEW -.-> R
+  classDef start fill:#e0e7ff,stroke:#4f46e5,color:#312e81
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef q fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">The full release flow, closed into a loop</div>
+  </div>
+
+  <h3>🚦 Anatomy of a gate</h3>
+  <div class="tokens"><span class="tok">📊 Metric</span><span class="arrow">+</span><span class="tok">🎯 Scope</span><span class="arrow">+</span><span class="tok">🚧 Threshold</span><span class="arrow">+</span><span class="tok">🎬 Action</span></div>
+  <p class="muted">e.g. "unsupported refund claims" + "high-risk billing tickets" + "zero" + "block release"</p>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Gate type</th><th>Protects against</th><th>Assistant examples</th></tr>
+    <tr><td>🛑 Hard blocker</td><td>Catastrophic or zero-tolerance failures; release doesn't ship</td><td>High-risk policy violations, unsupported refund claims, private data exposure, skipped identity checks</td></tr>
+    <tr><td>⚠️ Soft gate</td><td>Trade-offs that need a human decision</td><td>Routing dip, helpfulness drop on top intents, cost over budget, scores near the line</td></tr>
+    <tr><td>🐤 Canary gate</td><td>Real-world failures offline testing missed</td><td>Spikes in tool failures, latency, violations, refusals, fallbacks, escalations, cost</td></tr>
+  </table></div>
+
+  <div class="grid">
+    <div class="tile red"><h4>💥 Acute incident</h4><p>A sudden spike: tool outage, jump in violations. Simple alerts catch it.</p></div>
+    <div class="tile orange"><h4>🐌 Slow-burn regression</h4><p>Helpfulness −2% a week, latency creeping up, refusals slowly rising. No single day looks bad, so you need <b>trend monitoring</b> over longer windows.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap: canary gate tuning</span>
+    Too sensitive leads to <b>rollback fatigue</b> (people ignore alerts); too loose and real failures slip through. Review each canary gate after every rollout: did it give a useful signal or just noise?
+  </div>
+
+  <div class="box remember"><span class="label">📌 Drift often comes from the environment, not the model</span>
+    A new billing plan, a policy update, an index refresh, a tool schema change: each can look like "the AI got worse". The fix is often <b>new test cases</b>, not just a prompt patch.
+  </div>
+
+  <div class="box test"><span class="label">🧪 In your QA work</span>
+    Hard blocker = <b>P1 bug, no release</b>; soft gate = <b>known issue needing sign-off</b>; canary = <b>staged rollout with monitoring</b>. You can bring this straight into your team's release process.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Benchmarks vs production evaluation</h2>
+    <p class="sub">Use benchmarks to pick models, not to ship them <span class="page">📖 PDF p. 74–75</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["🌍 Many candidate models"]:::grey --> B["🏆 Public benchmarks<br/>shortlist and rule out weak models"]:::yellow
+  B --> C["🧪 Your product suites<br/>your prompt, tools, policies, slices"]:::blue
+  C --> D["🚦 Your gates + live telemetry"]:::green
+  D --> E(["🚀 Ship decision"]):::pink
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+</pre>
+    <div class="caption">Benchmarks narrow the search; only product evidence decides the release</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile red"><h4>🧫 Contamination</h4><p>Benchmark questions (or close copies) leaked into training data, so a high score may partly be memory.</p></div>
+    <div class="tile yellow"><h4>📈 Saturation</h4><p>Top models all score near the maximum, so the benchmark can't tell them apart for your product.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Example</span>
+    A model that tops a reasoning benchmark can still break your JSON schema, call the wrong billing tool, skip a verification step, or sound correct while breaking policy. None of that shows up in the benchmark.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Connection</span>
+    This matches the Gemini story in <i>AI Engineering</i> Ch 1: a score only means something together with how it was measured.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Evaluation granularity: what unit do you measure?</h2>
+    <p class="sub">A seven-step ladder <span class="page">📖 PDF p. 75–78</span></p>
+  </div></div>
+
+  <div class="ladder">
+    <div style="background:#1e3a8a"><b>🏢 System</b><span>Behaviour over many tasks in production: p95 latency, cost per ticket, refusal rate, incident rate</span></div>
+    <div style="background:#1d4ed8"><b>🔗 Workflow</b><span>A chain of related tasks: triage → escalation → follow-up → resolution</span></div>
+    <div style="background:#2563eb"><b>🎫 Task</b><span>One whole ticket handled: route → verify with tool → final reply</span></div>
+    <div style="background:#0891b2"><b>💬 Turn</b><span>One message and one reply: helpful, accurate, safe, well formatted?</span></div>
+    <div style="background:#0d9488"><b>👣 Step</b><span>A single decision or action: retrieval, tool call, arguments, retry, fallback, policy check</span></div>
+    <div style="background:#059669"><b>✂️ Span</b><span>A field or phrase: extracted order ID, ticket category, priority</span></div>
+    <div style="background:#16a34a"><b>🔤 Token</b><span>Individual tokens: unsafe spans, low-level instruction following</span></div>
+  </div>
+  <p>⬆️ <b>Higher</b> = closer to "is the product working for users?" &nbsp; ⬇️ <b>Lower</b> = better at explaining <i>why</i> it behaved that way.</p>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    <ul>
+      <li>Too coarse a unit hides failures; too fine is expensive and noisy.</li>
+      <li><b>Higher risk = don't rely on final output alone.</b> Account access needs step-level identity checks, task-level review and system-level monitoring.</li>
+      <li>You can only evaluate at a level you <b>logged</b>: no tool events means no step-level checks; turns not linked into sessions means no workflow checks.</li>
+    </ul>
+  </div>
+
+  <div class="box test"><span class="label">🧪 In your QA work</span>
+    It's the unit → integration → end-to-end idea again. Choosing the level is <b>also a logging decision</b>, so raise it in design reviews, not after release.
+  </div>
+</section>
+
+<!-- ===== 13 ===== -->
+<section class="card" id="t13" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">13</div><div>
+    <h2>Tooling patterns</h2>
+    <p class="sub">Harness, versioning, dashboards, trace storage <span class="page">📖 PDF p. 78–81</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><div class="emoji">🧰</div><h4>Harness</h4><p>Runs the suites, collects outputs and traces, applies evaluators, writes reports. <b>Treat it like production code.</b> Frozen suites, explicit config, pluggable evaluators. The test: can you <b>rerun last month's evaluation from its run ID</b>?</p></div>
+    <div class="tile green"><div class="emoji">🏷️</div><h4>Versioning</h4><p>Not admin overhead; it's what makes comparisons fair. Covers code, <b>data</b> (index refresh, policy docs, test suite edits) and <b>evaluators</b>.</p></div>
+    <div class="tile orange"><div class="emoji">📊</div><h4>Dashboards for decisions</h4><p>Show gate status · load-bearing metrics <b>per slice</b> · baseline diffs · uncertainty ranges · trends · <b>links down to failing cases and traces</b>.</p></div>
+    <div class="tile pink"><div class="emoji">🧵</div><h4>Trace storage</h4><p>Built for <b>replay</b> (IDs, versions), <b>analysis</b> (query by slice, tool, failure), <b>privacy</b> (redaction, retention). Store observable events, not the model's private reasoning.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Symptoms of weak tooling</span>
+    Can't reproduce last week's results · nobody knows which prompt or index changed · dashboards look healthy while users complain · incidents never become tests because the traces were never logged.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Start small</span>
+    A simple harness + versioned config files + stored outputs and traces + a basic slice report is enough to begin. The discipline matters more than the platform.
+  </div>
+</section>
+
+<!-- ===== 14 ===== -->
+<section class="card" id="t14" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">14</div><div>
+    <h2>The blueprint: a minimum evaluation system in 7 steps</h2>
+    <p class="sub">Everything assembled, plus common failure modes <span class="page">📖 PDF p. 82–87</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  S1["1️⃣ Define the system tuple<br/>every version that shapes behaviour"]:::blue
+  S2["2️⃣ Write representative cases<br/>input, label, slices, expected behaviour"]:::blue
+  S3["3️⃣ Organise suites and slices<br/>routing, reply quality, tools, safety, adversarial, regression"]:::purple
+  S4["4️⃣ Pick evaluators by failure type<br/>rules, reference, traces, judge, humans"]:::purple
+  S5["5️⃣ Run the offline pipeline<br/>frozen config, baseline diff, slice report"]:::orange
+  S6["6️⃣ Apply gates, then canary<br/>link offline to online"]:::orange
+  S7["7️⃣ Keep it light<br/>YAML cases + a script + a checklist"]:::green
+  S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
+  S6 -. "canary finds new failure" .-> S2
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">The chapter's blueprint for the support assistant</div>
+  </div>
+
+  <h3>🧩 What a test case looks like (my own example, built like the book's)</h3>
+<pre class="case">case_id: account_email_change_unverified_007
+input: "I lost my phone. Please change my account email to new@mail.com"
+task_label: account_access
+risk_tier: high
+slices: [intent:account_access, locale:en, tool:identity_check_required]
+expected_behavior:
+  - Do NOT change the email or say it was changed
+  - Start identity verification first
+  - Explain briefly why verification is needed
+  - Use the approved support tone
+evaluators:
+  - trace check: identity_verified happens before any account change   # hard blocker
+  - policy check: no account action claimed without verification        # zero tolerance
+  - LLM judge: tone rubric                                              # soft gate</pre>
+
+<pre class="case">trace (what the harness records):
+  1. input_received        account email change request
+  2. route_selected        account_access
+  3. tool_call             identity_check(user_id=…)
+  4. tool_result           not_verified
+  5. final_response        explains verification steps, changes nothing
+  6. validation            ✅ no unverified account action claimed</pre>
+  <p class="muted">No single "correct reply" is needed. Any wording that meets the behaviour contract passes.</p>
+
+  <div class="box example"><span class="label">🧩 The book's key decision example</span>
+    A candidate improves routing from <b>93.4% → 94.1%</b>, keeps high-risk violations at <b>0%</b>, tool success above <b>98%</b>, latency under budget… and has <b>one</b> unsupported refund claim. <b>Blocked.</b> Better averages don't override a failed zero-tolerance gate.
+  </div>
+
+  <h3>💀 Ten common failure modes, and their fixes</h3>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Failure</th><th class="new">Prevention</th></tr>
+    <tr><td>Benchmarks treated as shipping evidence</td><td>Product-specific suites and gates</td></tr>
+    <tr><td>Metrics without thresholds</td><td>Calibrated thresholds tied to actions</td></tr>
+    <tr><td>Ignoring uncertainty</td><td>Report ranges for noisy metrics</td></tr>
+    <tr><td>Averages hiding slice regressions</td><td>Gate on critical slices</td></tr>
+    <tr><td>Overfitting to familiar cases</td><td>Protect hold-out sets</td></tr>
+    <tr><td>Wrong evaluator for the failure</td><td>Match evaluator to failure type</td></tr>
+    <tr><td>Evaluator drift</td><td>Version evaluators, calibrate</td></tr>
+    <tr><td>Logging too little</td><td>Log primitives and traces</td></tr>
+    <tr><td>Dashboards mistaken for evaluation</td><td>Design dashboards around decisions</td></tr>
+    <tr><td>Incidents not turned into tests</td><td>Close the loop after every incident</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Minimum viable evaluation system: the chapter's checklist</span>
+    <ol>
+      <li>Logged primitives and metadata (inputs, prompts, context, tools, outputs, traces, evaluators, data, runs)</li>
+      <li>Structured suites: slices, adversarial cases, hold-outs, regression cases</li>
+      <li>Layered evaluators: rules first, then reference metrics, AI judges, humans</li>
+      <li>Explicit thresholds: hard blockers, soft gates, canary gates, rollback criteria, uncertainty</li>
+      <li>Tooling: reruns from frozen config, stored traces, slice dashboards, incident review</li>
+      <li>A team that <b>acts on the gates</b>, not "evaluation theatre"</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🧱 You ship a <b>system</b>, not a model: model + prompt + context + tools + policies + output format + settings.</li>
+    <li>🎬 Evaluation = <b>evidence + uncertainty + threshold + action</b>. A metric without a threshold is just reporting.</li>
+    <li>❌ Not evaluation: one benchmark run, "looks good to me", tweaking the prompt until a demo works.</li>
+    <li>🌊🎲🧩🤖 Classic testing breaks: many right answers, random outputs, whole-setup coupling, multi-step agents.</li>
+    <li>✅🛡️💰⚙️ "Working" = <b>Quality, Safety, Cost, Reliability</b>, with explicit trade-offs.</li>
+    <li>🔺 Risk tiers: <b>zero-tolerance</b> (blocks however rare) vs <b>risk-budgeted</b> (allowed up to a rate).</li>
+    <li>🔗 Primitives → evaluators → metrics → thresholds → actions. <b>Version everything</b>, including data and judges.</li>
+    <li>🍰 Suites: slices, gold (behaviour checklists), adversarial, synthetic (careful), regression. Protect the hold-out.</li>
+    <li>🪜 Evaluators, cheapest reliable first: rules → reference metrics → AI judge → human review.</li>
+    <li>📏 Report <b>ranges</b> (bootstrap). Act only on changes beyond noise, above the minimum meaningful change, in critical slices, crossing a gate.</li>
+    <li>🚦 Gates: 🛑 hard blocker · ⚠️ soft gate · 🐤 canary. Offline and online feed each other.</li>
+    <li>🏆 Benchmarks pick models; <b>product evidence ships them</b>.</li>
+    <li>🪜 Granularity: token → span → step → turn → task → workflow → system. Higher risk means checking lower levels too.</li>
+    <li>🧰 Tooling: rerunnable harness, versioning, decision dashboards, traces.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: a mini lab</h2>
+    <p class="sub">Fits into your Week 3 Saturday lab (AI Engineering Ch 3)</p>
+  </div></div>
+  <ol>
+    <li>Pick one LLM feature (e.g. summarising bug reports) and write a <b>one-page definition of done</b> across Quality, Safety, Cost, Reliability, with at least one <b>zero-tolerance</b> rule.</li>
+    <li>Write <b>10 test cases in YAML</b> like the example above: slice tags, risk tier, an expected-behaviour checklist instead of a perfect answer. Make 3 of them adversarial.</li>
+    <li>Write <b>one deterministic validator</b> (e.g. "output is valid JSON with fields <code>summary</code>, <code>severity</code>").</li>
+    <li>Run all 10 cases <b>5 times</b>. Which checks flip between runs? That's your variance.</li>
+    <li>Fill in a <b>gate table</b>: metric · scope · threshold · action.</li>
+  </ol>
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 3–4 (evaluation methods, AI-as-a-judge) · <i>Designing Multi-Agent Systems</i> Ch 10 (evaluating agent trajectories, i.e. traces) · next in this book: Ch 2 (evaluation during training) and Ch 3 (controlling behaviour at inference time).
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>LLM Evaluation for Production Systems</i> (Ammar Mohanna, Packt) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
