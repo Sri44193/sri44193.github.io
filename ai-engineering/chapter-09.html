@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Engineering · Ch 9 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📘 AI Engineering · Chapter 9</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+
+<header class="hero">
+  <div class="kicker">AI Engineering · Chip Huyen · Week 7 (lighter reading)</div>
+  <h1>Chapter 9: Inference Optimization</h1>
+  <p>Making models faster and cheaper to run: the bottlenecks, the metrics you'll performance-test (TTFT, TPOT, throughput, goodput), the hardware, and the tricks used at the model and service level, from quantisation and KV caches to batching and prompt caching.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 429–472</span>
+    <span class="chip">⏱ ~4 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🧪 Written for a QA engineer</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    A model that's too slow or too expensive is useless, however good it is. To fix that, find the <b>bottleneck</b> (compute or memory bandwidth), <b>measure</b> the right things (TTFT, TPOT, throughput, goodput, utilisation), then optimise at the <b>model</b> level (compression, faster decoding, efficient attention, kernels) and the <b>service</b> level (batching, splitting prefill and decode, prompt caching, parallelism).
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why a QA lead should care</span>
+    This chapter is the <b>performance-testing</b> chapter for AI. It gives you the latency metrics to put in your SLOs, explains why averages lie, and warns that some speed-ups (model-level ones) can <b>change answer quality</b>, so every optimisation needs a regression run.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Inference<br/>optimisation))
+    Understand
+      Bottlenecks
+      Online vs batch APIs
+      Latency metrics
+      Throughput and goodput
+      Utilisation MFU MBU
+    Hardware
+      GPUs and accelerators
+      FLOP/s
+      Memory hierarchy
+      Power
+    Model level
+      Compression
+      Faster decoding
+      Attention and KV cache
+      Kernels and compilers
+    Service level
+      Batching
+      Split prefill and decode
+      Prompt caching
+      Parallelism
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Inference basics</a>
+    <a class="pill" href="#t2"><b>2</b> Bottlenecks</a>
+    <a class="pill" href="#t3"><b>3</b> Online vs batch</a>
+    <a class="pill" href="#t4"><b>4</b> Latency metrics</a>
+    <a class="pill" href="#t5"><b>5</b> Throughput &amp; goodput</a>
+    <a class="pill" href="#t6"><b>6</b> Utilisation</a>
+    <a class="pill" href="#t7"><b>7</b> AI accelerators</a>
+    <a class="pill" href="#t8"><b>8</b> Compression</a>
+    <a class="pill" href="#t9"><b>9</b> Faster decoding</a>
+    <a class="pill" href="#t10"><b>10</b> KV cache &amp; attention</a>
+    <a class="pill" href="#t11"><b>11</b> Kernels &amp; compilers</a>
+    <a class="pill" href="#t12"><b>12</b> Batching</a>
+    <a class="pill" href="#t13"><b>13</b> Prefill split &amp; prompt cache</a>
+    <a class="pill" href="#t14"><b>14</b> Parallelism</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Inference, inference servers and three levels of optimisation</h2>
+    <p class="sub">Training builds the model; inference uses it <span class="page">📖 PDF p. 429–431, 450</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Training</b> = building a model. <b>Inference</b> = using it: give it an input, get an output. Unless you train or finetune, inference is all you'll deal with. The program that runs the model on the hardware is the <b>inference server</b>; around it sits the <b>inference service</b>, which receives, routes and maybe preprocesses requests. OpenAI's and Google's model APIs are inference services: if you use them, they do the optimising. If you host a model yourself, it's your job.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  U["👩 Users and apps<br/>send prompts"]:::blue --> S["🚦 Inference service<br/>receives, routes, preprocesses"]:::purple
+  S --> IS["🖥️ Inference server<br/>picks the model, allocates hardware, runs it"]:::orange
+  IS --> H["⚡ Hardware<br/>GPUs or other accelerators"]:::green
+  IS --> R["📤 Response back to the user"]:::blue
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">A simple inference service</div>
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 The book's analogy: archery</span>
+    <b>Model-level</b> optimisation = crafting better arrows. <b>Hardware-level</b> = training a stronger archer. <b>Service-level</b> = improving the whole shooting process: the bow and the conditions. In production you usually combine levels. The book covers model and service levels; hardware design is out of scope.
+  </div>
+
+  <div class="box example"><span class="label">🧩 Why it matters (the book's example)</span>
+    A model that predicts tomorrow's stock price but takes two days to compute is worthless. And a model that's too expensive won't pay back its cost.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Same model, different answers</span>
+    Ideally optimisation doesn't change quality, but many techniques do. A Cerebras experiment found the <b>same Llama models</b> scored differently on benchmarks depending on which provider served them. "Llama 3 70B" from provider A may not behave exactly like "Llama 3 70B" from provider B.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    If you switch hosting provider, or your team turns on a new optimisation, <b>re-run your evaluation suite</b>. Treat it like a new model version, even if the model name is unchanged.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>The two bottlenecks: compute and memory bandwidth</h2>
+    <p class="sub">Prefill is compute-bound, decode is bandwidth-bound <span class="page">📖 PDF p. 431–434</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Optimising means finding what slows you down. Two usual suspects:
+    <b>compute-bound</b> = the chip can't do the maths fast enough (like cracking a password);
+    <b>memory bandwidth-bound</b> = the chip is waiting for data to arrive (like moving data from CPU memory to the GPU). People often shorten the second to <b>bandwidth-bound</b> or, confusingly, <b>memory-bound</b>.
+  </div>
+
+  <div class="grid">
+    <div class="tile orange"><h4>🧮 Prefill: compute-bound</h4><p>The model reads all your <b>input tokens at once</b>, in parallel. The limit is how many operations the chip can do per second. (Prefill also fills the KV cache, topic 10.)</p></div>
+    <div class="tile blue"><h4>🐢 Decode: bandwidth-bound</h4><p>The model writes <b>one output token at a time</b>. Each step loads big weight matrices into the chip, so the limit is how fast memory can deliver them.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  P["📥 Prompt: 'Write a test plan for login'"]:::blue --> PF["🧮 PREFILL<br/>all input tokens processed in parallel<br/>limited by compute"]:::orange
+  PF --> T1["first output token"]:::green
+  T1 --> D["🐢 DECODE<br/>one token per step, each step reloads the weights<br/>limited by memory bandwidth"]:::purple
+  D -->|"next token"| D
+  D --> E["⏹️ end-of-sequence token"]:::green
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">The two phases of language-model inference</div>
+  </div>
+
+  <dl class="terms">
+    <dt>Arithmetic intensity</dt><dd>Operations done per byte of memory read. High = compute-bound, low = bandwidth-bound.</dd>
+    <dt>Roofline chart</dt><dd>A chart (from the 2009 "Roofline" paper, shown by tools like NVIDIA Nsight) that tells you which bound a workload hits. It's named for its roof shape.</dd>
+    <dt>OOM</dt><dd>Out of memory: not enough memory <b>capacity</b>. Some people (often from an ML background) call this "memory-bound" too.</dd>
+  </dl>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Image generators like Stable Diffusion are usually <b>compute-bound</b>; language models are usually <b>bandwidth-bound</b>. Compute-bound work speeds up with more or faster chips (higher FLOP/s); bandwidth-bound work speeds up with higher-bandwidth chips. Because the two phases differ so much, production systems often run them on <b>separate machines</b> (topic 13).
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Long prompts stress <b>prefill</b> (slower first token); long answers stress <b>decode</b> (slower total time). Design performance tests with both: long-input/short-output and short-input/long-output cases.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Why is decoding bandwidth-bound rather than compute-bound?</summary>
+      <div class="answer">Each new token needs the whole model's weights moved from memory to the compute units, but only a small amount of maths is done with them, so the chip spends most of its time waiting for data.</div></details>
+    <details><summary>A teammate says "we're memory-bound". What should you ask?</summary>
+      <div class="answer">Do they mean bandwidth (data moves too slowly) or capacity (it doesn't fit, OOM)? The term is used both ways.</div></details>
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Online vs batch APIs, and streaming</h2>
+    <p class="sub">Pay for speed, or wait and save <span class="page">📖 PDF p. 434–436</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th></th><th>⚡ Online API</th><th>📦 Batch API</th></tr>
+    <tr><td>Optimises for</td><td>Low latency</td><td>Low cost / high throughput</td></tr>
+    <tr><td>Turnaround</td><td>Seconds</td><td>Hours</td></tr>
+    <tr><td>Price</td><td>Normal</td><td>Gemini and OpenAI: about <b>50% off</b> (as of writing)</td></tr>
+    <tr><td>Good for</td><td>Chatbots, code completion</td><td>Synthetic data, periodic reports, onboarding a customer's documents, re-processing data for a new model, newsletters, reindexing a knowledge base</td></tr>
+  </table></div>
+
+  <div class="box plain"><span class="label">🧒 Streaming</span>
+    By default an API returns the full answer at once. <b>Streaming mode</b> sends each token as soon as it's generated, so users see something sooner. The downside: you can't <b>score</b> (check) the answer before users see it; you can only remove or update it afterwards.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ "Batch" means something else in classic ML</span>
+    In traditional ML, batch inference means <b>precomputing</b> predictions before requests arrive (e.g. recommendations for every user overnight). With foundation models you can't predict open-ended prompts, so a batch API just means "slower, cheaper processing of requests you send".
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Streaming changes what your output guardrails can do. Test what happens when a <b>bad answer is detected mid-stream</b>: is it retracted, and what does the user see? Also, batch APIs are a cheap way to run large <b>evaluation suites</b> overnight.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Latency metrics: TTFT, TPOT and percentiles</h2>
+    <p class="sub">The numbers your users feel <span class="page">📖 PDF p. 436–438</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Latency</b> = time from sending a query to receiving the complete answer. For token-by-token generation it splits into two parts:
+    <b>TTFT</b> (time to first token) = how long until the first token appears; it's the prefill step and grows with input length.
+    <b>TPOT</b> (time per output token) = how long each later token takes; it's the decode step. Variants: <b>TBT</b> (time between tokens, LinkedIn's term) and <b>ITL</b> (inter-token latency, NVIDIA's).
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant U as 👩 User
+  participant M as 🤖 Model
+  U->>M: send query
+  Note over M: prefill = TTFT
+  M-->>U: token 1
+  Note over M: TPOT
+  M-->>U: token 2
+  Note over M: TPOT
+  M-->>U: token 3 … last token
+  Note over U,M: Total latency = TTFT + TPOT × number of output tokens
+</pre>
+    <div class="caption">Where TTFT and TPOT sit in a streamed answer</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Numbers from the book</span>
+    At <b>100 ms per token</b>, a 1,000-token answer takes <b>100 s</b>. A very fast reader manages about <b>120 ms per token</b>, so a TPOT around 120 ms (6–8 tokens a second) is enough for most streaming apps. Anyscale found <b>100 input tokens</b> affect latency about as much as <b>one output token</b>.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Trap 1: averages lie</span>
+    Ten TTFTs: 100, 102, 100, 100, 99, 104, 110, 90, <b>3,000</b>, 95 ms. The average is <b>390 ms</b>, but nine of ten requests took about 100 ms. Use <b>percentiles</b>: p50 (median) plus <b>p90, p95, p99</b>, and investigate the outliers (a network error? a huge prompt?). It also helps to plot TTFT against input length.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Trap 2: the model's first token isn't the user's first token</span>
+    An agent might write a hidden plan, call tools, then write the visible answer. The model's TTFT is at step 1; the user's is at step 3. Some teams use <b>time to publish</b> to mean "time until the first token the user sees".
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    A restaurant: TTFT is how long until your <b>starter</b> arrives; TPOT is the gap between later <b>courses</b>. Two restaurants with the same total time can feel very different. Which users prefer is a question for <b>user studies</b>; you can trade one against the other by moving machines between prefill and decode.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Write SLOs as percentiles, separately for TTFT and TPOT, e.g. "p95 TTFT ≤ 500 ms and p95 TPOT ≤ 100 ms". For agents, measure <b>time to publish</b> from the user's side, not just model-side TTFT.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>TTFT = 0.5 s, TPOT = 50 ms, the answer has 200 tokens. Total latency?</summary>
+      <div class="answer">0.5 + 0.05 × 200 = 10.5 seconds.</div></details>
+    <details><summary>Your dashboard shows average TTFT doubled overnight, but p50 is unchanged. What's likely going on?</summary>
+      <div class="answer">A few very slow outliers (long prompts, network errors, overloaded nodes). Check p95/p99 and the slowest individual requests.</div></details>
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Throughput, cost and goodput</h2>
+    <p class="sub">How much work, at what price, within the SLO <span class="page">📖 PDF p. 438–440</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Throughput</b> = how many <b>output tokens per second</b> (TPS) the service produces across all users. Count input and output throughput separately, since prefill and decode behave differently. It can also be measured in completed <b>requests per minute (RPM)</b>, since LLM requests take seconds. Higher throughput usually means <b>lower cost</b>.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ The book's cost calculation, step by step</span>
+<pre><span class="cm"># Decode cost</span>
+machine cost  = $2 per hour
+throughput    = 100 output tokens/s  = 360,000 tokens/hour
+cost per 1M output tokens = $2 ÷ 0.36  ≈ <span class="kw">$5.556</span>
+1,000 requests × 200 output tokens = 200,000 tokens  → <span class="kw">$1.11</span>
+
+<span class="cm"># Prefill cost</span>
+prefill speed = 100 requests/minute = 6,000 requests/hour
+1,000 requests = 1/6 hour × $2  → <span class="kw">$0.33</span>
+
+<span class="cm"># Total for 1,000 requests</span>
+$1.11 + $0.33 = <span class="kw">$1.44</span></pre>
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Goodput</span>
+    Batching and similar tricks can double or triple throughput (LinkedIn's experience) by making each request slower. So raw throughput can hide a bad user experience. <b>Goodput</b> counts only the requests per second that <b>meet the SLO</b> (service-level objective).
+  </div>
+
+  <div class="bars">
+    <div class="bar"><span>Throughput</span><div class="track"><div class="fill" style="width:100%; background:linear-gradient(90deg,#2563eb,#60a5fa)">100 requests/min</div></div></div>
+    <div class="bar"><span>Goodput</span><div class="track"><div class="fill" style="width:30%; background:linear-gradient(90deg,#16a34a,#4ade80)">30/min</div></div></div>
+  </div>
+  <p class="muted">The book's example: SLO = TTFT ≤ 200 ms and TPOT ≤ 100 ms. The service completes 100 requests a minute, but only 30 meet both targets, so goodput is 30 per minute.</p>
+
+  <div class="box trap"><span class="label">⚠️ Tokens aren't equal across models</span>
+    Different models have different tokenizers, so "tokens per second" isn't directly comparable between models. Compare <b>cost per request</b> instead.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Goodput is the load-test metric to report: "at 50 concurrent users, 92% of requests met the SLO". It ties performance to user experience. Note that providers may <b>throttle</b> you when you send many concurrent requests, so test at realistic concurrency.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Utilisation: why "GPU 100% busy" means little, and MFU and MBU</h2>
+    <p class="sub">Busy isn't the same as efficient <span class="page">📖 PDF p. 440–443</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <code>nvidia-smi</code>'s <b>GPU utilisation</b> is the share of time the GPU is doing <i>anything</i>. A chip able to do 100 operations a second but doing just 1 can still show 100%. Two better measures:
+    <b>MFU</b> (model FLOP/s utilisation) = actual throughput ÷ the throughput the chip could reach at its advertised peak FLOP/s;
+    <b>MBU</b> (model bandwidth utilisation) = memory bandwidth used ÷ the chip's peak bandwidth.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Computing MBU (the book's example)</span>
+<pre>bandwidth used = parameters × bytes per parameter × tokens per second
+               = 7B × 2 bytes (FP16) × 100 tokens/s
+               = 1.4 TB/s                       <span class="cm"># 7×10⁹ × 2 × 100 = 1.4×10¹²</span>
+MBU            = bandwidth used ÷ chip's peak bandwidth
+               = 1.4 TB/s ÷ 2 TB/s (A100-80GB)
+               = <span class="kw">70%</span></pre>
+  </div>
+
+  <div class="box extra"><span class="label">➕ A spotted typo</span>
+    The book prints the middle step as 700 GB/s, but 7B × 2 × 100 is <b>1.4 TB/s</b>, and the book's final answer (70% of 2 TB/s) only works with 1.4 TB/s. Good practice for a tester: re-run the arithmetic in any spec.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Model (PaLM paper, 2022)</th><th>Size</th><th>Chips</th><th>Training MFU</th></tr>
+    <tr><td>GPT-3</td><td>175B</td><td>V100</td><td>21.3%</td></tr>
+    <tr><td>Gopher</td><td>280B</td><td>4,096 TPU v3</td><td>32.5%</td></tr>
+    <tr><td>Megatron-Turing NLG</td><td>530B</td><td>2,240 A100</td><td>30.2%</td></tr>
+    <tr><td>PaLM</td><td>540B</td><td>6,144 TPU v4</td><td>46.2%</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Compute-bound work shows higher MFU and lower MBU; bandwidth-bound work the reverse. Prefill has higher MFU than decode; training has higher MFU than inference. For training, above <b>50%</b> MFU is considered good. Fewer bytes per parameter (quantisation) means less bandwidth used, which is why quantisation helps so much. With more concurrent users, MBU drops as the workload shifts towards compute-bound (a Databricks Llama 2-70B test).
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Utilisation isn't the goal</span>
+    What you want is jobs done <b>faster and cheaper</b>. Higher utilisation means nothing if cost and latency both go up. Also beware "peak FLOP/s hacking": chip makers may quote peaks measured in special conditions you'll never hit.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>AI accelerators: GPUs, FLOP/s, memory and power</h2>
+    <p class="sub">The hardware that makes inference fast or slow <span class="page">📖 PDF p. 443–449</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🧠 CPU</h4><p>A few powerful cores (up to ~64 on high-end consumer machines). Great at sequential work: the operating system, I/O, complex step-by-step logic.</p></div>
+    <div class="tile green"><h4>🎮 GPU</h4><p>Thousands of small cores for work that splits into many independent pieces, like graphics and <b>matrix multiplication</b>, which is over 90% of a neural network's floating-point work.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 History in two lines</span>
+    Too little compute contributed to the first AI winter in the 1970s. AlexNet (2012) took off partly because it trained on <b>GPUs</b>: a couple of GPUs were within reach of PhD students; thousands of CPUs weren't. Today NVIDIA dominates, with AMD GPUs, Google TPUs, Intel Gaudi, Groq LPUs, Cerebras and others competing. Inference can make up <b>up to 90%</b> of a deployed system's ML costs, so inference-specific chips (lower precision, faster memory) are a big theme: Apple Neural Engine, AWS Inferentia, Meta MTIA, Edge TPU, Jetson.
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Computational capability: FLOP/s</span>
+    <b>FLOP/s</b> = floating-point operations per second (often written FLOPS). Lower precision = more operations per second. Real apps rarely reach the advertised peak.
+  </div>
+
+  <div class="bars">
+    <div class="bar"><span>TF32 (a 19-bit format)</span><div class="track"><div class="fill" style="width:25%; background:linear-gradient(90deg,#7c3aed,#a78bfa)">989</div></div></div>
+    <div class="bar"><span>BF16</span><div class="track"><div class="fill" style="width:50%; background:linear-gradient(90deg,#2563eb,#60a5fa)">1,979</div></div></div>
+    <div class="bar"><span>FP16</span><div class="track"><div class="fill" style="width:50%; background:linear-gradient(90deg,#2563eb,#60a5fa)">1,979</div></div></div>
+    <div class="bar"><span>FP8</span><div class="track"><div class="fill" style="width:100%; background:linear-gradient(90deg,#16a34a,#4ade80)">3,958</div></div></div>
+  </div>
+  <p class="muted">NVIDIA H100 SXM, teraFLOP/s with sparsity, by precision (Table 9-2).</p>
+
+  <p><b>The memory hierarchy</b>: the closer to the cores, the faster and smaller.</p>
+  <div class="stack">
+    <div class="layer l1"><b>⚡ On-chip SRAM</b><span>Caches (L1, L2, sometimes L3), registers, shared memory. Over 10 TB/s, but tiny: typically 40 MB or less.</span></div>
+    <div class="layer l2"><b>🚀 GPU HBM (high-bandwidth memory)</b><span>The GPU's own 3D-stacked memory. About 256 GB/s to over 1.5 TB/s; a GPU has around 24–80 GB.</span></div>
+    <div class="layer l3"><b>🐢 CPU DRAM (host memory)</b><span>Slowest: about 25–50 GB/s. Laptops 16–64 GB; workstations can have 1 TB or more.</span></div>
+  </div>
+  <p class="muted">Frameworks like PyTorch don't give fine control over this hierarchy, which is why people learn GPU languages such as CUDA, Triton and ROCm.</p>
+
+  <div class="box example"><span class="label">🧩 Power</span>
+    An A100 has 54 billion transistors; an H100, 80 billion. One H100 running flat out for a year uses about <b>7,000 kWh</b>, against about 10,000 kWh for an average US household. Electricity, not chips, often limits data centre growth. Specs list <b>maximum power draw</b> or <b>TDP</b> (thermal design power); max draw is roughly 1.1–1.5× TDP.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Choosing an accelerator: three questions</span>
+    <b>Can</b> it run my workload? <b>How long</b> will it take? <b>How much</b> will it cost? FLOP/s, memory size and memory bandwidth answer the first two. Compute-bound workload → more FLOP/s. Bandwidth-bound → more bandwidth and memory.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Model compression: quantisation, distillation, pruning</h2>
+    <p class="sub">Smaller models run faster <span class="page">📖 PDF p. 450–451</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Model-level optimisation changes the model itself, so it <b>can change behaviour</b>. Transformers are expensive for three reasons: their <b>size</b>, <b>one-token-at-a-time decoding</b> and the <b>attention</b> mechanism. Compression tackles size.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Technique</th><th>What it does</th><th>In practice</th></tr>
+    <tr><td>🔢 Quantisation (Ch 7)</td><td>Store weights in fewer bits: 32 → 16 bits halves memory</td><td><b>By far the most popular</b> (weight-only): easy, works out of the box, very effective. But we're near the limit: you can't go below 1 bit</td></tr>
+    <tr><td>🎓 Distillation (Ch 8)</td><td>Train a small model to copy a big one</td><td>Common: a small model can match a big one on your task</td></tr>
+    <tr><td>✂️ Pruning</td><td>Remove whole nodes, or set the least useful weights to zero (making the model <b>sparse</b>)</td><td>Less common: needs deep architecture knowledge, smaller gains, and not all hardware benefits from sparsity. Research showed over 90% of non-zero weights removable in some networks without losing accuracy</td></tr>
+  </table></div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    Quantisation = saving photos as smaller JPEGs. Distillation = an apprentice learning to do the master's job. Pruning = cutting the branches of a tree that bear no fruit.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Compressed models need a <b>quality regression</b> check against the original on your own evaluation set, focusing on rare cases where small errors show up first (numbers, other languages, long reasoning).
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Beating one-token-at-a-time: speculative, reference and parallel decoding</h2>
+    <p class="sub">Guess ahead, copy, or generate several tokens at once <span class="page">📖 PDF p. 452–457</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Why it matters</span>
+    Output tokens are slow and costly: across providers an output token costs about <b>2–4×</b> an input token. Shaving even a little off decoding noticeably improves user experience.
+  </div>
+
+  <h3>⚡ Speculative decoding</h3>
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A small, fast <b>draft model</b> guesses the next few tokens; the big <b>target model</b> (the one you actually want) checks them all in one go and keeps the ones it agrees with.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Speculative decoding loop</span>
+<pre><span class="kw">repeat</span> until the answer ends:
+    draft ← draft model writes K tokens            <span class="cm"># cheap and fast</span>
+    target model checks all K tokens in parallel     <span class="cm"># checking is parallel, like prefill</span>
+    j ← how many draft tokens it accepts, left to right
+    keep those j tokens
+    target model adds 1 token of its own            <span class="cm"># so each loop gives 1 to K+1 tokens</span></pre>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["✍️ Draft model guesses K tokens"]:::blue --> B["🔍 Target model checks them in parallel"]:::purple
+  B --> C{"How many does it accept?"}:::yellow
+  C -->|"none"| D["Keep 1 token from the target model"]:::red
+  C -->|"j of K"| E["Keep j draft tokens + 1 from the target"]:::green
+  D --> A
+  E --> A
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Every loop makes progress, even when all the guesses are rejected</div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Why it works (three insights)</span>
+    1) <b>Checking</b> tokens is faster than <b>generating</b> them, because checking is parallel. 2) Many tokens are <b>easy</b>, so a weak model guesses them right. 3) Decoding is bandwidth-bound, so there are <b>idle FLOPs</b> to spend on checking for free (if MFU is already maxed out, it helps less). Acceptance is higher for structured text like code. Bigger K = fewer checks but lower acceptance. Ideally the draft model shares the target's tokenizer.
+  </div>
+
+  <div class="box example"><span class="label">🧩 Results</span>
+    DeepMind trained a 4B draft for Chinchilla-70B: <b>1.8 ms vs 14.1 ms</b> per token, cutting latency by <b>more than half</b> with no quality loss. It's simple (about 50 lines of PyTorch) and built into vLLM, TensorRT-LLM and llama.cpp.
+  </div>
+
+  <div class="grid">
+    <div class="tile green"><h4>📋 Inference with reference</h4><p>Answers often <b>repeat the input</b>: quoting a document, or returning code with small fixes. So take draft tokens by <b>copying from the input</b> instead of from a draft model. No extra model needed; about <b>2× faster</b> where outputs overlap the context (retrieval, coding, multi-turn chat).</p></div>
+    <div class="tile purple"><h4>🔀 Parallel decoding</h4><p>Generate several future tokens <b>at once</b>: after "the cat sits", you can guess "the" comes two words later without knowing the next word. <b>Lookahead decoding</b> uses the same decoder and repairs failed tokens (Jacobi decoding). <b>Medusa</b> adds extra trained heads, each predicting a further position, then picks the best combination with tree attention. NVIDIA reported up to <b>1.9×</b> for Llama 3.1. Powerful but harder to implement.</p></div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Speculative decoding should be <b>lossless</b> (the target model decides every token), so outputs shouldn't change. That's testable: with the same seed and settings, compare outputs with it on and off, and report the latency gain.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>K = 4. All draft tokens are accepted. How many tokens does that loop produce?</summary>
+      <div class="answer">5: the 4 accepted draft tokens plus 1 from the target model.</div></details>
+    <details><summary>Which technique suits a "fix the bug in this file" coding assistant best, and why?</summary>
+      <div class="answer">Inference with reference: most of the output copies the input code, so tokens can be copied rather than generated, without an extra model.</div></details>
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Attention optimisation and the KV cache</h2>
+    <p class="sub">Remember past work; make attention cheaper <span class="page">📖 PDF p. 457–461</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    To write each new token, attention needs the <b>key and value vectors</b> (from Chapter 2) of every earlier token. Rather than recompute them every step, store them in the <b>KV cache</b> and compute only the newest token's. It's used only at inference; in training all tokens are known up front.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  K["🗄️ KV cache<br/>keys and values for tokens 1 … t−1"]:::purple --> G["🧮 Compute keys and values<br/>for the newest token t only"]:::orange
+  G --> N["✍️ Generate token t+1"]:::green
+  G -->|"append"| K
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Each step reuses the cache and adds one new entry</div>
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    Writing minutes of a long meeting: you don't re-listen to the whole recording before every new sentence; you keep notes and add to them. The notes pile grows with the meeting's length, and that pile is the KV cache.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ KV cache size (unoptimised)</span>
+<pre>size = 2 × B × S × L × H × M
+       <span class="cm"># 2 = keys and values · B = batch size · S = sequence length</span>
+       <span class="cm"># L = layers · H = model dimension · M = bytes per value</span>
+
+Llama 2 13B: L = 40, H = 5,120; B = 32, S = 2,048, FP16 (M = 2)
+size = 2 × 32 × 2,048 × 40 × 5,120 × 2 ≈ <span class="kw">54 GB</span></pre>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Why long context is so hard</span>
+    Attention work grows with the <b>square</b> of the sequence length (O(n²)); the KV cache grows <b>linearly</b> with length and with batch size. For a 500B+ model with batch 512 and context 2,048, Google calculated a <b>3 TB</b> cache: three times the model's weights.
+  </div>
+
+  <p><b>Three families of fixes:</b></p>
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Family</th><th>Examples</th><th>Note</th></tr>
+    <tr><td>🏗️ Redesign attention</td><td><b>Local windowed attention</b> (attend only to nearby tokens: 10,000 tokens with a 1,000 window = 10× smaller cache), often mixed with global attention · <b>multi-query</b> (heads share keys and values) · <b>grouped-query</b> (groups of heads share) · <b>cross-layer</b> (neighbouring layers share)</td><td>Changes the architecture, so only during training or finetuning</td></tr>
+    <tr><td>🗄️ Manage the KV cache</td><td><b>PagedAttention</b> (vLLM): split the cache into non-contiguous blocks to avoid fragmentation · KV quantisation · adaptive compression · selective caching</td><td>Lets you serve bigger batches</td></tr>
+    <tr><td>⚙️ Write attention kernels</td><td><b>FlashAttention</b>: fuses several attention operations into one fast step</td><td>Hardware-specific (topic 11)</td></tr>
+  </table></div>
+
+  <div class="box example"><span class="label">🧩 Character.AI</span>
+    Average conversations have <b>180 messages</b> of history, so KV cache size was their main throughput limit. Multi-query attention + interleaved local/global attention + cross-layer attention cut the cache by <b>over 20×</b>, and memory stopped being the bottleneck.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Long conversations are where memory runs out. Include <b>long multi-turn sessions</b> and large batches in load tests and watch for OOM errors, rising TTFT and dropped requests as context grows.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Kernels and compilers</h2>
+    <p class="sub">Code tuned for one chip <span class="page">📖 PDF p. 461–464</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A <b>kernel</b> is code optimised for a specific accelerator, for heavy, repeated operations like matrix multiplication, attention and convolution. Kernels are written in low-level languages: <b>CUDA</b> (NVIDIA), <b>Triton</b> (OpenAI), <b>ROCm</b> (AMD). Writing them needs deep knowledge of the memory hierarchy, so it used to be a "dark art"; many companies treat their kernels as trade secrets.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📏 Vectorisation</h4><p>Process several neighbouring data elements at once instead of one by one.</p></div>
+    <div class="tile green"><h4>🔀 Parallelisation</h4><p>Split an array into independent chunks for different cores or threads.</p></div>
+    <div class="tile orange"><h4>🧱 Loop tiling</h4><p>Reorder data access to suit the hardware's memory layout and cache. A good CPU pattern may be bad on a GPU.</p></div>
+    <div class="tile purple"><h4>🔗 Operator fusion</h4><p>Merge several operations into one pass to avoid re-reading memory, e.g. two loops over the same array become one. Needs model-specific knowledge.</p></div>
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Compilers and "lowering"</span>
+    Converting a model's code into something a particular chip can run is called <b>lowering</b>; the tool that does it is a <b>compiler</b>. Where it can, it swaps in specialised kernels. Examples: Apache TVM, MLIR, <code>torch.compile</code>, XLA/OpenXLA, TensorRT's compiler. New hardware needs new kernels: FlashAttention was built for A100s, FlashAttention-3 for H100s.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["🐍 Baseline Llama-7B in PyTorch<br/>on one A100 80 GB"]:::blue --> B["⚙️ torch.compile<br/>more efficient kernels"]:::purple
+  B --> C["🔢 Quantise weights to INT8"]:::orange
+  C --> D["🔢 Quantise further to INT4"]:::orange
+  D --> E["⚡ Add speculative decoding"]:::green
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">PyTorch's 2023 case study: each step raised throughput further</div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ The missing measurement</span>
+    The book notes it was <b>unclear how these steps affected output quality</b>. Speed numbers without quality numbers are half a test report.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Batching: static, dynamic and continuous</h2>
+    <p class="sub">Put requests on the same bus <span class="page">📖 PDF p. 464–466</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Service-level techniques manage resources and <b>don't change the model</b>, so they shouldn't change quality. The easiest cost saver is <b>batching</b>: process requests that arrive around the same time together. The book's analogy: everyone driving their own car vs taking a <b>bus</b>. A bus moves more people, but each trip may take longer.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Type</th><th>🚌 The bus…</th><th>Good</th><th>Bad</th></tr>
+    <tr><td><b>Static</b></td><td>leaves only when every seat is full</td><td>Full batches</td><td>The first request waits for the last one, however late</td></tr>
+    <tr><td><b>Dynamic</b></td><td>leaves when full <b>or</b> on schedule (e.g. 4 requests or 100 ms)</td><td>Latency stays under control</td><td>Half-empty batches waste compute</td></tr>
+    <tr><td><b>Continuous</b> (in-flight)</td><td>drops off each passenger at their stop and <b>picks up a new one</b> straight away</td><td>Short answers return immediately; seats stay full</td><td>More complex (introduced by the Orca paper)</td></tr>
+  </table></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  subgraph NA["Naive batching"]
+    direction TB
+    A1["Request A: 10 tokens ✅ done early"]:::green --> W["⏳ waits for B"]:::red
+    B1["Request B: 1,000 tokens"]:::blue --> R1["Both returned together"]:::red
+    W --> R1
+  end
+  subgraph CB["Continuous batching"]
+    direction TB
+    A2["Request A finishes"]:::green --> RA["Returned at once"]:::green
+    RA --> C2["Request C takes A's seat"]:::purple
+    B2["Request B keeps generating"]:::blue
+  end
+  NA ~~~ CB
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Why continuous batching is the default for LLM serving</div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Load-test with a <b>mix</b> of short and long answers. If short requests get slow only when long ones are running, the server isn't returning finished requests early. Watch <b>p99</b>, where batching delays show up.
+  </div>
+</section>
+
+<!-- ===== 13 ===== -->
+<section class="card" id="t13" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">13</div><div>
+    <h2>Splitting prefill from decode, and prompt caching</h2>
+    <p class="sub">Two LLM-specific service tricks <span class="page">📖 PDF p. 466–468</span></p>
+  </div></div>
+
+  <h3>✂️ Decoupling prefill and decode</h3>
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Prefill wants compute, decode wants bandwidth. On one machine they fight: a new request's prefill can steal compute from other requests' decoding and slow their <b>TPOT</b>. So run them on <b>different machines</b> (papers: DistServe, Inference Without Interference). Passing the intermediate state between them costs little on fast links like NVLink.
+  </div>
+  <div class="grid">
+    <div class="tile orange"><h4>📜 Long inputs, TTFT matters</h4><p>Prefill : decode machines ≈ <b>2:1 to 4:1</b></p></div>
+    <div class="tile blue"><h4>💬 Short inputs, TPOT matters</h4><p>Prefill : decode machines ≈ <b>1:2 to 1:1</b></p></div>
+  </div>
+
+  <h3>🗃️ Prompt caching (context cache, prefix cache)</h3>
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Many prompts share the same beginning: the <b>system prompt</b>, a long document everyone asks about, or earlier turns of a conversation. A prompt cache processes that shared part <b>once</b> and reuses it.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  SP["📜 Shared prefix<br/>system prompt or long document"]:::purple --> C["🗃️ Processed once and cached"]:::green
+  C --> Q1["Query 1: only the new part is processed"]:::blue
+  C --> Q2["Query 2: only the new part is processed"]:::blue
+  C --> Q3["Query 3: only the new part is processed"]:::blue
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+</pre>
+    <div class="caption">Overlapping prompt segments are reused</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 The savings</span>
+    A 1,000-token system prompt × 1 million API calls a day = about <b>1 billion</b> repeated input tokens a day you no longer process. As of writing, Gemini gave cached tokens a <b>75% discount</b> (plus a storage fee of $1 per million tokens per hour); Anthropic promised up to <b>90%</b> cost and <b>75%</b> latency savings.
+    <div class="table-wrap"><table class="compare">
+      <tr><th>Use case (Anthropic, 2024)</th><th>TTFT before → after</th><th>Cost</th></tr>
+      <tr><td>Chat with a book (100,000-token cached prompt)</td><td>11.5 s → 2.4 s (−79%)</td><td>−90%</td></tr>
+      <tr><td>Many-shot prompting (10,000-token prompt)</td><td>1.6 s → 1.1 s (−31%)</td><td>−86%</td></tr>
+      <tr><td>Multi-turn chat (10 turns, long system prompt)</td><td>~10 s → ~2.5 s (−75%)</td><td>−53%</td></tr>
+    </table></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Not free</span>
+    Like the KV cache, the prompt cache takes memory. Building it yourself takes serious engineering; using an API that offers it is much easier.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    ➕ Prompt caches usually match on an <b>exact prefix</b>, so a timestamp or user name at the start of a system prompt can silently break caching. Check the provider's cache-hit fields in responses, and keep the stable parts of prompts first. Also verify cached and uncached calls give equivalent answers.
+  </div>
+</section>
+
+<!-- ===== 14 ===== -->
+<section class="card" id="t14" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">14</div><div>
+    <h2>Parallelism: replicas, tensor, pipeline, context, sequence</h2>
+    <p class="sub">Spreading work across many chips <span class="page">📖 PDF p. 468–471</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  Q{"Does the model fit<br/>on one machine?"}:::yellow -->|"yes"| R["🧬 Replica parallelism<br/>run more copies to serve more requests"]:::green
+  Q -->|"no"| M["🧩 Model parallelism<br/>split one model across machines"]:::purple
+  M --> T["Tensor parallelism<br/>split each operation, e.g. a matrix by columns<br/>✅ fits big models AND lowers latency"]:::blue
+  M --> P["Pipeline parallelism<br/>split the model into stages, pass micro-batches along<br/>⚠️ adds latency; mostly used in training"]:::orange
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">Which kind of parallelism for inference?</div>
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    <b>Replicas</b> = opening more identical checkout lanes. <b>Tensor</b> = several cashiers scanning one huge trolley together. <b>Pipeline</b> = an assembly line where each worker does one step and passes the item on: good total output, but each item spends longer travelling.
+  </div>
+
+  <div class="box example"><span class="label">🧩 The bin-packing puzzle (replicas)</span>
+    Models of 8B, 13B, 34B and 70B parameters (8-bit), GPUs with 24, 40, 48 and 80 GB. Do you put <b>three 13B</b> models on a 40 GB GPU, or keep it for <b>one 34B</b>? With more models, replicas and chip types, this gets complicated fast.
+  </div>
+
+  <div class="grid">
+    <div class="tile teal"><h4>📄 Context parallelism</h4><p>Split the <b>input sequence</b>: the first half on machine 1, the second half on machine 2.</p></div>
+    <div class="tile purple"><h4>🔧 Sequence parallelism</h4><p>Split the <b>operators</b>: attention on machine 1, feedforward on machine 2. Both are for long inputs and less common.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 The book's "most impactful" list</span>
+    Across use cases: <b>quantisation</b> (works for most models), <b>tensor parallelism</b> (lower latency and bigger models), <b>replica parallelism</b> (easy) and <b>attention optimisation</b> (big speed-ups for transformers). Pick by workload: KV cache work matters most for long contexts, prompt caching for long shared prefixes and multi-turn chat, and more replicas when latency matters more than cost.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Your chatbot has strict latency targets and a model too big for one GPU. Tensor or pipeline parallelism?</summary>
+      <div class="answer">Tensor parallelism: it splits each operation so it also cuts latency. Pipeline parallelism adds latency between stages.</div></details>
+    <details><summary>Which levels' techniques can change answer quality: model or service?</summary>
+      <div class="answer">Model-level ones (quantisation, pruning, architecture changes) can. Service-level ones (batching, caching, parallelism) shouldn't, though it's still worth checking.</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🖥️ <b>Inference</b> = using a model. The inference server runs it; the service routes requests. Optimise at model, hardware and service levels.</li>
+    <li>🧮 <b>Prefill</b> (read input in parallel) is compute-bound; <b>decode</b> (one token at a time) is memory bandwidth-bound.</li>
+    <li>📦 <b>Batch APIs</b>: about 50% cheaper, hours to return. <b>Streaming</b> shows tokens sooner but can't be checked first.</li>
+    <li>⏱️ Latency = <b>TTFT + TPOT × output tokens</b>. Use percentiles (p50, p90, p95, p99), never just averages. Agents: measure <b>time to publish</b>.</li>
+    <li>💰 <b>Throughput</b> drives cost. <b>Goodput</b> = requests per second that meet the SLO. Compare models by cost per request.</li>
+    <li>📊 nvidia-smi utilisation ≠ efficiency. <b>MFU</b> (compute) and <b>MBU</b> (bandwidth); MBU = params × bytes × tokens/s ÷ peak bandwidth.</li>
+    <li>⚡ Accelerators: judge by <b>FLOP/s, memory size, bandwidth</b> (and power). Memory: SRAM (fast, tiny) → HBM → CPU DRAM (slow).</li>
+    <li>🔢 Compression: <b>quantisation</b> (most popular), distillation, pruning. Model-level changes can change quality.</li>
+    <li>🏎️ Faster decoding: <b>speculative decoding</b> (draft + verify, lossless), inference with reference (copy from input), parallel decoding (Lookahead, Medusa).</li>
+    <li>🗄️ <b>KV cache</b> = 2 × B × S × L × H × M; it limits long context. Fixes: local/multi-query/grouped-query/cross-layer attention, PagedAttention, FlashAttention.</li>
+    <li>⚙️ <b>Kernels</b>: vectorise, parallelise, tile, fuse. <b>Compilers</b> lower models to hardware (torch.compile, XLA, TensorRT).</li>
+    <li>🚌 <b>Continuous batching</b> beats static and dynamic for LLMs. <b>Split prefill/decode</b> across machines. <b>Prompt caching</b> reuses shared prefixes (up to 90% cheaper).</li>
+    <li>🧩 Parallelism: replicas (easy), <b>tensor</b> (fits big models, lowers latency), pipeline (adds latency), context and sequence (long inputs).</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: a latency-testing mini lab (optional)</h2>
+    <p class="sub">Measure a real model API the way this chapter describes</p>
+  </div></div>
+  <ol>
+    <li>Write a small script that calls a model API in <b>streaming</b> mode and records the time to the first token and the gaps between tokens.</li>
+    <li>Send 50 requests: half with a short prompt, half with a long one. Compute <b>p50, p95 and p99</b> of TTFT and TPOT. Compare the average with the p50.</li>
+    <li>Plot TTFT against input length. Does it rise as prefill predicts?</li>
+    <li>Set an SLO (e.g. TTFT ≤ 1 s, TPOT ≤ 100 ms) and compute your <b>goodput</b>.</li>
+    <li>If your provider offers prompt caching, repeat with a long, fixed system prompt and compare TTFT and cost with and without caching.</li>
+  </ol>
+  <div class="box remember"><span class="label">📌 Coming next (Chapter 10)</span>
+    AI engineering architecture and user feedback: putting all the pieces (context, guardrails, routers, caches, agents, monitoring) into one system, and learning from your users. This is the main Week 7 chapter.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>AI Engineering</i> (Chip Huyen, O'Reilly 2025) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
