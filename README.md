@@ -1,3 +1,3 @@
 # Git course notes
 
-Illustrated study notes from Coursera: the Complete Git Guide and the Software Design and Architecture Specialization. Live at https://sri44193.github.io
+Illustrated study notes organised as books: Complete Git Guide, Software Design and Architecture. New chapters are added as courses are covered. Live at https://sri44193.github.io
