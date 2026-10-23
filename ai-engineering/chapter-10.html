@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Engineering · Ch 10 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📘 AI Engineering · Chapter 10</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+
+<header class="hero">
+  <div class="kicker">AI Engineering · Chip Huyen · Week 7</div>
+  <h1>Chapter 10: AI Engineering Architecture and User Feedback</h1>
+  <p>Putting every earlier chapter together into one system, step by step: context, guardrails, routers and gateways, caches, agent patterns, then monitoring, orchestration, and how to collect and trust user feedback.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 473–518</span>
+    <span class="chip">⏱ ~5 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🧪 Written for a QA engineer</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    Start with the simplest app (query → model → answer) and add parts only as you need them: <b>context</b>, <b>guardrails</b>, a <b>router and gateway</b>, <b>caches</b>, then <b>agent loops and write actions</b>. Every part adds capability <i>and</i> failure modes, so build in <b>observability</b> (metrics, logs, traces, drift checks) from day one. Finally, <b>user feedback</b> is your most valuable data, but it's biased and can trap you in feedback loops.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why this is the QA lead's chapter</span>
+    The architecture diagram is your <b>test map</b>: each box is a component to test and each arrow an integration to test. MTTD, MTTR and change failure rate are quality metrics you can own. And feedback design is where testers and product people meet.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((AI app<br/>architecture))
+    Build it up
+      Simplest app
+      1 Context
+      2 Guardrails
+      3 Router and gateway
+      4 Caches
+      5 Agents and write actions
+    Run it
+      Monitoring and observability
+      Metrics
+      Logs and traces
+      Drift
+      Orchestration
+    Learn from users
+      Explicit and implicit
+      Conversational signals
+      When and how to ask
+      Biases
+      Feedback loops
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> The build-up</a>
+    <a class="pill" href="#t2"><b>2</b> Context</a>
+    <a class="pill" href="#t3"><b>3</b> Input guardrails</a>
+    <a class="pill" href="#t4"><b>4</b> Output guardrails</a>
+    <a class="pill" href="#t5"><b>5</b> Router</a>
+    <a class="pill" href="#t6"><b>6</b> Gateway</a>
+    <a class="pill" href="#t7"><b>7</b> Caches</a>
+    <a class="pill" href="#t8"><b>8</b> Agents &amp; write actions</a>
+    <a class="pill" href="#t9"><b>9</b> Observability</a>
+    <a class="pill" href="#t10"><b>10</b> Metrics</a>
+    <a class="pill" href="#t11"><b>11</b> Logs, traces, drift</a>
+    <a class="pill" href="#t12"><b>12</b> Orchestration</a>
+    <a class="pill" href="#t13"><b>13</b> Why feedback</a>
+    <a class="pill" href="#t14"><b>14</b> Conversational signals</a>
+    <a class="pill" href="#t15"><b>15</b> Feedback design</a>
+    <a class="pill" href="#t16"><b>16</b> Feedback limits</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Start simple, then add parts: the five-step build-up</h2>
+    <p class="sub">An architecture validated at several companies <span class="page">📖 PDF p. 473–474, 488</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The simplest AI app: the user's query goes to a model API (a third-party one like OpenAI, Google or Anthropic, or your own self-hosted model), and the answer comes back. No extra context, no safety checks, no optimisation. From there you add parts <b>as needs arise</b>, usually in this order (but follow whatever order suits your app).
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  S0["0️⃣ Query → Model API → Response"]:::blue --> S1["1️⃣ Enhance context<br/>retrieval and tools"]:::green
+  S1 --> S2["2️⃣ Put in guardrails<br/>input and output"]:::red
+  S2 --> S3["3️⃣ Add router and gateway<br/>pick the model, unify access"]:::purple
+  S3 --> S4["4️⃣ Add caches<br/>cut latency and cost"]:::orange
+  S4 --> S5["5️⃣ Add agent patterns<br/>loops and write actions"]:::yellow
+  S5 --> OBS["👀 Monitoring and observability<br/>throughout"]:::teal
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef teal fill:#ccfbf1,stroke:#0d9488,color:#134e4a
+</pre>
+    <div class="caption">The progression the author commonly sees in production</div>
+  </div>
+
+  <p><b>Where it ends up</b> (the full architecture, simplified):</p>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  Q["👩 User query"]:::blue --> CA{"🗃️ Cache hit?"}:::orange
+  CA -->|"yes"| OUT["📤 Response to user"]:::blue
+  CA -->|"no"| IG["🛡️ Input guardrails<br/>PII masking, prompt-attack checks"]:::red
+  IG --> RT["🔀 Router<br/>intent, scope, next action"]:::purple
+  RT --> CC["📚 Context construction<br/>retrieval, read-only tools"]:::green
+  CC --> GW["🚪 Model gateway → generation models"]:::purple
+  GW --> SC["⚖️ Scorers"]:::yellow
+  SC --> OG["🛡️ Output guardrails"]:::red
+  OG --> OUT
+  OG -->|"not done yet"| CC
+  OG -->|"write action"| WA["✍️ Write actions<br/>email, order, transfer"]:::orange
+  OUT -.->|"store"| CA
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+</pre>
+    <div class="caption">Monitoring, logging and orchestration wrap around all of this. Components can overlap: guardrails, for example, can live in the gateway</div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Use the full diagram as a <b>test inventory</b>: unit-test each box (does the router classify intents correctly? does the PII masker catch phone numbers?), integration-test each arrow, and end-to-end test whole journeys, including the loop back and the write actions.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>Step 1: Enhance context</h2>
+    <p class="sub">Give the model the information it needs <span class="page">📖 PDF p. 474–475</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The first upgrade is usually letting the system build <b>context</b> for each query: retrieve text, images or table data (RAG, Chapter 6) and call tools such as web search, news or weather APIs. The book calls context construction "feature engineering for foundation models": it supplies what the model needs to answer well.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Providers differ</span>
+    Most model APIs let you upload files and use tools, but with limits: how many documents and which types, retrieval settings like chunk size, which tools, and whether tools run in parallel or support long jobs. A dedicated RAG system may take as many documents as your vector database holds; a generic API may take only a few.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Test context building <b>separately from generation</b>: for a set of questions, is the right document retrieved? Then check generation against that context (Chapter 4's factual consistency). Include tests at the provider's limits: too many files, an unsupported file type.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Step 2a: Input guardrails</h2>
+    <p class="sub">Stop private data leaking out and bad prompts getting in <span class="page">📖 PDF p. 475–477</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Guardrails</b> are checks placed wherever there's risk. <b>Input guardrails</b> protect against two things: (1) <b>prompt attacks</b> (Chapter 5) and (2) <b>leaking private information</b> to an external model API. Risks can be reduced but never fully removed.
+  </div>
+
+  <div class="grid">
+    <div class="tile red"><h4>💧 How leaks happen</h4><p>An employee pastes a secret or a customer's data into a prompt (the book cites a Samsung leak via ChatGPT) · a developer puts internal policies in the system prompt · a tool pulls private data from a database into the context.</p></div>
+    <div class="tile orange"><h4>🔎 What to detect</h4><p>Personal information (ID numbers, phone numbers, bank accounts) · human faces · keywords tied to intellectual property or privileged information. You choose the classes; many detectors use AI.</p></div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Mask, send, unmask (the reverse PII map)</span>
+<pre>query    ← "Call me on 07700 900123 about my refund"
+<span class="kw">if</span> policy == block: reject the query                  <span class="cm"># option 1: block it entirely</span>
+<span class="cm"># option 2: remove the sensitive part</span>
+masked   ← "Call me on [PHONE NUMBER] about my refund"
+pii_map  ← { "[PHONE NUMBER]": "07700 900123" }      <span class="cm"># kept inside your system</span>
+answer   ← external_model(masked)                    <span class="cm"># the API never sees the number</span>
+<span class="kw">for</span> placeholder, value <span class="kw">in</span> pii_map:
+    answer ← answer.replace(placeholder, value)      <span class="cm"># unmask before showing the user</span></pre>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Build a <b>PII test set</b>: phone numbers in many formats, IDs, bank details, addresses, names in other scripts, PII hidden inside code or JSON. Measure what the masker misses (false negatives) and what it over-masks (false positives), and check that unmasking puts the right value back in the right place.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Step 2b: Output guardrails, retries and trade-offs</h2>
+    <p class="sub">Catch bad outputs and decide what to do about them <span class="page">📖 PDF p. 477–480</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Output guardrails do two jobs: <b>catch</b> failures, and set the <b>policy</b> for each failure type. The easiest failure to catch is an empty response when one isn't expected.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📉 Quality failures (Ch 4)</h4><p>Wrong format (e.g. invalid JSON) · hallucinated, factually inconsistent answers · simply bad answers (a poor essay).</p></div>
+    <div class="tile red"><h4>🔐 Security failures (Ch 5)</h4><p>Toxic content · private or sensitive data · triggering remote tool or code execution · <b>brand risk</b>: misrepresenting your company or competitors.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  F{"Output fails a check"}:::red --> R1["🔁 Retry<br/>models are probabilistic, so a retry may pass<br/>⚠️ doubles latency if done after failure"]:::orange
+  F --> R2["⚡ Parallel calls<br/>send the query twice at once, keep the better answer<br/>more API calls, same latency"]:::purple
+  F --> R3["🙋 Hand over to a human<br/>e.g. specific phrases, anger detected, too many turns"]:::green
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Three common failure policies</div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ The trade-offs</span>
+    <b>Reliability vs latency</b>: some teams skip guardrails because they add latency (early readers told the author this gave them nightmares). <b>Streaming</b>: partial answers are hard to judge, so unsafe text can reach users before it's blocked. <b>Too safe</b>: also track the <b>false refusal rate</b>, since blocking legitimate requests frustrates users.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Who provides guardrails</span>
+    Model providers build some in (balancing safety against flexibility). Third-party APIs reduce what you build; self-hosting means less input-leak risk. Off-the-shelf tools: Meta's Purple Llama, NVIDIA NeMo Guardrails, Azure PyRIT and AI content filters, the Perspective API, OpenAI's moderation API. Many cover inputs and outputs, and some gateways include them. Scorers (often small AI models) sit with the model APIs or inside the output guardrails.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    For each failure type, write a test that <b>forces</b> it (e.g. a mocked model returning invalid JSON or an empty string) and assert the policy: did it retry, how many times, did it hand over to a human, what did the user see? Report both <b>miss rate</b> and <b>false refusal rate</b>.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Your SLO is tight and invalid JSON happens 5% of the time. Retry after failure, or parallel calls?</summary>
+      <div class="answer">Parallel calls keep latency down (no waiting for the first failure), at the price of more API calls. Retry-after-failure is cheaper but doubles latency for the 5%.</div></details>
+    <details><summary>Why is a guardrail with zero harmful outputs not automatically a good one?</summary>
+      <div class="answer">It may block many legitimate requests. Measure the false refusal rate too.</div></details>
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Step 3a: The router</h2>
+    <p class="sub">Send each query to the best solution <span class="page">📖 PDF p. 480–482</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Instead of one model for everything, a <b>router</b> sends each query where it fits best. Benefits: <b>specialised</b> models can beat a general one (troubleshooting vs billing), and <b>cheap</b> models can handle simple queries. A router is usually an <b>intent classifier</b>: it predicts what the user wants.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  Q["👩 Support chatbot query"]:::blue --> IC{"🔀 Intent classifier"}:::purple
+  IC -->|"reset password"| A["📄 FAQ page on recovering passwords"]:::green
+  IC -->|"billing mistake"| B["🙋 Human operator"]:::orange
+  IC -->|"technical issue"| C["🤖 Troubleshooting bot"]:::green
+  IC -->|"out of scope, e.g. politics"| D["💬 Polite stock reply<br/>no model call needed"]:::yellow
+  IC -->|"ambiguous, e.g. 'Freezing'"| E["❓ Ask the user to clarify"]:::red
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">The book's customer-support routing example</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile purple"><h4>🧭 Next-action predictor</h4><p>For agents: code interpreter or search API next? For memory: use the attached document about Melbourne, or search the web?</p></div>
+    <div class="tile green"><h4>⚡ Keep routers small</h4><p>Often adapted small models (GPT-2, BERT, Llama 7B) or tiny classifiers trained from scratch, so several can run without adding much latency or cost.</p></div>
+    <div class="tile orange"><h4>📏 Context limits</h4><p>A 1,000-token query bound for a 4K-context model fetches an 8,000-token web result: either <b>truncate</b> the context or <b>reroute</b> to a model with a bigger window.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 The common pattern</span>
+    Routing usually happens <b>before</b> retrieval (is it in scope? does it need retrieval?), though it can also come after (should a human take over?). The most common flow: <b>routing → retrieval → generation → scoring</b>.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    A router is a classifier, so test it like one: a labelled set of queries per intent, a <b>confusion matrix</b>, and special attention to costly mistakes (a billing dispute sent to a bot, a harmless question refused as out of scope). Include ambiguous one-word queries.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Step 3b: The model gateway</h2>
+    <p class="sub">One door to every model <span class="page">📖 PDF p. 482–484</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A <b>model gateway</b> is a layer between your apps and all the models (commercial APIs and self-hosted ones) that offers <b>one unified interface</b>. If a provider's API changes, you update the gateway, not every app.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ A gateway in its simplest form (pseudocode)</span>
+<pre><span class="kw">endpoint</span> POST /model (provider, model_name, input, max_tokens):
+    check caller is allowed to use model_name        <span class="cm"># access control</span>
+    check caller's usage budget                      <span class="cm"># cost management</span>
+    <span class="kw">try</span>:
+        reply ← adapter[provider].generate(model_name, input, max_tokens)
+    <span class="kw">except</span> rate limit or outage:
+        wait and retry, or switch to a fallback model     <span class="cm"># fallback policy</span>
+    log request, response, latency, tokens            <span class="cm"># one place for logs and analytics</span>
+    <span class="kw">return</span> { "response": reply }                     <span class="cm"># same shape for every provider</span></pre>
+  </div>
+
+  <div class="grid">
+    <div class="tile teal"><h4>🔑 Access control</h4><p>People get gateway access, not the organisation's API keys, which can easily leak. Fine-grained rules decide which user or app can use which model.</p></div>
+    <div class="tile orange"><h4>💰 Cost management</h4><p>Monitor and limit API usage to prevent abuse.</p></div>
+    <div class="tile red"><h4>🛟 Fallbacks</h4><p>API failures are "unfortunately common": reroute to another model, retry after a wait, or fail gracefully.</p></div>
+    <div class="tile blue"><h4>➕ Extras</h4><p>Load balancing, logging, analytics, sometimes caching and guardrails.</p></div>
+  </div>
+  <p class="muted">Off-the-shelf gateways: Portkey AI Gateway, MLflow AI Gateway, Wealthsimple LLM Gateway, TrueFoundry, Kong, Cloudflare. A similar "tool gateway" could front many tools, but wasn't common as of writing.</p>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    A hotel reception desk: guests don't get master keys to every room. Reception checks who you are, gives the right key, keeps a log, and sends you to another room if yours is out of service.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Chaos-test the gateway: make the primary provider return 429 (rate limit) and 500 errors, or time out. Does it fall back? Do answers from the fallback model still pass your evaluation suite? Are an unauthorised user's calls rejected and budgets enforced?
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Step 4: Caches, exact and semantic</h2>
+    <p class="sub">Don't compute the same answer twice <span class="page">📖 PDF p. 484–487</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Chapter 9's KV and prompt caches live inside the model service. This step adds <b>system caches</b>, in two kinds: <b>exact</b> (reuse only for identical requests) and <b>semantic</b> (reuse for requests that mean the same thing).
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th></th><th>🎯 Exact cache</th><th>🧠 Semantic cache</th></tr>
+    <tr><td>Reused when</td><td>The request is identical (e.g. the summary of product #123; a repeated vector search)</td><td>The request is <b>similar enough</b> ("capital of Vietnam?" vs "capital city of Vietnam?")</td></tr>
+    <tr><td>Storage</td><td>In memory, or PostgreSQL, Redis, tiered storage</td><td>Needs a vector database of query embeddings</td></tr>
+    <tr><td>Risk</td><td>Low, apart from leaks (see trap)</td><td>Higher: depends on good embeddings, working vector search and a well-chosen threshold. A wrong match returns a <b>wrong answer</b>; the search itself costs time and compute</td></tr>
+    <tr><td>Verdict</td><td>Especially useful for multi-step or slow work (chain-of-thought, retrieval, SQL, web search)</td><td>Value is "more dubious"; worth it only with a high hit rate, after evaluating cost and risk</td></tr>
+  </table></div>
+
+  <div class="algo"><span class="label">⚙️ Semantic cache lookup</span>
+<pre>e      ← embed(query)                          <span class="cm"># embedding model</span>
+match  ← vector_search(cache, e)               <span class="cm"># most similar cached query</span>
+<span class="kw">if</span> similarity(match) &gt; threshold:            <span class="cm"># threshold needs trial and error</span>
+    <span class="kw">return</span> match.answer                         <span class="cm"># cache hit</span>
+answer ← run the full pipeline(query)
+store (e, query, answer) in cache
+<span class="kw">return</span> answer</pre>
+  </div>
+
+  <div class="box remember"><span class="label">📌 What to cache, and for how long</span>
+    Use an <b>eviction policy</b>: LRU (least recently used), LFU (least frequently used) or FIFO. Don't cache <b>user-specific</b> queries ("status of my order?") or <b>time-sensitive</b> ones ("weather?"). Many teams train a classifier to decide whether a query should be cached.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ The cache data leak (the book's example)</span>
+    User X asks "What's the return policy for electronics?" The answer depends on X's membership, so the system fetches X's details and includes them. It wrongly treats the question as generic and caches the answer. User Y asks the same question and gets <b>X's information</b>.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Write a <b>two-user cache test</b>: user A asks a question that pulls personal data, user B asks the same thing; assert B never sees A's data. For semantic caches, build <b>near-miss pairs</b> that look alike but differ in meaning ("cancel my order" vs "don't cancel my order") and check they don't hit the same entry.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Step 5: Agent patterns and write actions</h2>
+    <p class="sub">Loops and real-world actions <span class="page">📖 PDF p. 487–489</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Until now each query flows once, straight through. <b>Agent patterns</b> (Chapter 6) add loops, parallel steps and branches: e.g. after generating, the system decides the task isn't done, retrieves more, and feeds the draft plus new context back into a model. <b>Write actions</b> let outputs change the world: send an email, place an order, start a bank transfer.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ More power, more risk</span>
+    Write actions make a system far more capable but far riskier: grant them "with the utmost care". And every added component adds failure modes, making the system harder to debug. That's why observability comes next.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    For every write action, test the <b>guard</b> as much as the action: human approval for risky actions, limits (amount, recipients), idempotency (a retry mustn't send two emails or two payments) and a dry-run mode for test environments. For loops, test that they <b>terminate</b> (a maximum number of steps).
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Monitoring and observability</h2>
+    <p class="sub">Designed in, not bolted on <span class="page">📖 PDF p. 489–491</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Monitoring has the same goal as evaluation: <b>reduce risks</b> (failures, attacks, drift) and <b>find opportunities</b> (improvements, savings). The book uses <b>monitoring</b> for tracking a system's information, and <b>observability</b> for the whole process of instrumenting, tracking and debugging it.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>⏱️ MTTD</h4><p><b>Mean time to detection</b>: when something goes wrong, how long until you notice?</p></div>
+    <div class="tile green"><h4>🔧 MTTR</h4><p><b>Mean time to response</b>: after detection, how long until it's resolved?</p></div>
+    <div class="tile red"><h4>💥 CFR</h4><p><b>Change failure rate</b>: % of changes or deployments that need a fix or rollback. Don't know yours? Your platform needs to be more observable.</p></div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>📟 Monitoring</th><th>🔬 Observability</th></tr>
+    <tr><td>Watch the outputs to spot when something's wrong inside. No promise they'll tell you <i>what</i>.</td><td>Instrument the system so its <b>internal state can be worked out</b> from its logs and metrics, without shipping new code to debug it.</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Evaluation and monitoring work as a pair</span>
+    A high CFR means your <b>evaluation pipeline</b> should catch bad changes before deployment. Evaluation metrics should map onto monitoring metrics (good in evaluation → good in production), and issues found in monitoring should feed back into evaluation as new test cases.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    MTTD, MTTR and CFR are perfect <b>QA lead KPIs</b>. Every production incident becomes a regression test, which over time lowers CFR.
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Metrics: design them around failures</h2>
+    <p class="sub">A metric's job is to tell you something's wrong <span class="page">📖 PDF p. 491–493</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Metrics aren't the goal; nobody cares about a relevance score unless it serves a purpose. First list the <b>failures</b> you want to catch, then design metrics that catch them. Don't want hallucinations? Track whether outputs can be inferred from the context. Worried about cost? Track tokens per request and cache hit rate.
+  </div>
+
+  <div class="stack">
+    <div class="layer l1"><b>📐 Format</b><span>Easiest. E.g. % invalid JSON, and of those, how many are easy to fix (missing bracket) vs hard (missing keys).</span></div>
+    <div class="layer l2"><b>✍️ Quality</b><span>Factual consistency, conciseness, creativity, positivity; often scored by AI judges.</span></div>
+    <div class="layer l3"><b>🛡️ Safety</b><span>Toxicity, PII in inputs and outputs, how often guardrails fire, refusal rate, abnormal queries (edge cases or attacks).</span></div>
+    <div class="layer" style="background:linear-gradient(90deg,#0891b2,#06b6d4)"><b>💬 User signals</b><span>Generations stopped halfway, turns per conversation, tokens per input and output, output token distribution over time.</span></div>
+    <div class="layer" style="background:linear-gradient(90deg,#16a34a,#4ade80)"><b>⏱️ Latency and 💰 cost</b><span>TTFT, TPOT, total latency (per user), query count, input/output tokens, TPS, requests per second against rate limits.</span></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Make metrics useful</span>
+    Each component has its own metrics (retrieval: context relevance and precision; vector DB: storage and query time). Check how metrics <b>correlate</b> with your business <b>north star</b> (daily active users, session duration, subscriptions). Mix <b>spot checks</b> (samples, fast) with <b>exhaustive checks</b> (every request). And make every metric breakable down by <b>user, release, prompt/chain version and type, and time</b>.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    For each item in your risk list, write down the metric that would reveal it and the alert threshold. If a known failure has no metric, it has no MTTD: you'll learn about it from customers.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Logs, traces and drift</h2>
+    <p class="sub">From "something's wrong" to "here's exactly what" <span class="page">📖 PDF p. 493–496</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  M["📊 Metrics<br/>aggregated numbers: something went wrong 5 minutes ago"]:::blue --> L["📜 Logs<br/>append-only events: what happened around then?"]:::purple
+  L --> C["🔗 Correlate log errors with the metric spike"]:::orange
+  C --> T["🧵 Trace<br/>one request's full path: steps, documents, final prompt, time and cost per step"]:::green
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">A typical debugging path. Fast detection needs fast metrics; fast response needs logs that aren't delayed</div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 The logging rule: log everything</span>
+    Configuration (API endpoint, model name, sampling settings such as temperature, top-p, top-k and stop conditions, prompt template) · the user query, the <b>final prompt</b> sent, the output and intermediate outputs · tool calls and their outputs · component start, end and crash. Tag every log with IDs showing where it came from. Use AI-powered tools to analyse the volume, but also <b>read production data by hand daily</b>: Shankar et al. (2024) found developers' idea of good and bad outputs changes as they see more data.
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Traces</span>
+    Logs are separate events; a <b>trace</b> links them into one request's story from query to response (the book shows LangSmith). When a query fails, you should be able to point at the exact step: bad processing, irrelevant retrieved context, or a wrong generation.
+  </div>
+
+  <p><b>Drift: three things that change without telling you</b></p>
+  <div class="grid">
+    <div class="tile orange"><h4>📝 System prompt</h4><p>A shared template was updated; a colleague fixed a typo. Simple logic can catch this.</p></div>
+    <div class="tile blue"><h4>🧑 User behaviour</h4><p>Users adapt, e.g. learning to ask for shorter answers, so response length slowly drops. Metrics show it; finding the cause takes investigation.</p></div>
+    <div class="tile red"><h4>🤖 The model behind the API</h4><p>Same API name, new model underneath, not always announced. GPT-4 and GPT-3.5 scored differently between March and June 2023; Voiceflow saw a <b>10% drop</b> moving from gpt-3.5-turbo-0301 to -1106.</p></div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    ➕ Cheap drift alarms: <b>hash the final system prompt</b> and alert when it changes; run a small <b>canary evaluation set</b> against the production API daily and alert when scores move. Pin model versions where the provider allows it.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>AI pipeline orchestration</h2>
+    <p class="sub">Wiring the components into one pipeline <span class="page">📖 PDF p. 496–498</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    An <b>orchestrator</b> defines how components work together, in two steps: <b>components definition</b> (which models, data sources, tools, evaluation and monitoring tools; a gateway makes adding models easier) and <b>chaining</b> (function composition: the steps from query to finished task). It passes data between steps, checks formats match, and should alert you when a step fails. It's different from general workflow tools like Airflow or Metaflow.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["1. Process the raw query"]:::blue --> B["2. Retrieve relevant data"]:::green
+  B --> C["3. Build the prompt: query + retrieved data"]:::purple
+  C --> D["4. Model generates a response"]:::orange
+  D --> E{"5. Evaluate the response"}:::yellow
+  E -->|"good"| F["6a. Return it to the user"]:::green
+  E -->|"not good"| G["6b. Route to a human operator"]:::red
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">The book's example chain. For latency, run independent steps (e.g. routing and PII removal) in parallel</div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Don't start with a framework</span>
+    Tools like LangChain, LlamaIndex, Flowise, Langflow and Haystack are tempting, but they add complexity and can <b>hide critical details</b>, making debugging hard. Consider building without one first.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Choosing an orchestrator later: three questions</span>
+    <b>Integration and extensibility</b>: does it support your components, and how hard is it to add one it doesn't? · <b>Complex pipelines</b>: branching, parallelism, error handling? · <b>Ease of use, performance, scale</b>: good APIs, docs and community; no <b>hidden API calls</b> or added latency.
+  </div>
+</section>
+
+<!-- ===== 13 ===== -->
+<section class="card" id="t13" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">13</div><div>
+    <h2>Why user feedback matters more for AI</h2>
+    <p class="sub">Explicit vs implicit, and the data flywheel <span class="page">📖 PDF p. 498–500</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Feedback always helped evaluate and guide software. For AI it is also <b>proprietary training data</b>, a competitive advantage that powers the <b>data flywheel</b> (Chapter 8): launch early, collect feedback, improve, attract more users. (Open-source apps struggle here: people self-host and you never see usage.) Feedback is <b>user data</b>, so respect privacy and tell users how it's used.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th></th><th>👍 Explicit feedback</th><th>🕵️ Implicit feedback</th></tr>
+    <tr><td>What</td><td>Users answer a direct request: thumbs, stars, "Did we solve your problem?"</td><td>Inferred from actions: buying a recommended product means a good recommendation</td></tr>
+    <tr><td>Pros</td><td>Easy to interpret, well understood</td><td>Plentiful; limited only by imagination</td></tr>
+    <tr><td>Cons</td><td>Sparse (extra effort), and biased: unhappy users complain more</td><td>Noisy and app-specific: sharing a chat might mean "great" or "look at this mistake"</td></tr>
+  </table></div>
+
+  <div class="box example"><span class="label">🧩 The book's hotel example</span>
+    An assistant suggests three Sydney hotels (~$400, ~$200 and ~$300 a night). "Book the one near the galleries" reveals an interest in art. "Is there nothing under $200?" reveals price sensitivity <b>and</b> that the assistant hasn't understood the user yet.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Three uses of conversational feedback</span>
+    <b>Evaluation</b> (monitoring metrics) · <b>development</b> (training or guiding future models) · <b>personalisation</b> (adapting to each user). It's been studied for years (reinforcement learning from language feedback, Alexa, Spotify voice, Yahoo! Voice), but needs data analysis and user studies to interpret.
+  </div>
+</section>
+
+<!-- ===== 14 ===== -->
+<section class="card" id="t14" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">14</div><div>
+    <h2>Reading conversational signals</h2>
+    <p class="sub">What users' words and actions tell you <span class="page">📖 PDF p. 500–504</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile red"><h4>⏹️ Early termination</h4><p>Stopping generation, leaving the app, telling a voice assistant to stop, or leaving an agent hanging: probably going badly.</p></div>
+    <div class="tile orange"><h4>✏️ Error correction</h4><p>"No, …", "I meant …", rephrasing (detectable by heuristics or ML). Pointed fixes: "Bill is the suspect, not the victim." Agent nudges: "Also check their GitHub page."</p></div>
+    <div class="tile purple"><h4>🤨 Confirmation requests</h4><p>"Are you sure?", "Check again", "Show me the sources": maybe not wrong, but missing detail or not trusted.</p></div>
+    <div class="tile green"><h4>📝 User edits</h4><p>A user fixing generated code is a <b>very strong</b> signal, and free <b>preference data</b>: original = losing response, edit = winning response.</p></div>
+    <div class="tile blue"><h4>😠 Complaints and sentiment</h4><p>"Wrong", "too long", "Uggh". Track sentiment across a conversation: angry at the start but happy at the end suggests it got resolved.</p></div>
+    <div class="tile yellow"><h4>🙅 Model refusals</h4><p>"Sorry, I don't know that" or "As a language model, I can't…": the user is probably unhappy.</p></div>
+  </div>
+
+  <p><b>What users complain about</b> (the FITS dataset, clustered into 8 groups):</p>
+  <div class="bars">
+    <div class="bar"><span>Clarify their request again</span><div class="track"><div class="fill" style="width:100%; background:linear-gradient(90deg,#2563eb,#60a5fa)">26.5%</div></div></div>
+    <div class="bar"><span>Doesn't answer / irrelevant</span><div class="track"><div class="fill" style="width:61%; background:linear-gradient(90deg,#dc2626,#f87171)">16.2%</div></div></div>
+    <div class="bar"><span>Points to results that answer it</span><div class="track"><div class="fill" style="width:61%; background:linear-gradient(90deg,#7c3aed,#a78bfa)">16.2%</div></div></div>
+    <div class="bar"><span>Says: use the search results</span><div class="track"><div class="fill" style="width:58%; background:linear-gradient(90deg,#7c3aed,#a78bfa)">15.3%</div></div></div>
+    <div class="bar"><span>Factually wrong / ungrounded</span><div class="track"><div class="fill" style="width:43%; background:linear-gradient(90deg,#ea580c,#fb923c)">11.3%</div></div></div>
+    <div class="bar"><span>Not specific or complete</span><div class="track"><div class="fill" style="width:35%; background:linear-gradient(90deg,#ea580c,#fb923c)">9.4%</div></div></div>
+    <div class="bar"><span>Always unsure ("I don't know")</span><div class="track"><div class="fill" style="width:16%; background:linear-gradient(90deg,#ca8a04,#facc15)">4.2%</div></div></div>
+    <div class="bar"><span>Repetitive or rude</span><div class="track"><div class="fill" style="width:4%; background:#16a34a"></div></div></div>
+  </div>
+  <p class="muted">Repetitive or rude: about 1%. Knowing why users are unhappy tells you what to change (e.g. "too long" → prompt for concise answers).</p>
+
+  <div class="grid">
+    <div class="tile purple"><h4>🔄 Regeneration</h4><p>May mean "not satisfied", or just "show me options" (common for creative work). A stronger signal with pay-per-use billing. Some apps then ask "better or worse?", which yields preference data.</p></div>
+    <div class="tile teal"><h4>🗂️ Organising chats</h4><p><b>Delete</b> = probably bad (or embarrassing). <b>Rename</b> = good chat, bad auto-title. Share and bookmark are signals too.</p></div>
+    <div class="tile orange"><h4>📏 Length and diversity</h4><p>Long chats: good for an AI companion, bad for customer support. Long <b>and</b> repetitive (low distinct tokens or topics) = the user may be stuck in a loop.</p></div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Turn these into dashboards: % of generations stopped early, % of turns starting with "No" or "I meant", regeneration rate, edit rate, refusal rate. A spike after a release is an early regression alarm, often faster than any thumbs-down count.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>A user shares a conversation. Good or bad sign?</summary>
+      <div class="answer">It's ambiguous: some people share great answers, others share glaring mistakes. Combine it with other signals (e.g. rephrasing afterwards) and study your users.</div></details>
+    <details><summary>How can a user's edit become training data?</summary>
+      <div class="answer">As a preference example: (query, edited response = winner, original response = loser).</div></details>
+  </div>
+</section>
+
+<!-- ===== 15 ===== -->
+<section class="card" id="t15" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">15</div><div>
+    <h2>Feedback design: when and how to ask</h2>
+    <p class="sub">Collect useful signals without getting in the way <span class="page">📖 PDF p. 504–513</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  J["🧭 User journey"]:::blue --> B["🚪 At the start<br/>calibrate: face scan, voice sample, skill quiz<br/>optional unless essential"]:::green
+  J --> X["💥 When something goes wrong<br/>downvote, regenerate, switch model, edit the result, reach a human"]:::red
+  J --> L["🤔 When the model is unsure<br/>show two options and let the user pick"]:::purple
+  J --> G["🌟 When something's great<br/>debated: ask rarely, e.g. 1% of users"]:::yellow
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+</pre>
+    <div class="caption">When to collect feedback. It should always be possible, and never intrusive</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Examples from the book</span>
+    <b>Inpainting</b> (DALL-E): select part of an image and describe the fix; better results for users, precise feedback for developers. <b>Side-by-side</b>: ChatGPT shows two full answers; Gemini shows the start of each and you expand one (it's unclear which gives more reliable votes). <b>Google Photos</b> asks "same person?" when unsure. Apple's guidelines advise <b>against</b> asking for positive feedback (good results should be normal), but one product team said positive feedback shows which features users love.
+  </div>
+
+  <p><b>How to collect: build it into the workflow</b></p>
+  <div class="grid">
+    <div class="tile purple"><h4>🎨 Midjourney</h4><p>Four images per prompt. <b>Upscale</b> one = strongest positive signal; <b>variations</b> = weaker positive; <b>regenerate</b> = none are good enough (or just curiosity).</p></div>
+    <div class="tile blue"><h4>💻 GitHub Copilot</h4><p>Suggestions appear in grey: <b>Tab</b> accepts, typing on ignores. Both are feedback at zero effort.</p></div>
+    <div class="tile orange"><h4>📧 Standalone chat apps</h4><p>ChatGPT can't tell if the email it wrote was sent; Gmail can. Apps outside the user's workflow get weaker signals.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Design rules</span>
+    Easy to give and easy to ignore · give users a reason to give good feedback · collect <b>context</b> with it (the last 5–10 turns), with consent: through terms of service or a "share my recent data" checkbox · explain how feedback is used (personalisation, statistics, training), and only promise privacy you really provide · don't ask the impossible: add an <b>"I don't know"</b> option · use clear icons and tooltips · decide whether feedback is <b>private or public</b> (people are more candid in private; when X made likes private, likes reportedly went up, but discoverability dropped).
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ A confusing form gives you wrong data</span>
+    The author ran a workshop feedback form (on Luma) where the angry-face emoji meant <b>1 star</b> but sat where 5 stars usually is. People writing glowing comments gave 1-star ratings by mistake.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Feedback widgets are features: test them. Does the thumbs-down store the right response ID and context? Does "share my data" respect the user's choice? Usability-test rating scales on a few real users before launch to avoid a Luma-style mix-up.
+  </div>
+</section>
+
+<!-- ===== 16 ===== -->
+<section class="card" id="t16" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">16</div><div>
+    <h2>Feedback limitations: biases and degenerate loops</h2>
+    <p class="sub">Feedback isn't a free lunch <span class="page">📖 PDF p. 514–516</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Bias</th><th>What happens</th><th>What to do</th></tr>
+    <tr><td>😇 Leniency</td><td>People rate too kindly to avoid hassle (a low rating triggers "why?"). Uber, 2015: average driver rating <b>4.8</b>; below 4.6 risked deactivation</td><td>Look at the rating distribution; use descriptive options ("Great ride", "Pretty good", "Could've been better", "Don't match me again") instead of numbers</td></tr>
+    <tr><td>🎲 Randomness</td><td>Unmotivated users click anything, e.g. without reading two long answers</td><td>Don't ask for heavy effort; treat votes as noisy</td></tr>
+    <tr><td>📍 Position</td><td>The first option gets more clicks regardless of quality</td><td>Randomise positions, or model the true success rate per position</td></tr>
+    <tr><td>📏 Preference</td><td>Longer answers win even when less accurate (length is easier to see than errors); <b>recency</b> bias favours the last answer seen</td><td>Inspect feedback for these patterns before trusting it</td></tr>
+  </table></div>
+
+  <div class="box plain"><span class="label">🧒 Degenerate feedback loops</span>
+    You only get feedback on what you <b>show</b>. When feedback trains the model, its own predictions shape the next round of feedback and <b>amplify</b> early biases. Also called exposure bias, popularity bias or filter bubbles.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["🎬 Video A ranked slightly above B"]:::blue --> B["👀 A shown first, gets more clicks"]:::purple
+  B --> C["📈 System trusts A more, ranks it higher"]:::orange
+  C --> B
+  C --> D["🔒 B never gets a chance<br/>popular stays popular"]:::red
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">A small early difference becomes a huge one</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Two more loops from the book</span>
+    <b>The cat haven</b>: a few early users like cat photos, so the system makes more cats, which attracts cat lovers, who like more cats… The same mechanism can amplify racism, sexism or explicit content. <b>The liar</b>: training on user approval can teach a model to say what users want to hear: <b>sycophancy</b> (Sharma et al., 2023).
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Add <b>sycophancy tests</b> to your evaluation: ask a factual question while asserting a wrong answer ("I'm sure the capital of Australia is Sydney, right?") and check the model still corrects you. Re-run them after every feedback-based finetune.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>90% of your ratings are 5 stars. Does that mean users love the product?</summary>
+      <div class="answer">Not necessarily: leniency bias. Look at the distribution, how it changes over time, and implicit signals (stopping early, rephrasing) to cross-check.</div></details>
+    <details><summary>In side-by-side tests, users pick the left answer 65% of the time. What should you change?</summary>
+      <div class="answer">Randomise which side each model's answer appears on (position bias), and correct past results for position.</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🏗️ Start with <b>query → model → response</b>; add parts as needed: context → guardrails → router and gateway → caches → agents and write actions. Each adds capability <b>and</b> failure modes.</li>
+    <li>📚 <b>Context</b> = feature engineering for foundation models. Providers differ in file limits, retrieval settings and tool support.</li>
+    <li>🛡️ <b>Input guardrails</b>: block or mask PII (reverse PII map to unmask) and stop prompt attacks. <b>Output guardrails</b>: catch quality and security failures; policies = retry, parallel calls, hand over to a human. Track the false refusal rate.</li>
+    <li>🔀 <b>Router</b> = small, fast intent classifier: specialised or cheaper models, out-of-scope stock replies, clarifying questions. Usual flow: routing → retrieval → generation → scoring.</li>
+    <li>🚪 <b>Gateway</b> = one interface to all models: access control, cost limits, fallbacks, logging.</li>
+    <li>🗃️ <b>Exact cache</b> (safe, simple) vs <b>semantic cache</b> (more hits, risk of wrong answers). Don't cache user-specific or time-sensitive queries; beware cross-user leaks.</li>
+    <li>🤖 <b>Agent loops and write actions</b>: very powerful, very risky; add with the utmost care.</li>
+    <li>👀 <b>Observability</b> is designed in. Measure <b>MTTD, MTTR, CFR</b>. Evaluation and monitoring feed each other.</li>
+    <li>📊 Design <b>metrics from failure modes</b>: format, quality, safety, user signals, latency, cost. Break them down by user, release, prompt version and time.</li>
+    <li>📜 <b>Log everything</b>, read production data daily, <b>trace</b> each request. Watch <b>drift</b>: system prompt, user behaviour, the model behind the API.</li>
+    <li>🔗 <b>Orchestrators</b> define components and chain them; consider starting without one. Run independent steps in parallel.</li>
+    <li>💬 Feedback = proprietary data for the <b>flywheel</b>. Explicit (clear, sparse) vs implicit (plentiful, noisy). Signals: early stops, corrections, edits, complaints, sentiment, refusals, regenerations, deletes, conversation length.</li>
+    <li>🎛️ Ask at the start, on failures, when unsure (and rarely on success); build feedback into the workflow (Midjourney, Copilot); collect context with consent; keep forms unambiguous.</li>
+    <li>⚠️ Biases: <b>leniency, randomness, position, preference (length, recency)</b>. Beware <b>degenerate feedback loops</b> and <b>sycophancy</b>.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Saturday lab: test plan for a full AI app (Week 7)</h2>
+    <p class="sub">Use this chapter's architecture as a test map</p>
+  </div></div>
+  <ol>
+    <li>Pick an AI feature you know (or imagine a support chatbot). Draw its architecture using the full diagram in topic 1. Which boxes does it have?</li>
+    <li>For each box, write 2 test cases: one happy path, one failure (e.g. a router misroute, an empty model response, a provider outage).</li>
+    <li>Write the <b>two-user cache leak</b> test and a <b>PII masking</b> test with 10 tricky inputs.</li>
+    <li>Choose 5 monitoring metrics from your top 5 risks, with alert thresholds. Add MTTD, MTTR and CFR to your team's quality dashboard.</li>
+    <li>List 4 implicit feedback signals your feature could log, and one bias that could mislead you about each.</li>
+  </ol>
+  <div class="box remember"><span class="label">📌 Book complete</span>
+    That's all ten chapters of <i>AI Engineering</i>. Week 8 is a <b>buffer week</b> for review: revisit the cheat sheets and your shaky concepts. Then Week 9 starts <i>Software Testing with Generative AI</i>.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>AI Engineering</i> (Chip Huyen, O'Reilly 2025) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
