@@ -1,0 +1,1355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepEval for QA — Field Notes</title>
+<meta name="description" content="DeepEval explained from a Quality Assurance perspective: concepts, metrics, internals, and a from-scratch blueprint for building an LLM evaluation framework.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f6f2; --surface:#ffffff; --surface-2:#efede6; --ink:#1c1f23; --ink-2:#4a4f57; --ink-3:#767c86;
+  --line:#dcd9cf; --accent:#0d6e5f; --accent-2:#0a564a; --accent-soft:#dcefe9;
+  --warn:#9a5b00; --warn-soft:#fbefd9; --bad:#a23a2a; --bad-soft:#f8e1dc; --info:#2a5aa2; --info-soft:#e0e9f7;
+  --code-bg:#1d2126; --code-ink:#e6e3da; --code-dim:#8b9099; --code-key:#7fd1c0; --code-str:#e8c07d; --code-com:#7d8590;
+  --radius:10px; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+  --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace; --serif:"IBM Plex Serif",Georgia,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121417; --surface:#191c20; --surface-2:#20242a; --ink:#e8e6e1; --ink-2:#b4b7bd; --ink-3:#8a8f98;
+    --line:#2d3239; --accent:#4fc2ad; --accent-2:#7fd6c5; --accent-soft:#16312c;
+    --warn:#e6b25c; --warn-soft:#2e2414; --bad:#ec8b7a; --bad-soft:#341c18; --info:#8fb4ee; --info-soft:#1a2436;
+    --code-bg:#0d0f12; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121417; --surface:#191c20; --surface-2:#20242a; --ink:#e8e6e1; --ink-2:#b4b7bd; --ink-3:#8a8f98;
+  --line:#2d3239; --accent:#4fc2ad; --accent-2:#7fd6c5; --accent-soft:#16312c;
+  --warn:#e6b25c; --warn-soft:#2e2414; --bad:#ec8b7a; --bad-soft:#341c18; --info:#8fb4ee; --info-soft:#1a2436;
+  --code-bg:#0d0f12; --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{color:var(--accent-2)}
+code,kbd{font-family:var(--mono);font-size:.88em}
+:not(pre)>code{background:var(--surface-2);border:1px solid var(--line);padding:.08em .38em;border-radius:5px;white-space:nowrap}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;padding:10px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none}
+.brand .dot{width:22px;height:22px;border-radius:6px;background:var(--accent);display:grid;place-items:center;color:var(--bg);font:600 12px var(--mono)}
+.topbar .spacer{flex:1}
+.btn{font:500 13px var(--sans);color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+.btn:hover{color:var(--ink);border-color:var(--ink-3)}
+#menuBtn{display:none}
+
+/* layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+nav.toc{position:sticky;top:53px;height:calc(100vh - 53px);overflow:auto;padding:24px 14px 40px 20px;border-right:1px solid var(--line);font-size:14px}
+nav.toc .grp{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin:18px 0 6px 8px}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:4px 8px;border-radius:6px;line-height:1.35}
+nav.toc a:hover{background:var(--surface-2);color:var(--ink)}
+nav.toc a.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+main{padding:28px 44px 120px;min-width:0}
+.wrap{max-width:900px}
+
+/* hero */
+.hero{padding:28px 0 18px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font:600 clamp(32px,5vw,50px)/1.08 var(--serif);letter-spacing:-.015em;margin:10px 0 14px}
+.lede{font-size:19px;color:var(--ink-2);max-width:720px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.chip{font:500 12px var(--mono);padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2)}
+.chip.ok{border-color:transparent;background:var(--accent-soft);color:var(--accent)}
+
+h2{font:600 30px/1.2 var(--serif);letter-spacing:-.01em;margin:64px 0 6px;padding-top:8px}
+h2 .num{font:500 14px var(--mono);color:var(--accent);display:block;margin-bottom:6px;letter-spacing:.05em}
+h3{font-size:20px;font-weight:600;margin:36px 0 8px;letter-spacing:-.005em}
+h4{font-size:15px;font-weight:600;margin:24px 0 6px;color:var(--ink)}
+p{margin:10px 0}
+.sub{color:var(--ink-2);margin-top:0}
+ul,ol{padding-left:22px} li{margin:4px 0}
+hr{border:0;border-top:1px solid var(--line);margin:40px 0}
+
+/* callouts */
+.note{border:1px solid var(--line);border-left:4px solid var(--info);background:var(--info-soft);padding:12px 16px;border-radius:8px;margin:18px 0;font-size:15px}
+.note.qa{border-left-color:var(--accent);background:var(--accent-soft)}
+.note.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.note b.t{display:block;font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.note.qa b.t{color:var(--accent)} .note.warn b.t{color:var(--warn)} .note.bad b.t{color:var(--bad)} .note b.t{color:var(--info)}
+
+/* cards */
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin:18px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{margin:0;color:var(--ink-2);font-size:14.5px}
+.card .k{font:500 11px var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+
+/* tables */
+.tbl{overflow-x:auto;margin:16px 0;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);background:var(--surface-2);position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+td code{white-space:normal}
+.tag{display:inline-block;font:500 11px var(--mono);padding:2px 7px;border-radius:5px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line);margin:1px 2px 1px 0}
+.tag.det{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.tag.llm{background:var(--info-soft);color:var(--info);border-color:transparent}
+
+/* code */
+.code{position:relative;margin:16px 0}
+.code .lbl{font:500 11px var(--mono);color:var(--code-dim);background:var(--code-bg);padding:8px 14px 0;border-radius:var(--radius) var(--radius) 0 0;letter-spacing:.04em}
+.code pre{margin:0;background:var(--code-bg);color:var(--code-ink);padding:14px 16px 16px;border-radius:0 0 var(--radius) var(--radius);overflow:auto;font:13.5px/1.6 var(--mono);tab-size:4}
+.code:not(:has(.lbl)) pre{border-radius:var(--radius)}
+.code .copy{position:absolute;top:6px;right:8px;font:500 11px var(--mono);background:transparent;color:var(--code-dim);border:1px solid #3a3f47;border-radius:6px;padding:3px 8px;cursor:pointer}
+.code .copy:hover{color:var(--code-ink)}
+.c{color:var(--code-com);font-style:italic} .s{color:var(--code-str)} .kw{color:var(--code-key)}
+
+/* diagrams */
+figure{margin:22px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;overflow-x:auto}
+figcaption{font-size:13px;color:var(--ink-3);margin-top:10px}
+svg .bx{fill:var(--surface-2);stroke:var(--line);stroke-width:1.2}
+svg .bx.a{fill:var(--accent-soft);stroke:var(--accent)}
+svg .bx.i{fill:var(--info-soft);stroke:var(--info)}
+svg .bx.w{fill:var(--warn-soft);stroke:var(--warn)}
+svg text{fill:var(--ink);font-family:var(--sans);font-size:13px}
+svg text.sm{font-size:11px;fill:var(--ink-2)}
+svg text.h{font-weight:600}
+svg .ln{stroke:var(--ink-3);stroke-width:1.4;fill:none}
+svg .ar{fill:var(--ink-3)}
+
+/* tree */
+.tree{font:13.5px/1.55 var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;overflow-x:auto;white-space:pre;color:var(--ink)}
+.tree .d{color:var(--accent);font-weight:500}
+.tree .m{color:var(--ink-3)}
+
+/* checklist */
+ul.check{list-style:none;padding-left:0}
+ul.check li{padding-left:28px;position:relative;margin:7px 0}
+ul.check li::before{content:"";position:absolute;left:2px;top:5px;width:14px;height:14px;border:1.5px solid var(--accent);border-radius:4px}
+
+/* search */
+.filter{display:flex;gap:8px;align-items:center;margin:14px 0 4px}
+.filter input{flex:1;max-width:360px;font:14px var(--sans);padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.steps{counter-reset:s;list-style:none;padding-left:0}
+.steps>li{counter-increment:s;position:relative;padding-left:40px;margin:14px 0}
+.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--bg);font:600 13px var(--mono);display:grid;place-items:center}
+
+footer{margin-top:80px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink-3);font-size:13px}
+
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  nav.toc{position:fixed;top:53px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:25;transform:translateX(-105%);transition:transform .2s;box-shadow:0 0 30px rgba(0,0,0,.2)}
+  nav.toc.open{transform:none}
+  #menuBtn{display:inline-block}
+  main{padding:20px 16px 100px}
+  h2{font-size:25px}
+}
+@media print{nav.toc,.topbar,.copy{display:none}.layout{display:block}main{padding:0}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+  <a class="brand" href="#top"><span class="dot">DE</span>DeepEval for QA</a>
+  <span class="spacer"></span>
+  <a class="btn" href="../index.html" style="text-decoration:none">← All notes</a>
+  <button class="btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <div class="grp">Understand</div>
+  <a href="#why">1 · Why LLM QA is different</a>
+  <a href="#what">2 · What DeepEval is</a>
+  <a href="#concepts">3 · Core concepts</a>
+  <a href="#internals">4 · How a run works</a>
+  <a href="#metrics">5 · Metric catalog</a>
+  <a href="#scoring">6 · How scoring works</a>
+  <a href="#running">7 · Running evals</a>
+  <a href="#data">8 · Datasets &amp; synthesis</a>
+  <a href="#beyond">9 · Tracing, safety, benchmarks</a>
+  <div class="grp">Build from scratch</div>
+  <a href="#principles">10 · Design principles</a>
+  <a href="#strategy">11 · Test strategy &amp; pyramid</a>
+  <a href="#architecture">12 · Reference architecture</a>
+  <a href="#repo">13 · Repo layout</a>
+  <a href="#code">14 · Core code</a>
+  <a href="#calibration">15 · Thresholds &amp; calibration</a>
+  <a href="#cicd">16 · CI/CD pipeline</a>
+  <a href="#ops">17 · Ops: cost, flakiness, security</a>
+  <a href="#triage">18 · Defects &amp; triage</a>
+  <a href="#roadmap">19 · Roadmap &amp; roles</a>
+  <div class="grp">Reference</div>
+  <a href="#checklists">20 · Checklists</a>
+  <a href="#antipatterns">21 · Anti-patterns</a>
+  <a href="#versions">22 · Version notes</a>
+  <a href="#glossary">23 · Glossary</a>
+  <a href="#sources">Sources</a>
+</nav>
+
+<main id="top">
+<div class="wrap">
+
+<section class="hero">
+  <div class="eyebrow">QA field notes · LLM evaluation</div>
+  <h1>DeepEval, read through a tester's eyes</h1>
+  <p class="lede">What the framework does, how it scores, where it can mislead you, and a full blueprint for standing up an LLM quality program from an empty repository.</p>
+  <div class="meta">
+    <span class="chip ok">Reviewed against deepeval 4.x</span>
+    <span class="chip">Latest on PyPI: 4.3.1 (16 Oct 2026)</span>
+    <span class="chip">Python ≥ 3.9</span>
+    <span class="chip">Apache-2.0</span>
+    <span class="chip">Notes dated 28 Oct 2026</span>
+  </div>
+</section>
+
+<div class="note warn"><b class="t">Read this first</b>DeepEval moves fast — a release roughly every one to two weeks through 2026, including breaking changes inside the 4.x line. Code here follows the 4.x API. Pin your version, and confirm any API detail against <code>deepeval --help</code> and the docs for that exact version before you build on it.</div>
+
+<!-- ============ 1 ============ -->
+<h2 id="why"><span class="num">01</span>Why LLM QA is different</h2>
+<p class="sub">Classic test automation assumes a deterministic function and an exact oracle. LLM systems break both assumptions.</p>
+
+<div class="tbl"><table>
+<thead><tr><th>Dimension</th><th>Traditional software</th><th>LLM application</th><th>What QA has to change</th></tr></thead>
+<tbody>
+<tr><td>Determinism</td><td>Same input → same output</td><td>Same input → many valid outputs; drift between model versions</td><td>Assert on <em>properties</em> (relevant, grounded, safe) instead of exact strings; run repeats to measure variance</td></tr>
+<tr><td>Oracle</td><td><code>assertEqual(expected, actual)</code></td><td>"Correct" is fuzzy and often contextual</td><td>Use rubric-based judges (LLM-as-a-judge), reference answers, and deterministic checks where possible</td></tr>
+<tr><td>Pass/fail</td><td>Binary</td><td>Continuous score 0–1</td><td>Thresholds become test design decisions that must be calibrated against humans</td></tr>
+<tr><td>Failure surface</td><td>Logic bugs, crashes</td><td>Hallucination, retrieval misses, tool misuse, loops, role breaks, toxicity, prompt injection</td><td>New defect taxonomy and new test types (component, multi-turn, adversarial)</td></tr>
+<tr><td>Test data</td><td>Fixtures</td><td>Curated "goldens" that are a product asset</td><td>Dataset versioning, ownership, coverage reviews</td></tr>
+<tr><td>Cost of a test</td><td>~Free</td><td>Each judged case costs judge-model tokens and seconds</td><td>Tiered suites (smoke / regression / full), caching, budget gates</td></tr>
+<tr><td>Regression source</td><td>Your code</td><td>Your code <em>and</em> prompts, retrieval data, model provider updates</td><td>Re-run evals on prompt, data, and model changes — not only code changes</td></tr>
+</tbody></table></div>
+
+<div class="note qa"><b class="t">QA insight</b>The evaluator is itself a model. That means your test oracle has its own error rate. A mature LLM QA practice tests the tests: it measures how often the judge agrees with humans before trusting its verdicts as a release gate.</div>
+
+<!-- ============ 2 ============ -->
+<h2 id="what"><span class="num">02</span>What DeepEval is</h2>
+<p>DeepEval is an open-source (Apache-2.0) Python framework from Confident AI for unit-testing LLM applications. Its own description is "Pytest, but specialised for LLM apps": you write test cases, attach metrics, and run them with a pytest-based CLI. Evaluations run locally in your environment; the hosted Confident AI platform is optional and adds shared dashboards, dataset management, regression tracking, and production tracing.</p>
+
+<div class="grid">
+  <div class="card"><div class="k">Test runner</div><h4>Pytest-native</h4><p><code>assert_test()</code> inside normal pytest files, executed with <code>deepeval test run</code>. Fits any CI that can run Python.</p></div>
+  <div class="card"><div class="k">Metrics</div><h4>50+ ready-made</h4><p>RAG, agentic, multi-turn, MCP, multimodal, safety, plus custom G-Eval, DAG, and code-based metrics. Every metric returns a score and a reason.</p></div>
+  <div class="card"><div class="k">Granularity</div><h4>End-to-end and component</h4><p>Black-box tests on final output, or <code>@observe</code> tracing to score individual spans — retriever, tool call, sub-agent.</p></div>
+  <div class="card"><div class="k">Data</div><h4>Goldens &amp; synthesis</h4><p>Datasets of goldens; a Synthesizer generates single- and multi-turn goldens from documents; a simulator drives multi-turn conversations.</p></div>
+  <div class="card"><div class="k">Integrations</div><h4>Framework hooks</h4><p>OpenAI, Anthropic, OpenAI Agents, LangChain, LangGraph, Pydantic AI, CrewAI, LlamaIndex, Google ADK, Strands, AWS AgentCore, OpenTelemetry.</p></div>
+  <div class="card"><div class="k">Ecosystem</div><h4>DeepTeam &amp; TypeScript</h4><p>Red teaming lives in the sibling project DeepTeam. A TypeScript SDK (Vitest-based) now covers most metric types.</p></div>
+</div>
+
+<h3>Where it fits among alternatives</h3>
+<div class="tbl"><table>
+<thead><tr><th>Tool</th><th>Sweet spot</th><th>When a QA team would pick it</th></tr></thead>
+<tbody>
+<tr><td><b>DeepEval</b></td><td>Code-first eval suites, pytest/CI gates, agents and traces, broad metric catalog</td><td>Your team writes Python tests and wants evals to behave like a test suite</td></tr>
+<tr><td>Ragas</td><td>RAG-centred metrics and research</td><td>Narrow RAG focus; DeepEval also ships a RAGAS-style composite metric</td></tr>
+<tr><td>promptfoo</td><td>Config-driven (YAML) prompt/model comparison, red teaming</td><td>Non-Python teams, quick prompt A/B matrices</td></tr>
+<tr><td>Hosted platforms (Braintrust, LangSmith, Confident AI, etc.)</td><td>Collaboration, annotation, production monitoring</td><td>Usually <em>alongside</em> a code-level framework, not instead of it</td></tr>
+</tbody></table></div>
+<p style="font-size:14px;color:var(--ink-3)">Comparisons published by tool vendors (including DeepEval's own) are marketing; run a two-week spike on your real use case before committing.</p>
+
+<!-- ============ 3 ============ -->
+<h2 id="concepts"><span class="num">03</span>Core concepts</h2>
+<p class="sub">Eight nouns cover almost everything. Learn these and the rest of the docs read easily.</p>
+
+<div class="tbl"><table>
+<thead><tr><th>Concept</th><th>What it is</th><th>QA analogy</th></tr></thead>
+<tbody>
+<tr><td><code>Golden</code></td><td>An input plus optional ideal output, context, expected tools. <b>No</b> <code>actual_output</code> — it's what you test <em>with</em>.</td><td>Test case specification / test data row</td></tr>
+<tr><td><code>LLMTestCase</code></td><td>One single-turn interaction: <code>input</code>, <code>actual_output</code>, and optionally <code>expected_output</code>, <code>context</code>, <code>retrieval_context</code>, <code>tools_called</code>, <code>expected_tools</code>.</td><td>An executed test with captured result</td></tr>
+<tr><td><code>ConversationalTestCase</code></td><td>A list of <code>Turn</code>s (user/assistant) plus scenario, expected outcome, chatbot role.</td><td>End-to-end session / journey test</td></tr>
+<tr><td><code>ArenaTestCase</code></td><td>Several contestants answering the same input, for pairwise comparison.</td><td>A/B comparison test</td></tr>
+<tr><td><code>EvaluationDataset</code></td><td>A collection of goldens (single- or multi-turn); can be saved, loaded, versioned, pushed to Confident AI.</td><td>Test suite data source</td></tr>
+<tr><td>Metric</td><td>Scores a test case 0–1, returns a <code>reason</code>, passes if score ≥ <code>threshold</code>.</td><td>Assertion / oracle</td></tr>
+<tr><td>Judge model</td><td>The LLM that evaluates LLM-based metrics. Any provider or a custom model.</td><td>The oracle's engine — itself needs validation</td></tr>
+<tr><td>Trace / span</td><td>Captured execution tree of your app via <code>@observe</code> or integrations; metrics can attach to spans.</td><td>Logs + step-level assertions</td></tr>
+</tbody></table></div>
+
+<h3>Which fields each metric family needs</h3>
+<p>Most "my metric errored" issues come from missing fields. Design your capture layer so these are always populated.</p>
+<div class="tbl"><table>
+<thead><tr><th>Field</th><th>Populated by</th><th>Needed for</th></tr></thead>
+<tbody>
+<tr><td><code>input</code></td><td>Golden</td><td>Everything</td></tr>
+<tr><td><code>actual_output</code></td><td>Your app at test time</td><td>Nearly every output-quality metric</td></tr>
+<tr><td><code>expected_output</code></td><td>Golden (human or synthesized)</td><td>Contextual Recall, Contextual Precision, correctness-style G-Eval</td></tr>
+<tr><td><code>retrieval_context</code></td><td>Your retriever at test time</td><td>Faithfulness, all Contextual* metrics</td></tr>
+<tr><td><code>context</code></td><td>Golden (ground-truth source text)</td><td>Hallucination</td></tr>
+<tr><td><code>tools_called</code> / <code>expected_tools</code></td><td>App trace / golden</td><td>Tool Correctness, Argument Correctness</td></tr>
+<tr><td>Trace</td><td><code>@observe</code> or integration</td><td>Task Completion, Step Efficiency, Plan Adherence/Quality, loop detection</td></tr>
+</tbody></table></div>
+
+<div class="note qa"><b class="t">Design rule</b>Keep goldens and test cases separate. Goldens are versioned, reviewed data. Test cases are ephemeral, built at run time by calling the system under test. Mixing them (hard-coding <code>actual_output</code> into fixtures) silently freezes yesterday's output and turns your suite into a snapshot test of nothing.</div>
+
+<!-- ============ 4 ============ -->
+<h2 id="internals"><span class="num">04</span>How a DeepEval run works</h2>
+
+<figure>
+<svg viewBox="0 0 860 300" width="100%" role="img" aria-label="DeepEval run flow">
+  <defs><marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ar"/></marker></defs>
+  <rect class="bx" x="10" y="40" width="140" height="70" rx="8"/><text x="80" y="70" text-anchor="middle" class="h">Goldens</text><text x="80" y="90" text-anchor="middle" class="sm">dataset · JSON/CSV</text>
+  <rect class="bx w" x="190" y="40" width="160" height="70" rx="8"/><text x="270" y="70" text-anchor="middle" class="h">System under test</text><text x="270" y="90" text-anchor="middle" class="sm">your LLM app / agent</text>
+  <rect class="bx" x="390" y="40" width="150" height="70" rx="8"/><text x="465" y="70" text-anchor="middle" class="h">Test cases</text><text x="465" y="90" text-anchor="middle" class="sm">+ traces / spans</text>
+  <rect class="bx a" x="580" y="20" width="150" height="110" rx="8"/><text x="655" y="50" text-anchor="middle" class="h">Metrics</text><text x="655" y="72" text-anchor="middle" class="sm">LLM-judged</text><text x="655" y="88" text-anchor="middle" class="sm">deterministic</text><text x="655" y="104" text-anchor="middle" class="sm">custom</text>
+  <rect class="bx i" x="580" y="190" width="150" height="70" rx="8"/><text x="655" y="220" text-anchor="middle" class="h">Judge model</text><text x="655" y="240" text-anchor="middle" class="sm">OpenAI · Claude · local</text>
+  <rect class="bx" x="760" y="40" width="90" height="70" rx="8"/><text x="805" y="70" text-anchor="middle" class="h">Result</text><text x="805" y="90" text-anchor="middle" class="sm">score·reason</text>
+  <rect class="bx" x="390" y="190" width="150" height="70" rx="8"/><text x="465" y="220" text-anchor="middle" class="h">Outputs</text><text x="465" y="240" text-anchor="middle" class="sm">CLI · JSON · Confident</text>
+  <path class="ln" d="M150 75H186" marker-end="url(#m1)"/>
+  <path class="ln" d="M350 75H386" marker-end="url(#m1)"/>
+  <path class="ln" d="M540 75H576" marker-end="url(#m1)"/>
+  <path class="ln" d="M730 75H756" marker-end="url(#m1)"/>
+  <path class="ln" d="M655 130V186" marker-end="url(#m1)"/>
+  <path class="ln" d="M805 110V225H544" marker-end="url(#m1)"/>
+</svg>
+<figcaption>Goldens drive the app; the captured outputs become test cases; metrics score them (often by calling a judge model); results go to the terminal, saved JSON, and optionally Confident AI.</figcaption>
+</figure>
+
+<ol class="steps">
+<li><b>Load goldens</b> from a file, Python list, or Confident AI (versioned).</li>
+<li><b>Invoke the system under test</b> for each golden. With tracing on, every <code>@observe</code>-decorated function becomes a span.</li>
+<li><b>Build test cases</b> from the golden plus what the app actually produced (output, retrieved chunks, tool calls).</li>
+<li><b>Measure.</b> Each metric runs — concurrently by default — making one or more judge calls (claim extraction, verdicts, reason generation) or pure code checks.</li>
+<li><b>Decide.</b> A metric passes when score ≥ threshold; a test case passes only when all its metrics pass. <code>assert_test</code> raises on failure so pytest reports it.</li>
+<li><b>Report.</b> Console table, structured JSON in a results folder, optional HTML/Markdown export, the <code>deepeval inspect</code> terminal trace viewer, and a sync to Confident AI if logged in.</li>
+</ol>
+
+<h3>Three ways to execute</h3>
+<div class="tbl"><table>
+<thead><tr><th>API</th><th>Use when</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td><code>assert_test(test_case, metrics)</code> + <code>deepeval test run</code></td><td>CI gates, regression suites</td><td>Pytest semantics; per-case pass/fail; non-zero exit code on failure</td></tr>
+<tr><td><code>evaluate(test_cases, metrics)</code></td><td>Notebooks, scripts, custom aggregate gates</td><td>Returns a result object you can post-process (e.g. "≥ 95 % pass rate")</td></tr>
+<tr><td><code>dataset.evals_iterator(metrics=…)</code></td><td>Component-level and agent evals with tracing</td><td>Loops goldens; you call the app; metrics run on the captured trace/spans</td></tr>
+<tr><td><code>metric.measure(test_case)</code></td><td>Debugging a single metric</td><td>Sets <code>.score</code>, <code>.reason</code>, <code>.success</code> on the metric object</td></tr>
+</tbody></table></div>
+
+<!-- ============ 5 ============ -->
+<h2 id="metrics"><span class="num">05</span>Metric catalog</h2>
+<p class="sub">Grouped by what they protect. <span class="tag llm">LLM</span> = uses a judge model; <span class="tag det">DET</span> = deterministic, no API key needed.</p>
+
+<div class="filter"><input id="mfilter" type="search" placeholder="Filter metrics — e.g. tool, faithful, turn…" aria-label="Filter metrics"><span id="mcount" style="font-size:13px;color:var(--ink-3)"></span></div>
+
+<div class="tbl"><table id="mtable">
+<thead><tr><th>Metric</th><th>Family</th><th>Question it answers</th><th>Key inputs</th><th>Catches</th></tr></thead>
+<tbody>
+<tr><td><b>G-Eval</b> <span class="tag llm">LLM</span></td><td>Custom</td><td>Does the output meet <em>your</em> criteria / steps / rubric?</td><td>Any fields you choose</td><td>Correctness, tone, policy, domain rules</td></tr>
+<tr><td><b>DAG</b> <span class="tag llm">LLM</span></td><td>Custom</td><td>Decision-tree judge: a graph of yes/no or classification nodes leading to fixed scores</td><td>Any</td><td>Rules that need deterministic, explainable scoring</td></tr>
+<tr><td><b>Arena G-Eval</b> <span class="tag llm">LLM</span></td><td>Custom</td><td>Which contestant output is best for this criterion?</td><td>ArenaTestCase</td><td>Model/prompt comparisons before switching</td></tr>
+<tr><td><b>Answer Relevancy</b> <span class="tag llm">LLM</span></td><td>RAG / general</td><td>Is the output on-topic for the input?</td><td>input, actual_output</td><td>Rambling, evasive, off-topic answers</td></tr>
+<tr><td><b>Faithfulness</b> <span class="tag llm">LLM</span></td><td>RAG</td><td>Is every claim supported by the retrieved context?</td><td>actual_output, retrieval_context</td><td>Hallucination relative to retrieved docs</td></tr>
+<tr><td><b>Contextual Precision</b> <span class="tag llm">LLM</span></td><td>RAG retrieval</td><td>Are relevant chunks ranked above irrelevant ones?</td><td>input, expected_output, retrieval_context</td><td>Re-ranker problems</td></tr>
+<tr><td><b>Contextual Recall</b> <span class="tag llm">LLM</span></td><td>RAG retrieval</td><td>Does retrieval contain what's needed for the ideal answer?</td><td>expected_output, retrieval_context</td><td>Embedding / chunking / top-k misses</td></tr>
+<tr><td><b>Contextual Relevancy</b> <span class="tag llm">LLM</span></td><td>RAG retrieval</td><td>How much of the retrieved text is relevant?</td><td>input, retrieval_context</td><td>Noisy retrieval, chunk too large</td></tr>
+<tr><td><b>RAGAS</b> <span class="tag llm">LLM</span></td><td>RAG composite</td><td>Average of relevancy, faithfulness, precision, recall</td><td>All RAG fields</td><td>Quick single-number health check</td></tr>
+<tr><td><b>Citation Faithfulness</b> <span class="tag llm">LLM</span></td><td>RAG</td><td>Does each cited passage actually support its claim?</td><td>Output with citations, passages</td><td>Mis-attributed citations</td></tr>
+<tr><td><b>Hallucination</b> <span class="tag llm">LLM</span></td><td>Grounding</td><td>Does output contradict provided ground-truth context?</td><td>actual_output, context</td><td>Fabrication vs. known facts</td></tr>
+<tr><td><b>Summarization</b> <span class="tag llm">LLM</span></td><td>Generation</td><td>Is the summary factually aligned and complete?</td><td>input (source), actual_output</td><td>Omissions, invented details</td></tr>
+<tr><td><b>Prompt Alignment</b> <span class="tag llm">LLM</span></td><td>Instruction following</td><td>Did the output follow the prompt template's instructions?</td><td>input, actual_output, instructions</td><td>Format/instruction violations</td></tr>
+<tr><td><b>JSON Correctness</b> <span class="tag det">DET</span></td><td>Format</td><td>Does output match an expected schema?</td><td>actual_output, schema</td><td>Broken structured output</td></tr>
+<tr><td><b>Task Completion</b> <span class="tag llm">LLM</span></td><td>Agentic</td><td>Did the agent accomplish the goal?</td><td>Trace</td><td>Agents that look busy but fail</td></tr>
+<tr><td><b>Tool Correctness</b> <span class="tag det">DET</span></td><td>Agentic</td><td>Were the right tools called (optionally in order, with args)?</td><td>tools_called, expected_tools</td><td>Wrong/missing/hallucinated tools</td></tr>
+<tr><td><b>Argument Correctness</b> <span class="tag llm">LLM</span></td><td>Agentic</td><td>Were tool arguments valid and sensible?</td><td>input, tools_called</td><td>Bad parameters, type errors</td></tr>
+<tr><td><b>Tool Use</b> <span class="tag llm">LLM</span></td><td>Agentic</td><td>Overall quality of tool selection and usage</td><td>Trace / turns</td><td>Over- or under-use of tools</td></tr>
+<tr><td><b>Goal Accuracy</b> <span class="tag llm">LLM</span></td><td>Agentic</td><td>How accurately was the intended goal achieved?</td><td>Trace</td><td>Partial success</td></tr>
+<tr><td><b>Step Efficiency</b> <span class="tag llm">LLM</span></td><td>Agentic</td><td>Were unnecessary steps taken?</td><td>Trace</td><td>Cost/latency waste</td></tr>
+<tr><td><b>Plan Quality</b> <span class="tag llm">LLM</span></td><td>Agentic</td><td>Is the agent's plan clear, complete, achievable?</td><td>Trace</td><td>Weak planning</td></tr>
+<tr><td><b>Plan Adherence</b> <span class="tag llm">LLM</span></td><td>Agentic</td><td>Did execution follow the plan?</td><td>Trace</td><td>Detours, abandoned plans</td></tr>
+<tr><td><b>Agent Loop Detection</b> <span class="tag det">DET</span></td><td>Agentic</td><td>Is the agent looping (repeat calls, stagnation, cycles)?</td><td>Trace</td><td>Infinite loops, runaway cost</td></tr>
+<tr><td><b>Tool Permission</b> <span class="tag det">DET</span></td><td>Agentic / safety</td><td>Did the agent call only allowlisted tools?</td><td>tools_called, allow/deny lists</td><td>Least-privilege violations</td></tr>
+<tr><td><b>MCP Task Completion</b> <span class="tag llm">LLM</span></td><td>MCP</td><td>Did an MCP-based agent finish the task?</td><td>MCP servers, tools_called</td><td>MCP integration failures</td></tr>
+<tr><td><b>MCP Use / Multi-Turn MCP Use</b> <span class="tag llm">LLM</span></td><td>MCP</td><td>Did the agent use available MCP servers well?</td><td>MCP servers, tool calls</td><td>Ignored or misused MCP tools</td></tr>
+<tr><td><b>Turn Relevancy</b> <span class="tag llm">LLM</span></td><td>Multi-turn</td><td>Is each assistant turn relevant in context?</td><td>Turns</td><td>Context loss mid-conversation</td></tr>
+<tr><td><b>Turn Faithfulness</b> <span class="tag llm">LLM</span></td><td>Multi-turn RAG</td><td>Are turns grounded in their retrieval context?</td><td>Turns + retrieval_context</td><td>Conversational hallucination</td></tr>
+<tr><td><b>Turn Contextual Recall / Precision / Relevancy</b> <span class="tag llm">LLM</span></td><td>Multi-turn RAG</td><td>Retrieval quality across turns (sliding window)</td><td>Turns + retrieval_context</td><td>Retrieval decay in long chats</td></tr>
+<tr><td><b>Knowledge Retention</b> <span class="tag llm">LLM</span></td><td>Multi-turn</td><td>Does the bot remember facts the user gave?</td><td>Turns</td><td>Asking again for known info</td></tr>
+<tr><td><b>Conversation Completeness</b> <span class="tag llm">LLM</span></td><td>Multi-turn</td><td>Were the user's intentions satisfied?</td><td>Turns</td><td>Unresolved requests</td></tr>
+<tr><td><b>Role Adherence</b> <span class="tag llm">LLM</span></td><td>Multi-turn</td><td>Did the bot stay in its assigned role?</td><td>Turns, chatbot_role</td><td>Persona breaks</td></tr>
+<tr><td><b>Topic Adherence</b> <span class="tag llm">LLM</span></td><td>Multi-turn</td><td>Did the bot stay within allowed topics?</td><td>Turns, relevant topics</td><td>Scope creep, off-policy chat</td></tr>
+<tr><td><b>Conversational G-Eval / DAG</b> <span class="tag llm">LLM</span></td><td>Multi-turn custom</td><td>Your criteria over a whole conversation</td><td>Turns</td><td>Journey-level business rules</td></tr>
+<tr><td><b>Bias</b> <span class="tag llm">LLM</span></td><td>Safety</td><td>Gender / racial / political bias?</td><td>actual_output</td><td>Biased language</td></tr>
+<tr><td><b>Toxicity</b> <span class="tag llm">LLM</span></td><td>Safety</td><td>Toxic language?</td><td>actual_output</td><td>Insults, harassment</td></tr>
+<tr><td><b>Misuse</b> <span class="tag llm">LLM</span></td><td>Safety</td><td>Is the system being used outside its intended domain?</td><td>input, actual_output</td><td>Off-label use</td></tr>
+<tr><td><b>Role Violation</b> <span class="tag llm">LLM</span></td><td>Safety</td><td>Does the assistant break its assigned role?</td><td>actual_output, role</td><td>Jailbreak symptoms</td></tr>
+<tr><td><b>Text-to-Image / Image Editing</b> <span class="tag llm">LLM</span></td><td>Multimodal</td><td>Semantic consistency and perceptual quality of generated images</td><td>Multimodal test case</td><td>Image generation quality</td></tr>
+<tr><td><b>Image Coherence / Helpfulness / Reference</b> <span class="tag llm">LLM</span></td><td>Multimodal</td><td>Do images and text align and support each other?</td><td>Multimodal test case</td><td>Mismatched visuals</td></tr>
+</tbody></table></div>
+
+<div class="note bad"><b class="t">Breaking change you must know (v4.2.0, Aug 2026)</b>Bias, Hallucination, Misuse and Toxicity used to score "lower is better". From 4.2.0 they follow the standard convention — <b>higher is better</b>, 0 to 1. If you upgraded from an earlier release, every threshold on those metrics is now inverted. Re-baseline before trusting any gate.</div>
+
+<h3>Choosing metrics: a QA decision guide</h3>
+<div class="tbl"><table>
+<thead><tr><th>System type</th><th>Must-have (gate)</th><th>Should-have (track)</th><th>Deterministic guards</th></tr></thead>
+<tbody>
+<tr><td>RAG Q&amp;A / support bot</td><td>Faithfulness, Answer Relevancy, a correctness G-Eval</td><td>Contextual Recall, Precision, Relevancy</td><td>JSON Correctness (if structured), PII regex</td></tr>
+<tr><td>Tool-using agent</td><td>Task Completion, Tool Correctness</td><td>Argument Correctness, Step Efficiency, Plan Adherence</td><td>Tool Permission, Agent Loop Detection</td></tr>
+<tr><td>Multi-turn chatbot</td><td>Conversation Completeness, Role Adherence</td><td>Knowledge Retention, Turn Relevancy, Topic Adherence</td><td>Max-turns, response length</td></tr>
+<tr><td>Summarizer / extractor</td><td>Summarization or a fidelity G-Eval</td><td>Hallucination</td><td>Schema check, length limits</td></tr>
+<tr><td>Any public-facing app</td><td>Toxicity, Bias (as non-blocking first, then gate)</td><td>Misuse, Role Violation</td><td>Blocklists; plus DeepTeam red-team runs</td></tr>
+</tbody></table></div>
+<p>Keep the gating set small — three to five metrics per use case. Every extra LLM-judged metric adds cost, latency and another source of judge noise.</p>
+
+<!-- ============ 6 ============ -->
+<h2 id="scoring"><span class="num">06</span>How scoring works (and where it misleads)</h2>
+
+<h3>The common knobs on every metric</h3>
+<div class="tbl"><table>
+<thead><tr><th>Parameter</th><th>Effect</th><th>QA guidance</th></tr></thead>
+<tbody>
+<tr><td><code>threshold</code></td><td>Pass if score ≥ threshold (default typically 0.5)</td><td>Never ship the default. Calibrate per metric (see §15).</td></tr>
+<tr><td><code>model</code></td><td>Judge model — provider object, custom <code>DeepEvalBaseLLM</code>, or a model-name string</td><td>Pin an exact model version; keep it different from the app's model to reduce self-preference bias.</td></tr>
+<tr><td><code>include_reason</code></td><td>Generate a natural-language explanation</td><td>On in CI (it's your bug report). Off for bulk scoring to save cost.</td></tr>
+<tr><td><code>strict_mode</code></td><td>Binary scoring: 1 or 0, threshold forced to perfect</td><td>Use for zero-tolerance rules (e.g. "never reveals internal prompt").</td></tr>
+<tr><td><code>async_mode</code></td><td>Concurrent internal judge calls</td><td>Leave on; reduce concurrency instead if you hit rate limits.</td></tr>
+<tr><td><code>verbose_mode</code></td><td>Prints intermediate steps (claims, verdicts)</td><td>Turn on when debugging a disputed verdict.</td></tr>
+</tbody></table></div>
+
+<h3>Scoring techniques under the hood</h3>
+<div class="grid">
+  <div class="card"><div class="k">QAG-style</div><h4>Claim → verdict → ratio</h4><p>Faithfulness, relevancy and similar metrics extract statements or claims, ask the judge for a yes/no/idk verdict on each, then score as the fraction supported. Explainable, but sensitive to how claims get split.</p></div>
+  <div class="card"><div class="k">G-Eval</div><h4>Criteria → steps → weighted score</h4><p>The judge turns your criteria into evaluation steps (or uses yours), scores the case, and weights the final score by token log-probabilities when the model exposes them.</p></div>
+  <div class="card"><div class="k">DAG</div><h4>Decision tree</h4><p>You define nodes (task, binary judgement, non-binary judgement, verdict). The judge answers narrow questions; the graph — not the model — decides the score.</p></div>
+  <div class="card"><div class="k">Deterministic</div><h4>Plain code</h4><p>Tool Correctness, JSON Correctness, Tool Permission, Loop Detection: no judge, no variance, near-zero cost. Prefer these wherever a rule can be expressed in code.</p></div>
+</div>
+
+<div class="note warn"><b class="t">Judge caveats</b>
+<ul style="margin:6px 0 0">
+<li>G-Eval's log-prob weighting needs a judge that returns log-probabilities; the DeepEval docs warn that some newer model families without them can't be used as G-Eval judges.</li>
+<li>LLM judges show position bias, verbosity bias, and self-preference (favouring their own family's outputs).</li>
+<li>The same case can flip between pass and fail across runs near the threshold. Measure this before gating (repeat runs, §15).</li>
+<li>Judge prompts are tuned for English; validate separately for other languages.</li>
+</ul></div>
+
+<!-- ============ 7 ============ -->
+<h2 id="running"><span class="num">07</span>Running evaluations</h2>
+
+<h3>Install and configure</h3>
+<div class="code"><div class="lbl">shell</div><pre>python -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install "deepeval==4.3.1" pytest     <span class="c"># pin exactly; upgrade deliberately</span>
+deepeval --version
+
+<span class="c"># Judge credentials (OpenAI shown; Anthropic, Gemini, Azure, Bedrock, Vertex, OpenRouter, local also supported)</span>
+export OPENAI_API_KEY=...
+
+<span class="c"># Optional: sync results to Confident AI</span>
+deepeval login            <span class="c"># or set CONFIDENT_API_KEY</span></pre></div>
+
+<p>DeepEval auto-loads <code>.env.local</code> then <code>.env</code> from the working directory at import time; real process environment variables win over both. Set <code>DEEPEVAL_DISABLE_DOTENV=1</code> to switch this off — useful in CI so a stray local file can't change the judge.</p>
+
+<h3>The CLI you'll use daily</h3>
+<div class="tbl"><table>
+<thead><tr><th>Command / flag</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>deepeval test run tests/</code></td><td>Run pytest files with DeepEval reporting (any <code>.py</code> file, not only <code>test_*</code>)</td></tr>
+<tr><td><code>-n 4</code></td><td>Parallel workers</td></tr>
+<tr><td><code>-c</code></td><td>Use cached metric results for unchanged test cases (cuts cost on reruns)</td></tr>
+<tr><td><code>-i</code></td><td>Ignore metric errors (e.g. judge timeouts) instead of failing</td></tr>
+<tr><td><code>-s</code></td><td>Skip test cases missing the fields a metric needs</td></tr>
+<tr><td><code>-v</code></td><td>Verbose metric internals</td></tr>
+<tr><td><code>-r 3</code></td><td>Repeat each test N times — your variance probe</td></tr>
+<tr><td><code>-id "pr-1234"</code></td><td>Name the run for later comparison</td></tr>
+<tr><td><code>--display failing</code></td><td>Show only failing cases in the console</td></tr>
+<tr><td><code>--official</code></td><td>Mark the run as the official baseline on Confident AI (needs <code>CONFIDENT_API_KEY</code>)</td></tr>
+<tr><td><code>deepeval inspect</code></td><td>Terminal UI showing a saved run's trace tree with per-span scores and reasons</td></tr>
+<tr><td><code>deepeval generate</code></td><td>Create synthetic goldens from documents, contexts, scratch, or existing goldens</td></tr>
+<tr><td><code>deepeval view</code></td><td>Open the latest run on Confident AI</td></tr>
+</tbody></table></div>
+<p style="font-size:14px;color:var(--ink-3)">Flags have shifted between versions. Run <code>deepeval test run --help</code> on your pinned version and record the output in your repo as part of the upgrade checklist.</p>
+
+<h3>Minimal end-to-end test</h3>
+<div class="code"><div class="lbl">tests/test_smoke.py</div><pre><span class="kw">from</span> deepeval <span class="kw">import</span> assert_test
+<span class="kw">from</span> deepeval.metrics <span class="kw">import</span> GEval, AnswerRelevancyMetric
+<span class="kw">from</span> deepeval.test_case <span class="kw">import</span> LLMTestCase, SingleTurnParams
+
+correctness = GEval(
+    name=<span class="s">"Correctness"</span>,
+    criteria=<span class="s">"Is the actual output factually consistent with the expected output?"</span>,
+    evaluation_params=[SingleTurnParams.ACTUAL_OUTPUT, SingleTurnParams.EXPECTED_OUTPUT],
+    threshold=<span class="s">0.7</span>,
+)
+
+<span class="kw">def</span> test_refund_policy():
+    case = LLMTestCase(
+        input=<span class="s">"What if these shoes don't fit?"</span>,
+        actual_output=my_app(<span class="s">"What if these shoes don't fit?"</span>),   <span class="c"># call the real system</span>
+        expected_output=<span class="s">"Customers get a 30-day full refund at no extra cost."</span>,
+    )
+    assert_test(case, [correctness, AnswerRelevancyMetric(threshold=<span class="s">0.7</span>)])</pre></div>
+
+<div class="note"><b class="t">API naming</b><code>SingleTurnParams</code> and <code>MultiTurnParams</code> are the current names for the field selectors used by G-Eval (they replaced the older <code>LLMTestCaseParams</code>). Tutorials from 2024–2025 still show the old name.</div>
+
+<!-- ============ 8 ============ -->
+<h2 id="data"><span class="num">08</span>Datasets &amp; synthetic data</h2>
+
+<h3>Golden sources, in order of trust</h3>
+<ol>
+<li><b>Production traffic</b> — real user inputs (anonymised), especially failures and escalations. Highest realism.</li>
+<li><b>SME-authored</b> — domain experts write input + ideal answer. Highest label quality, slowest.</li>
+<li><b>Synthetic</b> — DeepEval's <code>Synthesizer</code> generates goldens from documents or contexts, with "evolutions" that make questions harder (reasoning, multi-context, comparative, hypothetical…), plus filtering and styling configs. Fast coverage; must be reviewed.</li>
+<li><b>Adversarial</b> — hand-crafted or DeepTeam-generated attacks and edge cases.</li>
+</ol>
+
+<div class="code"><div class="lbl">scripts/synthesize.py</div><pre><span class="kw">from</span> deepeval.synthesizer <span class="kw">import</span> Synthesizer
+
+synth = Synthesizer()                        <span class="c"># uses the configured judge model by default</span>
+goldens = synth.generate_goldens_from_docs(
+    document_paths=[<span class="s">"kb/returns.pdf"</span>, <span class="s">"kb/shipping.md"</span>],
+)
+synth.save_as(file_type=<span class="s">"json"</span>, directory=<span class="s">"data/goldens/_review_queue"</span>)
+<span class="c"># Never write straight into the gated suite. A human reviews, edits, then promotes.</span></pre></div>
+
+<p>Recent releases added multi-turn golden generation (scenarios, expected outcomes, user descriptions), contexts that span multiple source files, a <code>generate</code> CLI command, and dataset versioning on Confident AI.</p>
+
+<h3>Multi-turn: the conversation simulator</h3>
+<p>Writing 10-turn conversations by hand doesn't scale. A <code>ConversationalGolden</code> describes a scenario and expected outcome; the <code>ConversationSimulator</code> plays the user against your chatbot through a callback, producing <code>ConversationalTestCase</code>s you then score. Newer versions add stopping controllers, simulation graphs for scripted flows, and voice simulations.</p>
+
+<h3>Dataset design rules for QA</h3>
+<ul>
+<li><b>Tier the suite:</b> smoke (20–50 cases, every PR), regression (200–500, nightly), full (1,000+, pre-release), adversarial (separate, scheduled).</li>
+<li><b>Tag every golden</b> with feature, intent, difficulty, risk, source, owner. Coverage reports come from tags.</li>
+<li><b>Every production incident becomes a golden</b> before the fix ships — the LLM equivalent of a regression test.</li>
+<li><b>Version datasets with the code</b> (Git, or Confident AI versions) and record the dataset version on every run.</li>
+<li><b>Hold out a calibration set</b> with human verdicts — used only to validate judges and thresholds, never to tune prompts.</li>
+<li><b>Watch for overfitting:</b> if prompt engineers iterate against the gated set, scores inflate. Rotate a hidden set.</li>
+</ul>
+
+<!-- ============ 9 ============ -->
+<h2 id="beyond"><span class="num">09</span>Tracing, safety, benchmarks, prompt optimisation</h2>
+
+<h3>Component-level evaluation with tracing</h3>
+<p>End-to-end scores tell you <em>that</em> something failed. Component scores tell you <em>where</em>. Decorate functions with <code>@observe</code>; attach metrics to a span; set the span's test case with <code>update_current_span</code>. Framework integrations (LangChain/LangGraph callback handler, OpenAI and Anthropic client wrappers, CrewAI/ADK/Strands/AgentCore instrumentors, Pydantic AI, LlamaIndex, OpenTelemetry/OpenInference) create spans for you.</p>
+
+<div class="code"><div class="lbl">component-level pattern</div><pre><span class="kw">from</span> deepeval.tracing <span class="kw">import</span> observe, update_current_span
+<span class="kw">from</span> deepeval.test_case <span class="kw">import</span> LLMTestCase
+<span class="kw">from</span> deepeval.metrics <span class="kw">import</span> ContextualRelevancyMetric, TaskCompletionMetric
+
+<span class="kw">@observe</span>(metrics=[ContextualRelevancyMetric(threshold=<span class="s">0.6</span>)])
+<span class="kw">def</span> retrieve(query: str) -&gt; list[str]:
+    chunks = vector_store.search(query, k=<span class="s">5</span>)
+    update_current_span(test_case=LLMTestCase(input=query, actual_output=<span class="s">""</span>, retrieval_context=chunks))
+    <span class="kw">return</span> chunks
+
+<span class="kw">@observe</span>()
+<span class="kw">def</span> answer(query: str) -&gt; str:
+    <span class="kw">return</span> llm.generate(query, context=retrieve(query))
+
+<span class="c"># Trace-level metric on the whole run, span-level metric on retrieve()</span>
+<span class="kw">for</span> golden <span class="kw">in</span> dataset.evals_iterator(metrics=[TaskCompletionMetric()]):
+    answer(golden.input)</pre></div>
+
+<h3>Safety and red teaming</h3>
+<p>DeepEval holds the safety <em>metrics</em> (Bias, Toxicity, Misuse, Role Violation, Tool Permission). Adversarial <em>attack generation</em> — prompt injection, jailbreaks, PII leakage, and the other vulnerability categories — lives in <b>DeepTeam</b>, a separate open-source project from the same team. Plan it as its own test stage with its own schedule and sign-off.</p>
+
+<h3>Benchmarks</h3>
+<p>Built-in academic benchmarks (MMLU, HellaSwag, DROP, BIG-Bench Hard, TruthfulQA, HumanEval, GSM8K, MathQA and others) evaluate a <em>model</em>, not your <em>application</em>. Useful for model-selection spikes; not a substitute for app-level goldens. Note that 2026 releases fixed silent scoring bugs in several benchmarks — older results may be understated.</p>
+
+<h3>Prompt optimisation</h3>
+<p>DeepEval can automatically search for better prompts against your metrics (algorithms include COPRO and SIMBA). From a QA standpoint, treat optimised prompts like any code change: they must pass the held-out set, not just the set they were optimised on.</p>
+
+<hr>
+
+<!-- ============ 10 ============ -->
+<h2 id="principles"><span class="num">10</span>Building a QA framework from scratch: design principles</h2>
+<p class="sub">Part two. You're a QA lead with an LLM product and an empty repo. These principles shape every later decision.</p>
+
+<div class="grid">
+  <div class="card"><div class="k">P1</div><h4>Deterministic first</h4><p>Anything expressible as code (schema, regex, allowlist, length, latency) is a code check. LLM judges are for what code can't judge.</p></div>
+  <div class="card"><div class="k">P2</div><h4>Separate data, system, oracle</h4><p>Goldens, app adapter and metric config live in different modules so each can change independently.</p></div>
+  <div class="card"><div class="k">P3</div><h4>Config over code</h4><p>Thresholds, judge model, suite membership in versioned YAML. Changing a threshold is a reviewed PR, not a silent edit.</p></div>
+  <div class="card"><div class="k">P4</div><h4>Test the oracle</h4><p>Judges are validated against human labels before they gate anything, and re-validated on every judge model change.</p></div>
+  <div class="card"><div class="k">P5</div><h4>Reproducible runs</h4><p>Every run records: app commit, prompt version, dataset version, deepeval version, judge model, thresholds.</p></div>
+  <div class="card"><div class="k">P6</div><h4>Tiered cost</h4><p>Fast cheap suites on every PR; expensive suites nightly or pre-release. Budget is a test constraint.</p></div>
+  <div class="card"><div class="k">P7</div><h4>Framework-agnostic core</h4><p>Wrap DeepEval behind thin factories. If APIs change (they will), you fix one module, not 400 tests.</p></div>
+  <div class="card"><div class="k">P8</div><h4>Failures are data</h4><p>Every failure lands with its reason, trace and inputs in an artifact a developer can open without re-running.</p></div>
+</div>
+
+<!-- ============ 11 ============ -->
+<h2 id="strategy"><span class="num">11</span>Test strategy: the LLM testing pyramid</h2>
+
+<figure>
+<svg viewBox="0 0 760 360" width="100%" role="img" aria-label="LLM testing pyramid">
+  <polygon class="bx w" points="380,20 450,80 310,80"/>
+  <text x="380" y="68" text-anchor="middle" class="h" style="font-size:12px">Human review</text>
+  <polygon class="bx" points="310,84 450,84 505,134 255,134"/>
+  <text x="380" y="114" text-anchor="middle" class="h">Red team &amp; safety</text>
+  <polygon class="bx i" points="255,138 505,138 560,188 200,188"/>
+  <text x="380" y="168" text-anchor="middle" class="h">Multi-turn simulation</text>
+  <polygon class="bx i" points="200,192 560,192 615,242 145,242"/>
+  <text x="380" y="222" text-anchor="middle" class="h">End-to-end single-turn evals</text>
+  <polygon class="bx i" points="145,246 615,246 670,296 90,296"/>
+  <text x="380" y="276" text-anchor="middle" class="h">Component evals (retriever, tools, sub-agents)</text>
+  <polygon class="bx a" points="90,300 670,300 725,350 35,350"/>
+  <text x="380" y="330" text-anchor="middle" class="h">Deterministic checks: schema · tool permission · loops · PII · latency</text>
+  <text x="740" y="30" text-anchor="end" class="sm">slow · costly · few</text>
+  <text x="740" y="345" text-anchor="end" class="sm"></text>
+  <text x="20" y="30" class="sm">fast · cheap · many ↓</text>
+</svg>
+<figcaption>Push checks as low as they'll go. The base runs on every commit for pennies; the top runs on a schedule with people involved.</figcaption>
+</figure>
+
+<div class="tbl"><table>
+<thead><tr><th>Layer</th><th>Tooling</th><th>Cadence</th><th>Gate?</th></tr></thead>
+<tbody>
+<tr><td>Deterministic</td><td>Custom <code>BaseMetric</code>s, JSON Correctness, Tool Permission, Loop Detection, plain pytest</td><td>Every commit</td><td>Hard gate</td></tr>
+<tr><td>Component</td><td><code>@observe</code> + span metrics (Contextual*, Tool Correctness, Argument Correctness)</td><td>Every PR touching that component</td><td>Hard gate on smoke set</td></tr>
+<tr><td>E2E single-turn</td><td><code>assert_test</code> with G-Eval, Faithfulness, Answer Relevancy</td><td>PR (smoke), nightly (regression)</td><td>Gate on pass-rate</td></tr>
+<tr><td>Multi-turn</td><td>Conversation simulator + conversational metrics</td><td>Nightly / pre-release</td><td>Gate pre-release</td></tr>
+<tr><td>Safety / red team</td><td>Safety metrics + DeepTeam</td><td>Weekly + pre-release + on model change</td><td>Gate on critical categories</td></tr>
+<tr><td>Human review</td><td>Annotation queue (Confident AI or your own tool)</td><td>Sampled continuously</td><td>Feeds calibration, not CI</td></tr>
+<tr><td>Production monitoring</td><td>Tracing + online metrics on sampled traffic</td><td>Continuous</td><td>Alerts; failures become goldens</td></tr>
+</tbody></table></div>
+
+<h3>Change-triggered testing</h3>
+<p>LLM regressions come from more than code. Map each change type to the suites it triggers:</p>
+<div class="tbl"><table>
+<thead><tr><th>Change</th><th>Triggers</th></tr></thead>
+<tbody>
+<tr><td>Application code</td><td>Deterministic + smoke E2E</td></tr>
+<tr><td>Prompt / system message</td><td>Smoke + full regression for that feature + safety smoke</td></tr>
+<tr><td>Retrieval (chunking, embeddings, index, top-k)</td><td>Component retrieval metrics on full set + E2E faithfulness</td></tr>
+<tr><td>App model or provider version</td><td>Everything, including red team and multi-turn</td></tr>
+<tr><td>Judge model version</td><td>Re-run calibration set; re-derive thresholds before gating resumes</td></tr>
+<tr><td>deepeval version</td><td>Calibration set + diff scores against previous version on a fixed snapshot</td></tr>
+</tbody></table></div>
+
+<!-- ============ 12 ============ -->
+<h2 id="architecture"><span class="num">12</span>Reference architecture</h2>
+
+<figure>
+<svg viewBox="0 0 880 470" width="100%" role="img" aria-label="QA eval framework reference architecture">
+  <defs><marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ar"/></marker></defs>
+  <!-- data layer -->
+  <rect class="bx" x="10" y="10" width="200" height="200" rx="10"/>
+  <text x="110" y="34" text-anchor="middle" class="h">Data layer</text>
+  <rect class="bx a" x="25" y="48" width="170" height="36" rx="6"/><text x="110" y="71" text-anchor="middle" class="sm">Goldens (versioned, tagged)</text>
+  <rect class="bx a" x="25" y="92" width="170" height="36" rx="6"/><text x="110" y="115" text-anchor="middle" class="sm">Calibration set (human labels)</text>
+  <rect class="bx a" x="25" y="136" width="170" height="36" rx="6"/><text x="110" y="159" text-anchor="middle" class="sm">Review queue (synthetic, prod)</text>
+  <!-- config -->
+  <rect class="bx" x="10" y="230" width="200" height="120" rx="10"/>
+  <text x="110" y="254" text-anchor="middle" class="h">Config layer</text>
+  <text x="110" y="278" text-anchor="middle" class="sm">suites.yaml · thresholds.yaml</text>
+  <text x="110" y="296" text-anchor="middle" class="sm">judge.yaml (model, temp, limits)</text>
+  <text x="110" y="314" text-anchor="middle" class="sm">env profiles: pr / nightly / release</text>
+  <!-- core -->
+  <rect class="bx i" x="250" y="10" width="380" height="340" rx="10"/>
+  <text x="440" y="34" text-anchor="middle" class="h">Eval core (your package)</text>
+  <rect class="bx" x="268" y="50" width="165" height="56" rx="6"/><text x="350" y="74" text-anchor="middle" class="h" style="font-size:12px">SUT adapter</text><text x="350" y="92" text-anchor="middle" class="sm">HTTP / SDK / in-proc</text>
+  <rect class="bx" x="447" y="50" width="165" height="56" rx="6"/><text x="530" y="74" text-anchor="middle" class="h" style="font-size:12px">Case builder</text><text x="530" y="92" text-anchor="middle" class="sm">golden + response → case</text>
+  <rect class="bx" x="268" y="120" width="165" height="56" rx="6"/><text x="350" y="144" text-anchor="middle" class="h" style="font-size:12px">Metric factory</text><text x="350" y="162" text-anchor="middle" class="sm">config → metric objects</text>
+  <rect class="bx" x="447" y="120" width="165" height="56" rx="6"/><text x="530" y="144" text-anchor="middle" class="h" style="font-size:12px">Custom metrics</text><text x="530" y="162" text-anchor="middle" class="sm">BaseMetric · G-Eval · DAG</text>
+  <rect class="bx" x="268" y="190" width="165" height="56" rx="6"/><text x="350" y="214" text-anchor="middle" class="h" style="font-size:12px">Judge provider</text><text x="350" y="232" text-anchor="middle" class="sm">pinned model wrapper</text>
+  <rect class="bx" x="447" y="190" width="165" height="56" rx="6"/><text x="530" y="214" text-anchor="middle" class="h" style="font-size:12px">Run manifest</text><text x="530" y="232" text-anchor="middle" class="sm">versions · hashes · ids</text>
+  <rect class="bx a" x="268" y="262" width="344" height="72" rx="6"/><text x="440" y="290" text-anchor="middle" class="h">DeepEval engine</text><text x="440" y="310" text-anchor="middle" class="sm">assert_test · evaluate · evals_iterator · tracing</text>
+  <!-- sut -->
+  <rect class="bx w" x="670" y="10" width="200" height="130" rx="10"/>
+  <text x="770" y="40" text-anchor="middle" class="h">System under test</text>
+  <text x="770" y="64" text-anchor="middle" class="sm">LLM app · RAG · agent</text>
+  <text x="770" y="82" text-anchor="middle" class="sm">instrumented with @observe</text>
+  <text x="770" y="100" text-anchor="middle" class="sm">or framework integration</text>
+  <!-- judge -->
+  <rect class="bx w" x="670" y="160" width="200" height="90" rx="10"/>
+  <text x="770" y="192" text-anchor="middle" class="h">Judge LLM</text>
+  <text x="770" y="214" text-anchor="middle" class="sm">≠ app model · pinned version</text>
+  <!-- outputs -->
+  <rect class="bx" x="250" y="380" width="620" height="80" rx="10"/>
+  <text x="560" y="404" text-anchor="middle" class="h">Reporting &amp; feedback</text>
+  <text x="560" y="428" text-anchor="middle" class="sm">CI status · JSON artifacts · trend store · Confident AI (optional) · Slack/Jira on regression</text>
+  <text x="560" y="446" text-anchor="middle" class="sm">failures → triage → new goldens</text>
+  <!-- arrows -->
+  <path class="ln" d="M210 110H246" marker-end="url(#m2)"/>
+  <path class="ln" d="M210 290H246" marker-end="url(#m2)"/>
+  <path class="ln" d="M630 78H666" marker-end="url(#m2)"/>
+  <path class="ln" d="M630 218H666" marker-end="url(#m2)"/>
+  <path class="ln" d="M440 350V376" marker-end="url(#m2)"/>
+  <path class="ln" d="M250 420H230V154H214" marker-end="url(#m2)"/>
+</svg>
+<figcaption>Your own thin package sits between config/data and DeepEval. That seam is what lets you survive breaking upgrades and swap judges.</figcaption>
+</figure>
+
+<h3>Component responsibilities</h3>
+<div class="tbl"><table>
+<thead><tr><th>Component</th><th>Responsibility</th><th>Design notes</th></tr></thead>
+<tbody>
+<tr><td>SUT adapter</td><td>One function: <code>run(golden) → Response(output, retrieval_context, tools_called, latency, cost, trace_id)</code></td><td>Same adapter for local, staging and prod-shadow targets; timeout and retry here, not in tests</td></tr>
+<tr><td>Case builder</td><td>Combine golden + response into <code>LLMTestCase</code> / <code>ConversationalTestCase</code></td><td>Validates required fields per metric so missing data fails loudly</td></tr>
+<tr><td>Metric factory</td><td>Build metric objects from YAML (name, threshold, judge, strict)</td><td>The only module importing <code>deepeval.metrics</code> — your upgrade blast radius</td></tr>
+<tr><td>Custom metrics</td><td>Business rubrics (G-Eval/DAG) and code checks (<code>BaseMetric</code>)</td><td>Each with its own unit tests using hand-labelled pass/fail examples</td></tr>
+<tr><td>Judge provider</td><td>Wraps the judge model; pins version, temperature, max concurrency</td><td>Swap to Azure/Bedrock/local by config</td></tr>
+<tr><td>Run manifest</td><td>Records every version that affects a score</td><td>Written as JSON alongside results; attached to CI artifacts</td></tr>
+<tr><td>Reporting</td><td>Pass/fail, pass-rate gates, trends, regression diff vs. baseline</td><td>Store results history outside CI (S3, DB, or Confident AI) — CI logs expire</td></tr>
+</tbody></table></div>
+
+<!-- ============ 13 ============ -->
+<h2 id="repo"><span class="num">13</span>Repository layout</h2>
+<div class="tree"><span class="d">llm-quality/</span>
+├── <span class="d">config/</span>
+│   ├── judge.yaml              <span class="m"># judge model, temperature, concurrency, timeouts</span>
+│   ├── thresholds.yaml         <span class="m"># per metric × per suite; changes need QA approval</span>
+│   └── suites.yaml             <span class="m"># smoke / regression / full / safety → tags + metrics</span>
+├── <span class="d">data/</span>
+│   ├── <span class="d">goldens/</span>
+│   │   ├── single_turn/*.json  <span class="m"># tagged: feature, risk, source, owner</span>
+│   │   ├── multi_turn/*.json   <span class="m"># ConversationalGolden scenarios</span>
+│   │   └── adversarial/*.json
+│   ├── <span class="d">calibration/</span>            <span class="m"># human-labelled verdicts; never used for prompt tuning</span>
+│   └── <span class="d">_review_queue/</span>          <span class="m"># synthetic + prod samples awaiting review</span>
+├── <span class="d">evalkit/</span>                    <span class="m"># your thin framework package</span>
+│   ├── adapter.py              <span class="m"># SUT client</span>
+│   ├── cases.py                <span class="m"># golden + response → test case</span>
+│   ├── metrics_factory.py      <span class="m"># YAML → deepeval metric objects</span>
+│   ├── custom_metrics/         <span class="m"># BaseMetric subclasses, G-Eval rubrics, DAGs</span>
+│   ├── judge.py                <span class="m"># judge model wrapper</span>
+│   ├── datasets.py             <span class="m"># load / filter by tag / validate schema</span>
+│   └── manifest.py             <span class="m"># run metadata</span>
+├── <span class="d">tests/</span>
+│   ├── conftest.py             <span class="m"># fixtures: adapter, suite selection, manifest</span>
+│   ├── <span class="d">deterministic/</span>          <span class="m"># no judge calls</span>
+│   ├── <span class="d">component/</span>              <span class="m"># span-level evals</span>
+│   ├── <span class="d">e2e/</span>                    <span class="m"># single-turn assert_test</span>
+│   ├── <span class="d">conversational/</span>         <span class="m"># simulator + multi-turn metrics</span>
+│   └── <span class="d">unit/</span>                   <span class="m"># tests OF your custom metrics &amp; adapters</span>
+├── <span class="d">scripts/</span>
+│   ├── synthesize.py
+│   ├── calibrate.py            <span class="m"># judge vs human agreement, threshold sweep</span>
+│   └── gate.py                 <span class="m"># aggregate pass-rate gate for CI</span>
+├── <span class="d">.github/workflows/</span>evals.yml
+├── requirements.lock           <span class="m"># exact deepeval + provider SDK versions</span>
+└── README.md                   <span class="m"># how to run, how to add a golden, how to triage</span></div>
+
+<!-- ============ 14 ============ -->
+<h2 id="code"><span class="num">14</span>Core code</h2>
+<p class="sub">Starting-point implementations for the components above. Adapt names and the adapter to your system.</p>
+
+<h3>Config</h3>
+<div class="code"><div class="lbl">config/thresholds.yaml</div><pre><span class="kw">judge</span>:
+  model: <span class="s">"gpt-4.1"</span>            <span class="c"># pin; must differ from the app's model family where possible</span>
+<span class="kw">suites</span>:
+  <span class="kw">smoke</span>:
+    tags: [<span class="s">"smoke"</span>]
+    min_pass_rate: <span class="s">1.0</span>
+    metrics:
+      - {name: correctness, threshold: <span class="s">0.7</span>}
+      - {name: answer_relevancy, threshold: <span class="s">0.75</span>}
+      - {name: no_pii, threshold: <span class="s">1.0</span>}
+  <span class="kw">regression</span>:
+    tags: [<span class="s">"regression"</span>]
+    min_pass_rate: <span class="s">0.95</span>           <span class="c"># aggregate gate tolerates judge noise</span>
+    metrics:
+      - {name: correctness, threshold: <span class="s">0.7</span>}
+      - {name: faithfulness, threshold: <span class="s">0.8</span>}
+      - {name: answer_relevancy, threshold: <span class="s">0.75</span>}
+      - {name: no_pii, threshold: <span class="s">1.0</span>}</pre></div>
+
+<h3>Metric factory — the single upgrade seam</h3>
+<div class="code"><div class="lbl">evalkit/metrics_factory.py</div><pre><span class="kw">from</span> deepeval.metrics <span class="kw">import</span> (
+    GEval, AnswerRelevancyMetric, FaithfulnessMetric,
+    ContextualRecallMetric, ContextualPrecisionMetric, ContextualRelevancyMetric,
+    ToolCorrectnessMetric,
+)
+<span class="kw">from</span> deepeval.test_case <span class="kw">import</span> SingleTurnParams
+<span class="kw">from</span> evalkit.custom_metrics.pii <span class="kw">import</span> NoPIIMetric
+
+<span class="kw">def</span> _correctness(threshold, model):
+    <span class="kw">return</span> GEval(
+        name=<span class="s">"Correctness"</span>,
+        evaluation_steps=[
+            <span class="s">"List the factual claims in the expected output."</span>,
+            <span class="s">"Check whether the actual output states each claim, or a faithful paraphrase."</span>,
+            <span class="s">"Heavily penalise any statement that contradicts the expected output."</span>,
+            <span class="s">"Do not penalise extra helpful detail that does not contradict it."</span>,
+        ],
+        evaluation_params=[SingleTurnParams.INPUT, SingleTurnParams.ACTUAL_OUTPUT,
+                           SingleTurnParams.EXPECTED_OUTPUT],
+        threshold=threshold, model=model,
+    )
+
+_REGISTRY = {
+    <span class="s">"correctness"</span>:          _correctness,
+    <span class="s">"answer_relevancy"</span>:     <span class="kw">lambda</span> t, m: AnswerRelevancyMetric(threshold=t, model=m),
+    <span class="s">"faithfulness"</span>:         <span class="kw">lambda</span> t, m: FaithfulnessMetric(threshold=t, model=m),
+    <span class="s">"contextual_recall"</span>:    <span class="kw">lambda</span> t, m: ContextualRecallMetric(threshold=t, model=m),
+    <span class="s">"contextual_precision"</span>: <span class="kw">lambda</span> t, m: ContextualPrecisionMetric(threshold=t, model=m),
+    <span class="s">"contextual_relevancy"</span>: <span class="kw">lambda</span> t, m: ContextualRelevancyMetric(threshold=t, model=m),
+    <span class="s">"tool_correctness"</span>:     <span class="kw">lambda</span> t, m: ToolCorrectnessMetric(threshold=t),
+    <span class="s">"no_pii"</span>:               <span class="kw">lambda</span> t, m: NoPIIMetric(threshold=t),
+}
+
+<span class="kw">def</span> build_metrics(specs: list[dict], judge_model: str):
+    <span class="s">"""Fresh metric objects per test: metrics hold state (score, reason)."""</span>
+    out = []
+    <span class="kw">for</span> s <span class="kw">in</span> specs:
+        <span class="kw">if</span> s[<span class="s">"name"</span>] <span class="kw">not in</span> _REGISTRY:
+            <span class="kw">raise</span> KeyError(<span class="s">f"Unknown metric '{s['name']}' in config"</span>)
+        out.append(_REGISTRY[s[<span class="s">"name"</span>]](s[<span class="s">"threshold"</span>], judge_model))
+    <span class="kw">return</span> out</pre></div>
+
+<h3>A deterministic custom metric</h3>
+<div class="code"><div class="lbl">evalkit/custom_metrics/pii.py</div><pre><span class="kw">import</span> re
+<span class="kw">from</span> deepeval.metrics <span class="kw">import</span> BaseMetric
+<span class="kw">from</span> deepeval.test_case <span class="kw">import</span> LLMTestCase
+
+_PATTERNS = {
+    <span class="s">"email"</span>: re.compile(<span class="s">r"[\w.+-]+@[\w-]+\.[\w.]+"</span>),
+    <span class="s">"card"</span>:  re.compile(<span class="s">r"\b(?:\d[ -]?){13,16}\b"</span>),
+    <span class="s">"phone"</span>: re.compile(<span class="s">r"\+?\d[\d -]{8,}\d"</span>),
+}
+
+<span class="kw">class</span> NoPIIMetric(BaseMetric):
+    <span class="s">"""Fails if the output contains anything that looks like PII. No judge, no variance."""</span>
+    <span class="kw">def</span> __init__(self, threshold: float = <span class="s">1.0</span>):
+        self.threshold = threshold
+
+    <span class="kw">def</span> measure(self, test_case: LLMTestCase) -&gt; float:
+        hits = [k <span class="kw">for</span> k, p <span class="kw">in</span> _PATTERNS.items() <span class="kw">if</span> p.search(test_case.actual_output <span class="kw">or</span> <span class="s">""</span>)]
+        self.score = <span class="s">0.0</span> <span class="kw">if</span> hits <span class="kw">else</span> <span class="s">1.0</span>
+        self.reason = <span class="s">f"PII patterns found: {hits}"</span> <span class="kw">if</span> hits <span class="kw">else</span> <span class="s">"No PII patterns found."</span>
+        self.success = self.score &gt;= self.threshold
+        <span class="kw">return</span> self.score
+
+    <span class="kw">async def</span> a_measure(self, test_case: LLMTestCase) -&gt; float:
+        <span class="kw">return</span> self.measure(test_case)
+
+    <span class="kw">def</span> is_successful(self) -&gt; bool:
+        <span class="kw">return</span> self.success
+
+    <span class="kw">@property</span>
+    <span class="kw">def</span> __name__(self):
+        <span class="kw">return</span> <span class="s">"No PII"</span></pre></div>
+
+<h3>Adapter, dataset loader and case builder</h3>
+<div class="code"><div class="lbl">evalkit/adapter.py · datasets.py · cases.py</div><pre><span class="kw">import</span> json, time, pathlib, httpx
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass, field
+<span class="kw">from</span> deepeval.dataset <span class="kw">import</span> Golden
+<span class="kw">from</span> deepeval.test_case <span class="kw">import</span> LLMTestCase
+
+<span class="c"># ---- adapter.py ----</span>
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> Response:
+    output: str
+    retrieval_context: list[str] = field(default_factory=list)
+    latency_s: float = <span class="s">0.0</span>
+
+<span class="kw">class</span> AppClient:
+    <span class="kw">def</span> __init__(self, base_url: str, timeout: float = <span class="s">60</span>):
+        self.http = httpx.Client(base_url=base_url, timeout=timeout)
+
+    <span class="kw">def</span> ask(self, question: str) -&gt; Response:
+        t0 = time.perf_counter()
+        r = self.http.post(<span class="s">"/chat"</span>, json={<span class="s">"message"</span>: question, <span class="s">"debug"</span>: <span class="kw">True</span>})
+        r.raise_for_status()
+        body = r.json()
+        <span class="kw">return</span> Response(body[<span class="s">"answer"</span>], body.get(<span class="s">"sources"</span>, []), time.perf_counter() - t0)
+
+<span class="c"># ---- datasets.py ----</span>
+<span class="kw">def</span> load_goldens(folder: str, tags: list[str]) -&gt; list[Golden]:
+    goldens = []
+    <span class="kw">for</span> f <span class="kw">in</span> sorted(pathlib.Path(folder).glob(<span class="s">"*.json"</span>)):
+        <span class="kw">for</span> row <span class="kw">in</span> json.loads(f.read_text()):
+            <span class="kw">if</span> set(tags) &amp; set(row.get(<span class="s">"tags"</span>, [])):
+                goldens.append(Golden(
+                    input=row[<span class="s">"input"</span>],
+                    expected_output=row.get(<span class="s">"expected_output"</span>),
+                    context=row.get(<span class="s">"context"</span>),
+                ))
+    <span class="kw">if not</span> goldens:
+        <span class="kw">raise</span> ValueError(<span class="s">f"No goldens matched tags {tags} in {folder}"</span>)
+    <span class="kw">return</span> goldens
+
+<span class="c"># ---- cases.py ----</span>
+<span class="kw">def</span> build_case(golden: Golden, resp: Response) -&gt; LLMTestCase:
+    <span class="kw">return</span> LLMTestCase(
+        input=golden.input,
+        actual_output=resp.output,
+        expected_output=golden.expected_output,
+        context=golden.context,
+        retrieval_context=resp.retrieval_context <span class="kw">or None</span>,
+    )</pre></div>
+
+<h3>The parametrised E2E suite</h3>
+<div class="code"><div class="lbl">tests/conftest.py + tests/e2e/test_answers.py</div><pre><span class="c"># ---- conftest.py ----</span>
+<span class="kw">import</span> os, yaml, pytest
+<span class="kw">from</span> evalkit.adapter <span class="kw">import</span> AppClient
+
+SUITE = os.getenv(<span class="s">"EVAL_SUITE"</span>, <span class="s">"smoke"</span>)
+CFG = yaml.safe_load(open(<span class="s">"config/thresholds.yaml"</span>))
+
+<span class="kw">@pytest.fixture</span>(scope=<span class="s">"session"</span>)
+<span class="kw">def</span> app():
+    <span class="kw">return</span> AppClient(os.environ[<span class="s">"APP_BASE_URL"</span>])
+
+<span class="c"># ---- e2e/test_answers.py ----</span>
+<span class="kw">import</span> pytest
+<span class="kw">from</span> deepeval <span class="kw">import</span> assert_test
+<span class="kw">from</span> evalkit.datasets <span class="kw">import</span> load_goldens
+<span class="kw">from</span> evalkit.cases <span class="kw">import</span> build_case
+<span class="kw">from</span> evalkit.metrics_factory <span class="kw">import</span> build_metrics
+<span class="kw">from</span> tests.conftest <span class="kw">import</span> SUITE, CFG
+
+suite = CFG[<span class="s">"suites"</span>][SUITE]
+GOLDENS = load_goldens(<span class="s">"data/goldens/single_turn"</span>, suite[<span class="s">"tags"</span>])
+
+<span class="kw">@pytest.mark.parametrize</span>(<span class="s">"golden"</span>, GOLDENS, ids=<span class="kw">lambda</span> g: g.input[:40])
+<span class="kw">def</span> test_answer_quality(golden, app):
+    case = build_case(golden, app.ask(golden.input))
+    assert_test(case, build_metrics(suite[<span class="s">"metrics"</span>], CFG[<span class="s">"judge"</span>][<span class="s">"model"</span>]))</pre></div>
+
+<h3>Aggregate pass-rate gate (for noisy suites)</h3>
+<p>Per-case <code>assert_test</code> is right for smoke tests where every case must pass. For large regression suites, gate on the aggregate so a single borderline judge flip doesn't block a release.</p>
+<div class="code"><div class="lbl">scripts/gate.py</div><pre><span class="kw">import</span> os, sys, json, yaml
+<span class="kw">from</span> deepeval <span class="kw">import</span> evaluate
+<span class="kw">from</span> deepeval.evaluate.configs <span class="kw">import</span> AsyncConfig
+<span class="kw">from</span> evalkit.adapter <span class="kw">import</span> AppClient
+<span class="kw">from</span> evalkit.datasets <span class="kw">import</span> load_goldens
+<span class="kw">from</span> evalkit.cases <span class="kw">import</span> build_case
+<span class="kw">from</span> evalkit.metrics_factory <span class="kw">import</span> build_metrics
+
+cfg = yaml.safe_load(open(<span class="s">"config/thresholds.yaml"</span>))
+suite = cfg[<span class="s">"suites"</span>][os.getenv(<span class="s">"EVAL_SUITE"</span>, <span class="s">"regression"</span>)]
+app = AppClient(os.environ[<span class="s">"APP_BASE_URL"</span>])
+
+cases = [build_case(g, app.ask(g.input)) <span class="kw">for</span> g <span class="kw">in</span> load_goldens(<span class="s">"data/goldens/single_turn"</span>, suite[<span class="s">"tags"</span>])]
+result = evaluate(
+    test_cases=cases,
+    metrics=build_metrics(suite[<span class="s">"metrics"</span>], cfg[<span class="s">"judge"</span>][<span class="s">"model"</span>]),
+    async_config=AsyncConfig(max_concurrent=<span class="s">8</span>),
+)
+
+passed = sum(<span class="s">1</span> <span class="kw">for</span> r <span class="kw">in</span> result.test_results <span class="kw">if</span> r.success)
+rate = passed / len(result.test_results)
+summary = {<span class="s">"passed"</span>: passed, <span class="s">"total"</span>: len(result.test_results), <span class="s">"pass_rate"</span>: round(rate, <span class="s">4</span>)}
+json.dump(summary, open(<span class="s">"eval_summary.json"</span>, <span class="s">"w"</span>), indent=<span class="s">2</span>)
+print(summary)
+sys.exit(<span class="s">0</span> <span class="kw">if</span> rate &gt;= suite[<span class="s">"min_pass_rate"</span>] <span class="kw">else</span> <span class="s">1</span>)</pre></div>
+
+<h3>Agent: tool correctness</h3>
+<div class="code"><div class="lbl">tests/component/test_tools.py</div><pre><span class="kw">from</span> deepeval <span class="kw">import</span> assert_test
+<span class="kw">from</span> deepeval.metrics <span class="kw">import</span> ToolCorrectnessMetric
+<span class="kw">from</span> deepeval.test_case <span class="kw">import</span> LLMTestCase, ToolCall
+
+<span class="kw">def</span> test_order_lookup_uses_right_tool(agent):
+    run = agent.run(<span class="s">"Where is order 4471?"</span>)          <span class="c"># your agent returns output + tool calls</span>
+    case = LLMTestCase(
+        input=<span class="s">"Where is order 4471?"</span>,
+        actual_output=run.output,
+        tools_called=[ToolCall(name=t.name, input_parameters=t.args) <span class="kw">for</span> t <span class="kw">in</span> run.tool_calls],
+        expected_tools=[ToolCall(name=<span class="s">"get_order_status"</span>)],
+    )
+    assert_test(case, [ToolCorrectnessMetric(threshold=<span class="s">1.0</span>)])</pre></div>
+
+<h3>Multi-turn conversation</h3>
+<div class="code"><div class="lbl">tests/conversational/test_journeys.py</div><pre><span class="kw">from</span> deepeval <span class="kw">import</span> assert_test
+<span class="kw">from</span> deepeval.test_case <span class="kw">import</span> ConversationalTestCase, Turn
+<span class="kw">from</span> deepeval.metrics <span class="kw">import</span> (
+    ConversationCompletenessMetric, KnowledgeRetentionMetric, RoleAdherenceMetric,
+)
+
+<span class="kw">def</span> test_return_journey(chatbot):
+    user_msgs = [<span class="s">"Hi, I want to return shoes"</span>, <span class="s">"Order 4471, size 9"</span>, <span class="s">"Can I get store credit instead?"</span>]
+    turns = []
+    <span class="kw">for</span> msg <span class="kw">in</span> user_msgs:
+        turns.append(Turn(role=<span class="s">"user"</span>, content=msg))
+        turns.append(Turn(role=<span class="s">"assistant"</span>, content=chatbot.reply(turns)))
+    case = ConversationalTestCase(
+        turns=turns,
+        chatbot_role=<span class="s">"A polite returns assistant for an online shoe store"</span>,
+    )
+    assert_test(case, [
+        ConversationCompletenessMetric(threshold=<span class="s">0.7</span>),
+        KnowledgeRetentionMetric(threshold=<span class="s">0.7</span>),
+        RoleAdherenceMetric(threshold=<span class="s">0.8</span>),
+    ])</pre></div>
+<p>For scale, swap the hard-coded user messages for <code>ConversationalGolden</code> scenarios run through <code>ConversationSimulator</code>. Its callback signature has changed across versions — check the simulator docs for your pinned release.</p>
+
+<h3>Testing your custom metrics</h3>
+<div class="code"><div class="lbl">tests/unit/test_pii_metric.py</div><pre><span class="kw">import</span> pytest
+<span class="kw">from</span> deepeval.test_case <span class="kw">import</span> LLMTestCase
+<span class="kw">from</span> evalkit.custom_metrics.pii <span class="kw">import</span> NoPIIMetric
+
+<span class="kw">@pytest.mark.parametrize</span>(<span class="s">"text,expected"</span>, [
+    (<span class="s">"Your refund is processed."</span>, <span class="kw">True</span>),
+    (<span class="s">"Contact me at jane@example.com"</span>, <span class="kw">False</span>),
+    (<span class="s">"Card 4111 1111 1111 1111 on file"</span>, <span class="kw">False</span>),
+])
+<span class="kw">def</span> test_no_pii_metric(text, expected):
+    m = NoPIIMetric()
+    m.measure(LLMTestCase(input=<span class="s">"x"</span>, actual_output=text))
+    <span class="kw">assert</span> m.is_successful() <span class="kw">is</span> expected</pre></div>
+
+<!-- ============ 15 ============ -->
+<h2 id="calibration"><span class="num">15</span>Thresholds &amp; judge calibration</h2>
+<p class="sub">The step most teams skip, and the reason most LLM gates are either ignored or wrong.</p>
+
+<ol class="steps">
+<li><b>Build a calibration set.</b> 100–300 real outputs per metric, spanning clearly good, clearly bad and borderline. Two humans label pass/fail independently; resolve disagreements.</li>
+<li><b>Measure human–human agreement first</b> (Cohen's kappa). If people agree less than ~0.6, the criterion is ambiguous — rewrite the rubric before blaming the judge.</li>
+<li><b>Score the set with the metric</b> and sweep thresholds from 0.3 to 0.95. For each, compute precision and recall of "fail" against human labels.</li>
+<li><b>Choose by cost of error.</b> Safety metrics favour recall (catch every bad output; accept false alarms). UX metrics favour precision (don't block releases on noise).</li>
+<li><b>Probe variance.</b> Run the set 3–5 times (<code>-r</code>). Cases whose verdict flips are your noise band; if many sit near the threshold, prefer an aggregate pass-rate gate.</li>
+<li><b>Record it.</b> Commit judge model, threshold, agreement stats and date into <code>thresholds.yaml</code> comments or a calibration report.</li>
+<li><b>Re-run</b> whenever the judge model, deepeval version, or rubric changes — and on a schedule (quarterly).</li>
+</ol>
+
+<div class="tbl"><table>
+<thead><tr><th>Signal</th><th>Interpretation</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>Judge–human agreement ≥ 0.8</td><td>Trustworthy oracle</td><td>Hard gate is fine</td></tr>
+<tr><td>0.6 – 0.8</td><td>Usable with noise</td><td>Aggregate pass-rate gate; human review of failures</td></tr>
+<tr><td>&lt; 0.6</td><td>Not an oracle yet</td><td>Track only; refine criteria, use evaluation_steps or a DAG, try a stronger judge</td></tr>
+<tr><td>Flip rate &gt; 10 % across repeats</td><td>Threshold sits in the noise</td><td>Move threshold, switch to strict/binary DAG, or gate on pass-rate</td></tr>
+</tbody></table></div>
+
+<div class="note qa"><b class="t">Tip: tighten G-Eval</b>Explicit <code>evaluation_steps</code> instead of a one-line <code>criteria</code> make G-Eval scores markedly more stable. If you need a rubric with fixed score bands, G-Eval supports a rubric; if you need deterministic branching ("if it mentions a refund, check the amount; else…"), move to a DAG metric.</div>
+
+<!-- ============ 16 ============ -->
+<h2 id="cicd"><span class="num">16</span>CI/CD pipeline</h2>
+
+<figure>
+<svg viewBox="0 0 880 170" width="100%" role="img" aria-label="CI stages">
+  <defs><marker id="m3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ar"/></marker></defs>
+  <rect class="bx a" x="10" y="30" width="150" height="100" rx="8"/><text x="85" y="58" text-anchor="middle" class="h">Pre-commit / PR</text><text x="85" y="80" text-anchor="middle" class="sm">deterministic + unit</text><text x="85" y="96" text-anchor="middle" class="sm">smoke E2E (cached)</text><text x="85" y="112" text-anchor="middle" class="sm">~2–5 min</text>
+  <rect class="bx i" x="190" y="30" width="150" height="100" rx="8"/><text x="265" y="58" text-anchor="middle" class="h">Merge to main</text><text x="265" y="80" text-anchor="middle" class="sm">component suites</text><text x="265" y="96" text-anchor="middle" class="sm">for changed areas</text><text x="265" y="112" text-anchor="middle" class="sm">~10 min</text>
+  <rect class="bx i" x="370" y="30" width="150" height="100" rx="8"/><text x="445" y="58" text-anchor="middle" class="h">Nightly</text><text x="445" y="80" text-anchor="middle" class="sm">full regression</text><text x="445" y="96" text-anchor="middle" class="sm">multi-turn · trend</text><text x="445" y="112" text-anchor="middle" class="sm">~30–90 min</text>
+  <rect class="bx w" x="550" y="30" width="150" height="100" rx="8"/><text x="625" y="58" text-anchor="middle" class="h">Release gate</text><text x="625" y="80" text-anchor="middle" class="sm">full + safety + red team</text><text x="625" y="96" text-anchor="middle" class="sm">official baseline</text><text x="625" y="112" text-anchor="middle" class="sm">sign-off</text>
+  <rect class="bx" x="730" y="30" width="140" height="100" rx="8"/><text x="800" y="58" text-anchor="middle" class="h">Production</text><text x="800" y="80" text-anchor="middle" class="sm">traced, sampled</text><text x="800" y="96" text-anchor="middle" class="sm">online metrics</text><text x="800" y="112" text-anchor="middle" class="sm">→ new goldens</text>
+  <path class="ln" d="M160 80H186" marker-end="url(#m3)"/><path class="ln" d="M340 80H366" marker-end="url(#m3)"/><path class="ln" d="M520 80H546" marker-end="url(#m3)"/><path class="ln" d="M700 80H726" marker-end="url(#m3)"/>
+  <path class="ln" d="M800 130V155H85V134" marker-end="url(#m3)"/>
+</svg>
+<figcaption>Production failures loop back into the golden set — the pipeline is a cycle, not a line.</figcaption>
+</figure>
+
+<div class="code"><div class="lbl">.github/workflows/evals.yml</div><pre><span class="kw">name</span>: llm-evals
+<span class="kw">on</span>:
+  pull_request:
+  schedule: [{cron: <span class="s">"30 20 * * *"</span>}]     <span class="c"># 02:00 IST nightly</span>
+  workflow_dispatch:
+    inputs: {suite: {default: <span class="s">"regression"</span>}}
+
+<span class="kw">concurrency</span>:
+  group: <span class="s">"evals-${{ github.ref }}"</span>
+  cancel-in-progress: <span class="kw">true</span>
+
+<span class="kw">jobs</span>:
+  <span class="kw">deterministic</span>:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: <span class="s">"3.12"</span>, cache: pip}
+      - run: pip install -r requirements.lock
+      - run: pytest tests/unit tests/deterministic -q
+
+  <span class="kw">smoke</span>:
+    needs: deterministic
+    <span class="kw">if</span>: github.event_name == <span class="s">'pull_request'</span>
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: <span class="s">${{ secrets.JUDGE_API_KEY }}</span>
+      APP_BASE_URL:   <span class="s">${{ vars.STAGING_URL }}</span>
+      EVAL_SUITE: smoke
+      DEEPEVAL_DISABLE_DOTENV: <span class="s">"1"</span>
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: <span class="s">"3.12"</span>, cache: pip}
+      - run: pip install -r requirements.lock
+      - run: deepeval test run tests/e2e -n 4 -c -id "pr-${{ github.event.number }}"
+      - uses: actions/upload-artifact@v4
+        <span class="kw">if</span>: always()
+        with: {name: smoke-results, path: <span class="s">"**/*results*"</span>}
+
+  <span class="kw">regression</span>:
+    needs: deterministic
+    <span class="kw">if</span>: github.event_name != <span class="s">'pull_request'</span>
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      OPENAI_API_KEY: <span class="s">${{ secrets.JUDGE_API_KEY }}</span>
+      APP_BASE_URL:   <span class="s">${{ vars.STAGING_URL }}</span>
+      EVAL_SUITE: <span class="s">${{ inputs.suite || 'regression' }}</span>
+      DEEPEVAL_DISABLE_DOTENV: <span class="s">"1"</span>
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: <span class="s">"3.12"</span>, cache: pip}
+      - run: pip install -r requirements.lock
+      - run: python scripts/gate.py
+      - uses: actions/upload-artifact@v4
+        <span class="kw">if</span>: always()
+        with: {name: regression-results, path: eval_summary.json}</pre></div>
+
+<h3>Gate policy</h3>
+<div class="tbl"><table>
+<thead><tr><th>Stage</th><th>Blocks on</th><th>Warns on</th></tr></thead>
+<tbody>
+<tr><td>PR</td><td>Any deterministic failure; any smoke case below threshold</td><td>Smoke latency/cost increase &gt; 20 %</td></tr>
+<tr><td>Nightly</td><td>Pass-rate below <code>min_pass_rate</code>; drop &gt; 3 pts vs. 7-day baseline</td><td>Any individual metric mean dropping &gt; 0.05</td></tr>
+<tr><td>Release</td><td>Any critical safety failure; regression gate; open P1 eval defects</td><td>Multi-turn completeness trend down</td></tr>
+</tbody></table></div>
+
+<!-- ============ 17 ============ -->
+<h2 id="ops"><span class="num">17</span>Operational concerns</h2>
+
+<h3>Cost &amp; speed</h3>
+<ul>
+<li>Estimate before you run: <em>cases × LLM metrics × ~3–6 judge calls</em>. A 500-case suite with 4 judged metrics can mean 6,000+ calls.</li>
+<li>Recent releases report judge token usage and cost per metric — export it and trend it like any other metric.</li>
+<li>Use <code>-c</code> caching on reruns; turn off <code>include_reason</code> for bulk scoring; use a smaller judge for smoke if calibration allows.</li>
+<li>Cap concurrency to your provider's rate limits rather than letting retries thrash.</li>
+</ul>
+
+<h3>Flakiness</h3>
+<ul>
+<li>Set app temperature to 0 (or fixed seed) in eval environments where the product allows it.</li>
+<li>Distinguish <em>infra errors</em> (timeouts, 429s — retry, or <code>-i</code>) from <em>quality failures</em> (never retry until green).</li>
+<li>DeepEval 4.1.5+ can mark metrics and test cases as flaky so they're tracked separately and warn instead of fail. Use it as a quarantine with an owner and expiry date, not a dumping ground.</li>
+<li>Track per-case flip rate over time; persistent flippers need a better golden or a better rubric.</li>
+</ul>
+
+<h3>Security, privacy &amp; compliance</h3>
+<ul>
+<li>Judge calls send your inputs, outputs and retrieved context to the judge provider. Treat that as a data flow needing approval; use a self-hosted or in-region judge for sensitive data.</li>
+<li>Anonymise production samples before they become goldens; store goldens with the same classification as the source data.</li>
+<li>Keep API keys in CI secrets; never in <code>.env</code> committed to the repo.</li>
+<li>DeepEval sends anonymous usage telemetry (via PostHog, per its docs). Review the data-privacy page and opt out if your policy requires.</li>
+<li>Logging into Confident AI uploads test cases. Decide deliberately which suites sync (regional endpoints for EU and AU exist).</li>
+</ul>
+
+<h3>Upgrades</h3>
+<ul>
+<li>Pin <code>deepeval==x.y.z</code> in a lockfile. Upgrade on a branch, never via a floating range.</li>
+<li>On upgrade: read the changelog's Breaking Change section, re-run the calibration set, diff scores per metric against the previous version on a frozen snapshot of outputs, then merge.</li>
+<li>Because all <code>deepeval.metrics</code> imports sit in the metric factory, renames touch one file.</li>
+</ul>
+
+<!-- ============ 18 ============ -->
+<h2 id="triage"><span class="num">18</span>Defect taxonomy &amp; triage</h2>
+
+<div class="tbl"><table>
+<thead><tr><th>Defect class</th><th>Typical signal</th><th>Likely owner</th></tr></thead>
+<tbody>
+<tr><td>Retrieval miss</td><td>Low Contextual Recall; Faithfulness OK but answer wrong</td><td>Search / data team (chunking, embeddings, top-k)</td></tr>
+<tr><td>Ranking problem</td><td>Low Contextual Precision</td><td>Re-ranker owner</td></tr>
+<tr><td>Hallucination</td><td>Low Faithfulness or Hallucination score</td><td>Prompt / generation owner</td></tr>
+<tr><td>Instruction violation</td><td>Low Prompt Alignment; schema failures</td><td>Prompt owner</td></tr>
+<tr><td>Tool misuse</td><td>Tool / Argument Correctness failures; permission violations</td><td>Agent owner</td></tr>
+<tr><td>Runaway agent</td><td>Loop Detection, Step Efficiency</td><td>Agent owner</td></tr>
+<tr><td>Context loss</td><td>Knowledge Retention, Turn Relevancy</td><td>Conversation memory owner</td></tr>
+<tr><td>Persona / scope break</td><td>Role Adherence, Topic Adherence, Role Violation</td><td>Prompt owner + safety</td></tr>
+<tr><td>Unsafe output</td><td>Toxicity, Bias, Misuse, PII metric; red-team findings</td><td>Safety owner — highest severity</td></tr>
+<tr><td>Bad test</td><td>Humans disagree with the verdict</td><td>QA — fix golden, rubric or threshold</td></tr>
+</tbody></table></div>
+
+<h3>Triage flow for a failing case</h3>
+<ol class="steps">
+<li><b>Read the reason.</b> Every metric explains itself; most triage ends here.</li>
+<li><b>Open the trace</b> (<code>deepeval inspect</code> or Confident AI) to locate the failing span.</li>
+<li><b>Ask: is the test right?</b> Check the golden's expected output and the judge's reasoning. Roughly a fifth to a third of early failures in a new suite are test defects — budget for it.</li>
+<li><b>Classify</b> using the taxonomy, attach the run ID and manifest, file against the owner.</li>
+<li><b>Lock it in.</b> The failing input stays in the regression set with a tag linking the defect ID.</li>
+</ol>
+
+<h3>Severity guide</h3>
+<div class="tbl"><table>
+<thead><tr><th>Sev</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>P1</td><td>Unsafe/toxic output, PII leak, unauthorised tool call, wrong financial/medical/legal fact</td></tr>
+<tr><td>P2</td><td>Hallucinated policy detail, task not completed on a core journey, pass-rate regression &gt; 5 pts</td></tr>
+<tr><td>P3</td><td>Relevancy dips, inefficiency, persona drift in edge flows</td></tr>
+<tr><td>P4</td><td>Tone, verbosity, formatting nits</td></tr>
+</tbody></table></div>
+
+<!-- ============ 19 ============ -->
+<h2 id="roadmap"><span class="num">19</span>Roadmap &amp; roles</h2>
+
+<h3>12-week rollout</h3>
+<div class="tbl"><table>
+<thead><tr><th>Weeks</th><th>Goal</th><th>Deliverables</th><th>Exit criterion</th></tr></thead>
+<tbody>
+<tr><td>0–1</td><td>Discover</td><td>Risk register of failure modes; system map (retriever, tools, memory); metric shortlist</td><td>Stakeholders agree on top 5 risks</td></tr>
+<tr><td>2–3</td><td>Foundation</td><td>Repo skeleton, adapter, metric factory, deterministic checks, 50 hand-written goldens</td><td>Smoke suite runs locally end-to-end</td></tr>
+<tr><td>4–5</td><td>Calibrate</td><td>Calibration set, judge choice, thresholds with agreement stats</td><td>Each gating metric ≥ 0.6 agreement</td></tr>
+<tr><td>6–7</td><td>CI</td><td>PR smoke gate, nightly regression, artifacts, run manifest</td><td>Gate active on main branch</td></tr>
+<tr><td>8–9</td><td>Depth</td><td>Component (span) evals, synthetic goldens reviewed to 300+, multi-turn suite</td><td>Failures localise to a component</td></tr>
+<tr><td>10–11</td><td>Safety</td><td>Safety metrics gated, first DeepTeam red-team run, P1 criteria</td><td>No open P1 safety findings</td></tr>
+<tr><td>12</td><td>Close the loop</td><td>Production tracing + sampling, incident → golden process, dashboards</td><td>First prod issue converted into a regression test</td></tr>
+</tbody></table></div>
+
+<h3>Who does what</h3>
+<div class="tbl"><table>
+<thead><tr><th>Activity</th><th>QA</th><th>Dev / ML</th><th>Domain SME</th><th>Product</th></tr></thead>
+<tbody>
+<tr><td>Risk register &amp; metric selection</td><td>Owns</td><td>Contributes</td><td>Contributes</td><td>Approves</td></tr>
+<tr><td>Golden authoring</td><td>Owns process</td><td>—</td><td>Writes &amp; reviews</td><td>Prioritises</td></tr>
+<tr><td>Framework code</td><td>Owns</td><td>Reviews</td><td>—</td><td>—</td></tr>
+<tr><td>App instrumentation (@observe)</td><td>Specifies</td><td>Implements</td><td>—</td><td>—</td></tr>
+<tr><td>Calibration labelling</td><td>Coordinates</td><td>—</td><td>Labels</td><td>—</td></tr>
+<tr><td>Threshold changes</td><td>Approves</td><td>Proposes</td><td>Consulted</td><td>Informed</td></tr>
+<tr><td>Release sign-off</td><td>Recommends</td><td>—</td><td>—</td><td>Decides</td></tr>
+</tbody></table></div>
+
+<!-- ============ 20 ============ -->
+<h2 id="checklists"><span class="num">20</span>Checklists</h2>
+
+<h3>Before the first gated run</h3>
+<ul class="check">
+<li>deepeval and provider SDKs pinned in a lockfile</li>
+<li>Judge model pinned, differs from the app model, credentials in CI secrets</li>
+<li>Every gating metric has a calibration record (agreement, threshold, date)</li>
+<li>Goldens are tagged, reviewed, and versioned; calibration set held out</li>
+<li>Adapter populates every field the chosen metrics need</li>
+<li>Run manifest written per run (app commit, prompt version, dataset version, deepeval version, judge)</li>
+<li>Results stored outside CI logs</li>
+<li>Triage owner and SLA defined for eval failures</li>
+<li>Data-flow approval for sending outputs to the judge provider; telemetry/sync decisions documented</li>
+</ul>
+
+<h3>Before each release</h3>
+<ul class="check">
+<li>Full regression above pass-rate gate and within tolerance of the previous baseline</li>
+<li>Multi-turn suite green on core journeys</li>
+<li>Safety metrics green; latest red-team run reviewed; no open P1</li>
+<li>Flaky quarantine list reviewed; nothing critical hidden there</li>
+<li>Cost and latency per request within budget</li>
+<li>New production incidents since last release added as goldens</li>
+<li>Run marked as baseline (e.g. <code>--official</code>) for the next comparison</li>
+</ul>
+
+<h3>On every deepeval upgrade</h3>
+<ul class="check">
+<li>Changelog breaking changes read and noted in the PR</li>
+<li>CLI help output re-captured and diffed</li>
+<li>Calibration set re-scored; per-metric score deltas reviewed</li>
+<li>Thresholds adjusted where scoring direction or formula changed</li>
+</ul>
+
+<!-- ============ 21 ============ -->
+<h2 id="antipatterns"><span class="num">21</span>Anti-patterns</h2>
+<div class="grid">
+  <div class="card"><div class="k">✗</div><h4>Default thresholds everywhere</h4><p>0.5 is a placeholder, not a quality bar. Uncalibrated gates get ignored within a month.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Metric buffet</h4><p>Twelve metrics per case triples cost and drowns signal. Gate on a few; track the rest.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Same model judges itself</h4><p>Self-preference bias inflates scores. Use a different model family as judge.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Synthetic data straight into the gate</h4><p>Unreviewed synthetic goldens contain wrong "expected outputs". Review first.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Retry until green</h4><p>Re-running a quality failure hides real regressions. Retry infra errors only.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Tuning prompts on the gate set</h4><p>Overfits the suite. Keep a hidden holdout.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Only end-to-end tests</h4><p>You'll know it broke but not where. Add span-level metrics.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Floating dependency versions</h4><p>A minor release changed metric direction in 2026. Pin and upgrade deliberately.</p></div>
+</div>
+
+<!-- ============ 22 ============ -->
+<h2 id="versions"><span class="num">22</span>Version notes (2026)</h2>
+<p class="sub">The changes most relevant to a QA owner, from the official changelog.</p>
+<div class="tbl"><table>
+<thead><tr><th>Version</th><th>Change</th><th>QA impact</th></tr></thead>
+<tbody>
+<tr><td>3.9.8 (Apr)</td><td><code>observed_callback</code> removed from <code>assert_test</code>; golden assertions use the active trace; <code>results_folder</code> for structured JSON output</td><td>Update component-level test code; point CI artifacts at the results folder</td></tr>
+<tr><td>3.9.9 (Apr)</td><td><code>CONFIDENT_API_KEY</code> required (legacy alias removed); dataset <code>metadata</code> replaces <code>additional_metadata</code>; <code>SingleTurnParams</code> in docs; <code>generate</code> CLI; default OpenAI judge changed</td><td>Rename env vars and fields; pin judge explicitly so defaults can't shift</td></tr>
+<tr><td>4.0 (May)</td><td>"Eval harness" for coding agents; one-line framework integrations; <code>deepeval inspect</code> trace TUI; OpenRouter, Google ADK, Strands support</td><td>Local trace debugging without a platform</td></tr>
+<tr><td>4.0.5–4.0.7 (May–Jun)</td><td>Dataset versioning; <code>--official</code> baseline runs; per-metric token usage; non-zero pytest exit codes propagated</td><td>Reproducible datasets; cost tracking; reliable CI failure signals</td></tr>
+<tr><td>4.0.8 (Jul)</td><td>Deterministic Agent Loop Detection and Tool Permission metrics; Citation Faithfulness</td><td>Cheap, zero-variance agent safety gates</td></tr>
+<tr><td>4.1.5 (Jul)</td><td>Flaky marking for metrics and test cases; DAG construction revamp; benchmark scoring fixes</td><td>Formal quarantine mechanism; re-check DAG code</td></tr>
+<tr><td>4.1.7–4.1.10 (Aug)</td><td>TypeScript SDK with Vitest and component evals; official MCP server support; voice conversation simulation; <code>include_reason=False</code> respected</td><td>JS/TS teams can share the approach</td></tr>
+<tr><td><b>4.2.0 (Aug)</b></td><td><b>Bias, Hallucination, Misuse, Toxicity now higher-is-better</b></td><td><b>Invert thresholds; re-baseline</b></td></tr>
+<tr><td>4.2.x–4.3.1 (Sep–Oct)</td><td>Continued releases; README now mentions a new judging approach (JevEval) and governance/release-gate features</td><td>Read release notes before upgrading past your pin</td></tr>
+</tbody></table></div>
+
+<!-- ============ 23 ============ -->
+<h2 id="glossary"><span class="num">23</span>Glossary</h2>
+<div class="tbl"><table>
+<tbody>
+<tr><td><b>LLM-as-a-judge</b></td><td>Using a language model to grade another model's output against criteria.</td></tr>
+<tr><td><b>Golden</b></td><td>A curated input (plus optional expected output/context) used to generate test cases.</td></tr>
+<tr><td><b>Retrieval context</b></td><td>The chunks your RAG system actually retrieved at run time.</td></tr>
+<tr><td><b>Context</b></td><td>Ground-truth reference text supplied with the golden.</td></tr>
+<tr><td><b>G-Eval</b></td><td>Criteria-driven judge metric using chain-of-thought steps and probability-weighted scores.</td></tr>
+<tr><td><b>DAG metric</b></td><td>Judge metric structured as a decision graph for deterministic, explainable scoring.</td></tr>
+<tr><td><b>QAG</b></td><td>Question/claim-generation approach: break output into claims, verify each, score the ratio.</td></tr>
+<tr><td><b>Span / trace</b></td><td>A recorded step / the full execution tree of one request.</td></tr>
+<tr><td><b>End-to-end vs component eval</b></td><td>Scoring the final output vs scoring an internal step.</td></tr>
+<tr><td><b>Strict mode</b></td><td>Binary 0/1 scoring with a perfect-score requirement.</td></tr>
+<tr><td><b>Calibration set</b></td><td>Human-labelled outputs used to validate judges and pick thresholds.</td></tr>
+<tr><td><b>Flip rate</b></td><td>Share of cases whose verdict changes across repeated runs.</td></tr>
+<tr><td><b>DeepTeam</b></td><td>Sister open-source project for adversarial red-teaming of LLM apps.</td></tr>
+<tr><td><b>Confident AI</b></td><td>The vendor's hosted platform for datasets, traces, dashboards and annotation.</td></tr>
+</tbody></table></div>
+
+<h2 id="sources"><span class="num">—</span>Sources</h2>
+<ul>
+<li><a href="https://deepeval.com/docs/getting-started">DeepEval documentation — getting started</a></li>
+<li><a href="https://www.deepeval.com/docs/metrics-introduction">DeepEval — introduction to metrics</a></li>
+<li><a href="https://deepeval.com/changelog/changelog-2026">DeepEval changelog — 2026</a></li>
+<li><a href="https://deepeval.com/blog/introducing-deepeval-4">Introducing DeepEval 4.0</a></li>
+<li><a href="https://pypi.org/project/deepeval/">deepeval on PyPI (README, release history)</a></li>
+<li><a href="https://github.com/confident-ai/deepeval">confident-ai/deepeval on GitHub</a></li>
+<li><a href="https://newreleases.io/project/github/confident-ai/deepeval/release/v3.7.5">v3.7.5 release notes — agentic metrics</a></li>
+<li><a href="https://www.mlflow.org/docs/latest/genai/eval-monitor/scorers/third-party/deepeval/">MLflow — DeepEval scorer categories</a></li>
+<li><a href="https://deepeval.com/blog/deepeval-vs-ragas">DeepEval vs Ragas (vendor comparison)</a></li>
+</ul>
+
+<footer>
+  QA field notes on DeepEval · compiled 28 October 2026 against deepeval 4.x (latest 4.3.1). Not affiliated with Confident AI. Verify APIs against the docs for your pinned version.
+</footer>
+
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+  // theme toggle
+  var root=document.documentElement, key="de-theme";
+  try{var saved=localStorage.getItem(key); if(saved) root.setAttribute("data-theme",saved);}catch(e){}
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    var dark = root.getAttribute("data-theme")==="dark" ||
+      (!root.getAttribute("data-theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    var next = dark ? "light" : "dark";
+    root.setAttribute("data-theme",next);
+    try{localStorage.setItem(key,next);}catch(e){}
+  });
+
+  // mobile menu
+  var toc=document.getElementById("toc");
+  document.getElementById("menuBtn").addEventListener("click",function(){toc.classList.toggle("open");});
+  toc.addEventListener("click",function(e){if(e.target.tagName==="A")toc.classList.remove("open");});
+
+  // copy buttons
+  document.querySelectorAll(".code").forEach(function(block){
+    var b=document.createElement("button"); b.className="copy"; b.textContent="copy";
+    b.addEventListener("click",function(){
+      var txt=block.querySelector("pre").innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){
+        b.textContent="copied"; setTimeout(function(){b.textContent="copy";},1400);
+      }).catch(function(){b.textContent="select & copy";});
+    });
+    block.appendChild(b);
+  });
+
+  // metric filter
+  var input=document.getElementById("mfilter"), rows=[].slice.call(document.querySelectorAll("#mtable tbody tr")), count=document.getElementById("mcount");
+  function upd(){
+    var q=input.value.trim().toLowerCase(), n=0;
+    rows.forEach(function(r){var show=!q||r.textContent.toLowerCase().indexOf(q)>-1; r.style.display=show?"":"none"; if(show)n++;});
+    count.textContent=n+" of "+rows.length+" metrics";
+  }
+  input.addEventListener("input",upd); upd();
+
+  // scrollspy
+  var links=[].slice.call(toc.querySelectorAll("a")), map={};
+  links.forEach(function(a){map[a.getAttribute("href").slice(1)]=a;});
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){links.forEach(function(l){l.classList.remove("active");}); var a=map[en.target.id]; if(a)a.classList.add("active");}
+      });
+    },{rootMargin:"-80px 0px -70% 0px"});
+    document.querySelectorAll("h2[id]").forEach(function(h){io.observe(h);});
+  }
+})();
+</script>
+</body>
+</html>
