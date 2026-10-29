@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Evaluation · Ch 10 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📗 LLM Evaluation · Chapter 10</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<style>
+/* page-specific: coloured ladders and code case blocks (same as earlier chapters) */
+.ladder { display: grid; gap: 6px; margin: 12px 0; }
+.ladder div { border-radius: 12px; padding: 9px 14px; color: #fff; display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: .93rem; }
+.ladder b { font-size: .98rem; }
+@media (max-width: 560px) { .ladder div { grid-template-columns: 1fr; gap: 2px; } }
+pre.case { background: var(--code-bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; overflow-x: auto;
+  font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 12px 0; }
+</style>
+
+<header class="hero" style="background: linear-gradient(135deg, #0f766e 0%, #0891b2 45%, #2563eb 100%);">
+  <div class="kicker">LLM Evaluation for Production Systems · Ammar Mohanna · Reference book</div>
+  <h1>Chapter 10: Evaluating Reasoning LLMs in Depth</h1>
+  <p>Right answer, wrong reasoning? How to test reasoning models: chain correctness and faithfulness, reasoning depth and generalisation, stability across runs, decoding and cascading errors, and calibrating LLM judges and self-correction loops.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 455–497</span>
+    <span class="chip">⏱ ~3 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🔗 Read with AI Engineering Ch 3 &amp; 5</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    Don't approve a reasoning model on benchmark accuracy: measure <b>final answers and the reasoning process separately</b>, test <b>depth and out-of-distribution generalisation</b>, run <b>repeated trials</b> for stability, compare <b>decoding policies</b>, <b>calibrate</b> judges and verifiers, bound any self-correction loop, and define gates, fallbacks and human review.
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 The book's key analogy: two auditors</span>
+    Both approve the same insurance claim. One got there by luck, missing several policy violations; the other checked every clause and rule. Same answer, very different trustworthiness. Reasoning evaluation tries to tell them apart.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Reasoning<br/>evaluation))
+    Foundations
+      Three phases
+      Operational definition
+      Reasoning types
+      Model families
+      Architecture risks
+    Training
+      Logical consistency
+      Process supervision
+      Reward hacking
+      Faithfulness
+    Depth
+      Depth vs complexity
+      Generalisation
+      Benchmark caveats
+    Inference
+      Step coherence
+      Non-determinism
+      Decoding strategies
+      Cascading errors
+    Reliability
+      SFT plus RL
+      Judge calibration
+      Bounded self-correction
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Three phases</a>
+    <a class="pill" href="#t2"><b>2</b> Defining reasoning</a>
+    <a class="pill" href="#t3"><b>3</b> Models &amp; SLMs</a>
+    <a class="pill" href="#t4"><b>4</b> Architecture risks</a>
+    <a class="pill" href="#t5"><b>5</b> Chain correctness</a>
+    <a class="pill" href="#t6"><b>6</b> Process vs outcome</a>
+    <a class="pill" href="#t7"><b>7</b> Depth</a>
+    <a class="pill" href="#t8"><b>8</b> Generalisation</a>
+    <a class="pill" href="#t9"><b>9</b> Stability</a>
+    <a class="pill" href="#t10"><b>10</b> Decoding &amp; cascades</a>
+    <a class="pill" href="#t11"><b>11</b> Judges</a>
+    <a class="pill" href="#t12"><b>12</b> Self-correction</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>From fluency to reasoning: three phases</h2>
+    <p class="sub">Plausible text isn't valid logic <span class="page">📖 PDF p. 455–459</span></p>
+  </div></div>
+
+  <div class="ladder">
+    <div style="background:linear-gradient(90deg,#2563eb,#60a5fa)"><b>1 · Statistical fluency</b><span>Next-token predictors: great summaries and translations, but convincing prose can hide wrong or contradictory conclusions.</span></div>
+    <div style="background:linear-gradient(90deg,#7c3aed,#a78bfa)"><b>2 · Instruction following</b><span>SFT and RLHF make models follow tasks and intent, but they're not trained to verify every intermediate step.</span></div>
+    <div style="background:linear-gradient(90deg,#16a34a,#22c55e)"><b>3 · Reasoning-centric</b><span>Break problems into steps, explore alternatives, spend more compute on hard problems, use tools, reflect and revise.</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="tile purple"><h4>🪞 Reflection</h4><p>Review the first answer, find errors, revise (e.g. spot inconsistent ledger balances and recompute).</p></div>
+    <div class="tile orange"><h4>🛠️ Tool augmentation</h4><p>Calculators, code interpreters, solvers, databases, policy engines for <b>external verification</b>. Many production systems mix neural reasoning with symbolic rules and checks.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Chatbot vs reasoning system (the book's analogy)</span>
+    A chatbot summarises customer emails. A reasoning system in insurance must check policy conditions, validate eligibility, detect contradictory evidence, cross-reference history, apply regulations and produce an <b>auditable explanation</b>. Errors there cost money and compliance.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>An engineering definition of reasoning</h2>
+    <p class="sub">Make it measurable <span class="page">📖 PDF p. 459–461</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 The working definition</span>
+    Reasoning = producing <b>logically coherent intermediate steps</b> that transform the input into a <b>goal-consistent</b> output <b>under constraints</b>. A pragmatic choice, not a claim that models think like humans; visible traces may be incomplete or not faithful to what happened inside.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>1️⃣ Step validity</h4><p>Is each intermediate step valid?</p></div>
+    <div class="tile purple"><h4>2️⃣ State transitions</h4><p>Does each step move correctly from one state to the next?</p></div>
+    <div class="tile green"><h4>3️⃣ Goal consistency</h4><p>Is it still heading for the goal?</p></div>
+    <div class="tile orange"><h4>4️⃣ Constraints</h4><p>Are the rules satisfied?</p></div>
+    <div class="tile red"><h4>5️⃣ Final output</h4><p>Is the answer or action correct?</p></div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Reasoning type</th><th>Meaning</th><th>Example test</th></tr>
+    <tr><td>Deductive</td><td>Apply rules to reach conclusions</td><td>Formal logic, theorem proving, rule-consistency checks</td></tr>
+    <tr><td>Inductive</td><td>Generalise from examples</td><td>Pattern generalisation, unseen examples</td></tr>
+    <tr><td>Abductive</td><td>Best explanation for evidence</td><td>Diagnosis tasks, hypothesis ranking</td></tr>
+    <tr><td>Analogical</td><td>Map structural similarities</td><td>Analogy completion</td></tr>
+    <tr><td>Temporal</td><td>Event order and causality</td><td>Timeline reconstruction</td></tr>
+    <tr><td>Mathematical</td><td>Symbols and numbers</td><td>GSM8K / MATH with step and symbolic checking</td></tr>
+    <tr><td>Commonsense</td><td>Implicit world knowledge</td><td>Counterfactual prompts, adversarial scenarios</td></tr>
+    <tr><td>Multi-hop</td><td>Combine facts across steps</td><td>Retrieval-grounded multi-hop QA with evidence chains</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Reasoning model families, and small reasoning models</h2>
+    <p class="sub">Different models fail in different ways <span class="page">📖 PDF p. 461–463</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Family (illustrative, mid-2026)</th><th>Strength</th><th>Test for…</th></tr>
+    <tr><td>DeepSeek-R1-style MoE</td><td>Maths, coding, agents</td><td>Routing stability, expert consistency, reasoning trace reliability</td></tr>
+    <tr><td>Qwen-style multilingual</td><td>Enterprise copilots, multilingual RAG</td><td>Cross-lingual consistency, retrieval grounding, instruction drift</td></tr>
+    <tr><td>Kimi-style coding/agentic</td><td>Repository coding, debugging, tools</td><td>Execution correctness, repair-loop stability, tool calls</td></tr>
+    <tr><td>Llama / Gemma / Phi-style</td><td>Local, edge, low cost</td><td>Latency, determinism, memory, degradation under limits</td></tr>
+    <tr><td>GLM / Mistral-style enterprise</td><td>Tool workflows, production inference</td><td>Workflow reliability, long context, rule adherence</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Match tests to the model type</span>
+    Long-context → dependency tracking and <b>lost-in-the-middle</b>. Coding → execution, unit tests, repair loops. Multilingual → cross-language checks. Small models → latency, determinism, memory. MoE → routing consistency and collapse (Chapter 7). RL-trained → <b>reward hacking</b>, over-fitting to benchmark formats, fluent but invalid traces. The serving setup (API, local, edge) changes latency, reproducibility and observability too.
+  </div>
+
+  <div class="box example"><span class="label">🧩 Reasoning SLMs at the edge</span>
+    A factory agent reads sensor logs, spots anomalous sequences, infers a likely machine fault, recommends a fix and triggers automation, all on local hardware. Evaluate response time, repeated-run consistency, device reliability, recovery and safe operation, not just answer quality.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Architecture components, and the risks they bring</h2>
+    <p class="sub">DeepSeek-R1 as the example <span class="page">📖 PDF p. 464–468</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Component</th><th>Helps with</th><th>Test for</th></tr>
+    <tr><td>🧠 MoE routing (671B total; ~1 shared + 8 routed experts active per step)</td><td>Specialised pathways (maths, code, planning)</td><td>Routing instability, expert collapse, different paths for similar prompts</td></tr>
+    <tr><td>👀 Multi-head latent attention (MLA)</td><td>Long-range dependencies between steps</td><td>Dependency loss, context retrieval failure, lost-in-the-middle</td></tr>
+    <tr><td>📍 RoPE positional encoding</td><td>Order across long sequences</td><td>Accuracy when evidence is early, middle or late</td></tr>
+    <tr><td>📜 Large context window</td><td>Long-horizon reasoning</td><td>Accuracy vs context length; does it <b>use</b> the context, not just accept it?</td></tr>
+    <tr><td>RMSNorm, residuals, SwiGLU</td><td>Stable deep representations</td><td>Only visible indirectly: long-chain stability, generalisation</td></tr>
+    <tr><td>🪞 Reflection loops</td><td>Self-correction</td><td><b>False correction</b>, circular rationalisation, revising a correct answer</td></tr>
+    <tr><td>🛠️ Tool augmentation</td><td>Grounding and verification</td><td>Invalid calls, wrong inputs, unsupported conclusions, missing evidence</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Not just architecture</span>
+    DeepSeek-R1's reasoning also comes from reasoning-heavy training data, chain-of-thought supervision, RL trajectories, self-consistency optimisation and test-time strategies.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Logical consistency and chain correctness in training</h2>
+    <p class="sub">Reasoning hallucination <span class="page">📖 PDF p. 468–470</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Chain correctness</b> = each step follows from the previous ones and contributes to the solution. In maths, check: variables stay consistently defined · equations stay algebraically valid · assumptions aren't contradicted later · number transformations are right.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Reasoning hallucination</span>
+    Different from factual hallucination: the <b>inference itself</b> goes invalid while the language stays fluent. Example from the book: a model correctly finds ledger discrepancies but invents a <b>causal link</b> between unrelated events. Confident, plausible, wrong.
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Chain-of-thought (CoT) supervision</span>
+    Train on the input, the <b>reasoning chain</b> and the answer, not just input → answer, so the trajectory itself is a learning target. Sources: synthetic traces, verified derivations, code execution paths, formal logic, multi-hop examples.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Process vs outcome supervision, reward hacking and faithfulness</h2>
+    <p class="sub">Grade the working, not just the answer <span class="page">📖 PDF p. 470–473</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🎯 Outcome supervision</h4><p>Checks only the final answer: "is the derivative right?"</p></div>
+    <div class="tile green"><h4>🧭 Process supervision</h4><p>Checks every step: were the differentiation rules and substitutions applied correctly? Tends to improve faithfulness, generalisation and robustness.</p></div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Method</th><th>What it does</th></tr>
+    <tr><td>Step verification</td><td>Validate each transition (humans, symbolic rules, execution, judge)</td></tr>
+    <tr><td>Process supervision</td><td>Use intermediate states in training or evaluation</td></tr>
+    <tr><td>Self-consistency checking</td><td>Run several times; do paths and answers converge?</td></tr>
+    <tr><td>Symbolic execution</td><td>Run code, formulas or logic to verify the trace</td></tr>
+    <tr><td>Rule validation</td><td>Check domain rules, policies, maths transformations</td></tr>
+    <tr><td>Human annotation</td><td>Experts score reasoning, find invalid steps</td></tr>
+  </table></div>
+
+  <div class="box trap"><span class="label">⚠️ Reward hacking</span>
+    RL can reward valid-looking reasoning (consistency, completeness, no contradictions, step validity). A sound derivation with a small slip may score <b>higher</b> than a lucky right answer. But models can learn traces that <b>look</b> valid to the reward model without reasoning better. Calibrate rewards against trusted references, execution, symbolic checks, experts and adversarial examples.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Four signals, kept apart</span>
+    1. Final-answer correctness · 2. Visible trace correctness · 3. <b>Faithfulness</b> of the trace to the real internal process · 4. Execution or tool verification. A model can pass 1 and 2 with a <b>post-hoc rationalisation</b>. Detect it with perturbation tests (small prompt changes should change reasoning appropriately), counterfactuals (change an assumption: does the conclusion update?), execution checks and internal probing where available. Black-box APIs: rely on repeated-run stability, contradiction rate, trace consistency and tool correctness.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Measuring reasoning depth</h2>
+    <p class="sub">How many dependent steps before it breaks? <span class="page">📖 PDF p. 473–476</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Reasoning depth</b> = how many (and how complex) dependent steps a model can complete before accuracy, consistency or constraint satisfaction starts to fall. Shallow: fact lookup, one-step sums. Deep: proofs, multi-hop science, debugging, legal compliance, workflow orchestration.
+  </div>
+
+  <div class="box example"><span class="label">🧩 A seven-step audit chain (from the book)</span>
+    Parse transactions → detect anomalies → link entities across accounts → check regulations → infer causes → estimate risk → write an explainable report. A failure at any step propagates to the end.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ ➕ A depth curve you can build</span>
+<pre><span class="kw">for</span> difficulty <span class="kw">in</span> [1, 2, 3, 4, 5, 6] hops (or constraints, chain length, distractors):
+    run 50 tasks at that difficulty
+    record: accuracy, contradiction rate, step-validity score
+plot each metric against difficulty
+<span class="cm"># "effective depth" = the point where accuracy or step validity drops below your threshold</span></pre>
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    A person doing a long proof forgets an early assumption and everything after it goes wrong. Transformers suffer similar <b>context fragmentation</b> when dependency tracking weakens over long chains.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Generalisation beyond memorisation</h2>
+    <p class="sub">Change the surface, keep the problem <span class="page">📖 PDF p. 476–479</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A model that learned algebra templates may fail when you <b>rename variables</b>, <b>reorder steps</b>, add <b>irrelevant distractors</b> or make the notation more abstract. That reveals pattern matching, not reasoning. Test out-of-distribution, compositional, adversarial, cross-domain and abstract variants.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Benchmark</th><th>Measures</th><th>Misses</th><th>Production caveat</th></tr>
+    <tr><td>Multi-hop QA</td><td>Chained inference over facts</td><td>Every step's validity</td><td>Add evidence-chain checks, retrieval grounding</td></tr>
+    <tr><td>GSM8K</td><td>Grade-school arithmetic reasoning</td><td>Flawed traces (answer-focused)</td><td>Step verification, adversarial variants</td></tr>
+    <tr><td>MATH</td><td>Advanced maths</td><td>Domain workflows</td><td>Symbolic checks, solution path validation</td></tr>
+    <tr><td>GPQA</td><td>Graduate-level science</td><td>Mixes knowledge and reasoning</td><td>Separate retrieval from reasoning validity</td></tr>
+    <tr><td>HumanEval</td><td>Program synthesis</td><td>Large codebases, repair loops</td><td>Unit, integration and repository tasks</td></tr>
+    <tr><td>BIG-Bench Hard</td><td>Compositional stress tests</td><td>Production context and limits</td><td>Combine with domain test slices</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Reasoning doesn't scale with parameter count alone: curriculum, supervision, specialisation, retrieval and test-time strategies matter, so smaller reasoning-tuned models sometimes beat bigger dense ones. Common deep-reasoning failures: drift, contradiction accumulation, premature conclusions, hallucinated logic, recursive error amplification, forgetting context. The real question isn't "does it truly reason?" but "is its reasoning <b>valid, stable, verifiable and safe enough</b> for this deployment?"
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Step-level coherence and non-determinism</h2>
+    <p class="sub">Same prompt, different reasoning <span class="page">📖 PDF p. 479–485</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Step-level coherence</b>: each step stays consistent with the previous ones and useful for the goal. <b>Reasoning drift</b>: a wrong assumption at step 2 of a debugging task corrupts everything after, while the text still reads well. <b>Non-determinism</b>: the same prompt gives different reasoning, from sampling and from the serving system (hardware, batching, numerical kernels). In MoE models a slightly different prefix can activate different experts.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📏 Coherence metrics</h4><p>Valid transition rate · contradictions per chain · assumption preservation · variable consistency · dependency resolution accuracy · step-to-goal relevance.</p></div>
+    <div class="tile purple"><h4>🔁 Stability methods</h4><p>Repeated-run testing (answer agreement, trace similarity, contradictions) · trajectory alignment · symbolic or execution checks · tool-use validation · human or judge review.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 The banking example</span>
+    One run flags a transaction as suspicious; another doesn't; both explanations sound plausible. Measure <b>repeated-run agreement</b>, <b>classification flip rate</b>, contradictions and trace similarity. If runs disagree on a high-risk decision: verify with tools, log both traces, <b>block automated action</b>, send to a human.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    ➕ Run every high-risk test case at least 5 times. Report the <b>flip rate</b> next to accuracy; a model that's 95% accurate but flips on 10% of borderline cases is not ready for automated decisions.
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Decoding strategies and cascading reasoning failure</h2>
+    <p class="sub">A small early error, a big final miss <span class="page">📖 PDF p. 485–490</span></p>
+  </div></div>
+
+  <div class="box analogy"><span class="label">🎯 The book's analogy</span>
+    A spacecraft launched a fraction of a degree off ends up far from its orbit. A small decoding slip at step 3 of a proof corrupts every later step, even if the later steps are internally consistent: <b>cascading reasoning failure</b>.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Strategy</th><th>Good</th><th>Bad</th></tr>
+    <tr><td>Greedy (top token each step)</td><td>Reproducible, stable</td><td>Rigid; stuck in a flawed path</td></tr>
+    <tr><td>Low temperature</td><td>More deterministic, stable</td><td>Less exploration; repetitive loops</td></tr>
+    <tr><td>High temperature</td><td>Diverse, explores more</td><td>Less coherent; more hallucination</td></tr>
+    <tr><td>Beam search</td><td>Keeps several paths, recovers locally</td><td>Expensive, slow; rarely used at scale</td></tr>
+    <tr><td>Self-consistency</td><td>Sample several chains, take the consistent answer</td><td>Costly; a <b>consistently wrong majority</b> wins if all share a flaw; needs a selection rule or verifier</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    For high-risk decisions, self-consistency <b>supports</b> external verification; it doesn't replace it. Mitigations: reflection loops, verifier models, symbolic execution, iterative correction, tools. For code, <b>execution feedback</b> (compiler and runtime errors) is the strongest stabiliser.
+  </div>
+
+  <div class="box example"><span class="label">🧩 The factory example</span>
+    An early decoding error infers a sensor fault → unnecessary maintenance is triggered → systems react to a false alarm → production disruption. Reasoning stability = operational reliability.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>SFT + RL, and calibrating LLM-as-a-judge</h2>
+    <p class="sub">Judges must be tested too <span class="page">📖 PDF p. 490–494</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📚 SFT</h4><p>Teaches structured reasoning from good chain-of-thought examples. Risk: <b>imitation</b> without real correctness.</p></div>
+    <div class="tile green"><h4>🏆 RL</h4><p>Rewards reasoning quality, consistency and validity. DeepSeek-R1 also used RL to reduce language mixing and improve stability.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Judges aren't reliable by default</span>
+    They may share the generator's blind spots, react to formatting, drift from the rubric, show bias, or be <b>manipulated</b> by judge-hacking text. Calibrate against trusted references, expert review and task rubrics.
+  </div>
+
+  <div class="box example"><span class="label">🧩 The book's judge example</span>
+    Task: show that 1 + 3 + 5 + … + (2n − 1) = n². The generator writes a neat, well-formatted proof but uses the <b>wrong expression for the nth odd number</b>, so the summation logic is broken. A rubric-based verifier checks steps, variable consistency, symbolic transformations, continuity and completeness, finds the fatal error, and <b>fails</b> the proof, even though the statement itself is true.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Check it yourself</span>
+    n = 4: 1 + 3 + 5 + 7 = 16 = 4². The nth odd number is 2n − 1 (n = 4 → 7). A proof that uses, say, 2n + 1 would sum 3 + 5 + 7 + 9 = 24 ≠ 16, which is exactly the kind of step error a process check catches.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  G["🤖 Generator writes the reasoning"]:::blue --> J["⚖️ Judge or verifier<br/>checks steps against a rubric"]:::purple
+  J -->|"valid"| A["✅ Accept, log the trace"]:::green
+  J -->|"invalid, attempts left"| F["🔁 Feedback names the faulty step"]:::orange
+  F --> G
+  J -->|"invalid, budget used up"| H["🙋 Escalate to a human"]:::red
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">The evaluate-then-repair pipeline, with the bounds the book insists on</div>
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Bounded self-correction, and the full evaluation plan</h2>
+    <p class="sub">Grading vs letting the student revise <span class="page">📖 PDF p. 494–497</span></p>
+  </div></div>
+
+  <div class="box analogy"><span class="label">🎯 The book's analogy</span>
+    Pipeline 1: a teacher grades the exam and stops (good for benchmarks, reward modelling, datasets). Pipeline 2: the teacher gives feedback and the student revises (closer to modern reasoning systems; coding agents run code, read errors and fix).
+  </div>
+
+  <div class="box remember"><span class="label">📌 A repair loop is only safe with these guards</span>
+    Maximum repair attempts · an <b>independent</b> verifier or tool check · clear stopping rules · fallback escalation · logging of failed attempts · cost and latency limits · protection against <b>rewriting the explanation without fixing the logic</b>. The test isn't "is there feedback?" but "did feedback improve step validity, reduce contradictions, keep correct assumptions and give a <b>verifiably</b> better answer within budget?" High-impact domains still need experts, audit logs and human approval.
+  </div>
+
+<pre class="case">evaluate a reasoning system (paraphrasing the book's checklist):
+  final_answer_accuracy
+  process_validity          # verify the steps with a verifier
+  reasoning_depth           # accuracy by task depth
+  generalization            # out-of-distribution and adversarial cases
+  stability                 # repeated trials
+  decoding_policy           # compare decoding settings
+  judge_calibration         # verifier vs human review
+  fallback_readiness        # escalation and human-review paths exist</pre>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>A model scores 92% on GSM8K. Why isn't that enough to deploy it for financial calculations?</summary>
+      <div class="answer">It's answer-focused and may hide invalid reasoning; it doesn't test your domain, stability across runs, depth, distractors or tool use. Add step verification, repeated runs, domain slices and execution checks.</div></details>
+    <details><summary>Self-consistency picks the majority answer from 7 chains. When can it still be wrong?</summary>
+      <div class="answer">When most chains share the same flawed assumption: the majority is consistently wrong. Use an external verifier for high-risk cases.</div></details>
+    <details><summary>Changing a key assumption in the prompt doesn't change the model's reasoning or conclusion. What might that reveal?</summary>
+      <div class="answer">Possible unfaithful or post-hoc reasoning: the trace may not reflect how the answer was produced (counterfactual test failure).</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>📈 Fluency → instruction following → reasoning-centric (decompose, explore, reflect, use tools).</li>
+    <li>🧭 Reasoning = coherent steps → goal-consistent output under constraints. Five checks: step validity, transitions, goal, constraints, final output.</li>
+    <li>🧩 Test each reasoning type (deductive, inductive, abductive, analogical, temporal, maths, commonsense, multi-hop) with its own method.</li>
+    <li>🏷️ Model families fail differently; SLMs need latency, determinism, memory tests.</li>
+    <li>🏗️ Each architecture piece has a risk: MoE routing, attention/lost-in-the-middle, RoPE position, reflection false-corrections, tool misuse.</li>
+    <li>⚠️ <b>Reasoning hallucination</b>: fluent but invalid inference.</li>
+    <li>🧭 Prefer <b>process</b> over outcome supervision; watch <b>reward hacking</b>.</li>
+    <li>🔍 Keep four signals apart: answer, visible trace, faithfulness, execution check. Use perturbation and counterfactual tests.</li>
+    <li>📊 Depth curve: accuracy and step validity vs hops, constraints, chain length, distractors.</li>
+    <li>🌐 Generalisation: rename, reorder, distract, abstract. Benchmarks have caveats.</li>
+    <li>🔁 Repeated runs: agreement, <b>flip rate</b>, trace similarity; disagreement on high risk → verify, block, escalate.</li>
+    <li>🎲 Decoding trade-offs; self-consistency can be consistently wrong; execution feedback stabilises code.</li>
+    <li>⚖️ Calibrate judges (blind spots, format bias, drift, judge hacking).</li>
+    <li>🛟 Self-correction must be bounded: attempt cap, independent verifier, stop rules, escalation, logs, budgets.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: a mini lab</h2>
+    <p class="sub">Test a reasoning model like this chapter suggests</p>
+  </div></div>
+  <ol>
+    <li>Pick 10 word problems. Make 3 variants of each: renamed variables, reordered facts, one irrelevant distractor. Compare accuracy.</li>
+    <li>Run 5 problems 5 times each. Compute answer agreement and flip rate.</li>
+    <li>For 3 answers, check every step by hand (or with a calculator). How many right answers had a wrong step?</li>
+    <li>Use a second model as a judge with a step rubric. Compare its verdicts with yours (judge calibration).</li>
+    <li>Change one assumption in a problem. Does the reasoning update correctly (counterfactual test)?</li>
+  </ol>
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 3 (AI-as-a-judge and its limits), Ch 2 (sampling, temperature, self-consistency) and Ch 5 (chain-of-thought prompting) · this book Ch 7 (MoE routing) · next: Ch 11, <b>specialised</b> LLM systems.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>LLM Evaluation for Production Systems</i> (Ammar Mohanna, Packt) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
