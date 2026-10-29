@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Evaluation · Ch 7 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📗 LLM Evaluation · Chapter 7</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<style>
+/* page-specific: coloured ladders and code case blocks (same as earlier chapters) */
+.ladder { display: grid; gap: 6px; margin: 12px 0; }
+.ladder div { border-radius: 12px; padding: 9px 14px; color: #fff; display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: .93rem; }
+.ladder b { font-size: .98rem; }
+@media (max-width: 560px) { .ladder div { grid-template-columns: 1fr; gap: 2px; } }
+pre.case { background: var(--code-bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; overflow-x: auto;
+  font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 12px 0; }
+</style>
+
+<header class="hero" style="background: linear-gradient(135deg, #0f766e 0%, #0891b2 45%, #2563eb 100%);">
+  <div class="kicker">LLM Evaluation for Production Systems · Ammar Mohanna · Reference book</div>
+  <h1>Chapter 7: Evaluating Routing and Reliability in Mixture of Experts LLMs</h1>
+  <p>Models made of many specialist "experts" with a router that picks a few per token. Routing becomes a first-class test target: data separability, routing entropy, load balance, expert collapse, cold experts, token dropping, latency and cost.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 304–363</span>
+    <span class="chip">⏱ ~3 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🔗 Read with AI Engineering Ch 9</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    A <b>mixture of experts (MoE)</b> model only works if its <b>router</b> sends each token to the right few experts and keeps all experts usefully busy, so besides output accuracy you must test <b>data separability, routing accuracy and calibration, load balance, collapse and dead experts, cold-expert readiness, token dropping, latency variance and cost</b>, across training and inference.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why a QA lead should care</span>
+    MoE models (Mixtral, DeepSeek, DBRX, Qwen-MoE…) can look fine on average benchmarks while some experts are broken, idle or overloaded. These are <b>system-level failures</b> that only routing metrics reveal. The running example is again a <b>medical</b> system with experts for X-rays, pathology and clinical text.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((MoE<br/>evaluation))
+    Architecture
+      Experts and router
+      Top-k routing
+      Capacity
+    Training
+      Data separability
+      Router learning
+      Alignment interference
+      Specialisation depth
+      Collapse and dead experts
+    Inference
+      Routing accuracy
+      Stability and cold experts
+      Latency and cost
+      Output consistency
+      Token dropping
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> How MoE works</a>
+    <a class="pill" href="#t2"><b>2</b> MoE models</a>
+    <a class="pill" href="#t3"><b>3</b> Data &amp; separability</a>
+    <a class="pill" href="#t4"><b>4</b> Data readiness</a>
+    <a class="pill" href="#t5"><b>5</b> Router learning</a>
+    <a class="pill" href="#t6"><b>6</b> Alignment tuning</a>
+    <a class="pill" href="#t7"><b>7</b> Specialisation</a>
+    <a class="pill" href="#t8"><b>8</b> Collapse &amp; dead experts</a>
+    <a class="pill" href="#t9"><b>9</b> Routing at inference</a>
+    <a class="pill" href="#t10"><b>10</b> Cold experts</a>
+    <a class="pill" href="#t11"><b>11</b> Latency &amp; cost</a>
+    <a class="pill" href="#t12"><b>12</b> Output consistency</a>
+    <a class="pill" href="#t13"><b>13</b> Token dropping</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>How a mixture of experts works</h2>
+    <p class="sub">Huge total capacity, small active cost <span class="page">📖 PDF p. 304–312</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    In a normal ("dense") transformer every parameter works on every token. In an <b>MoE</b>, the feed-forward part of some layers is replaced by many <b>experts</b> (small independent networks), and a <b>router</b> (gating network) picks only a few (often 1–4 out of 8 to hundreds) for each token. So total parameters can be enormous while the compute per token stays manageable: <b>conditional computation</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  T["🔤 Token representation<br/>after shared embeddings and attention"]:::blue --> R{"🚦 Router<br/>scores every expert"}:::yellow
+  R -->|"top-1"| E1["🧠 Expert 3"]:::green
+  R -->|"top-2"| E2["🧠 Expert 7"]:::green
+  R -.->|"not chosen"| E3["💤 Other experts idle"]:::purple
+  E1 --> A["➕ Weighted average by router probability"]:::orange
+  E2 --> A
+  A --> N["➡️ Next transformer layer"]:::blue
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">One MoE layer with top-2 routing</div>
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    A hospital triage desk (the router) sends each patient to two of many specialists (experts). Attention is the shared waiting room everyone passes through. If triage sends everyone to the same two doctors, the others never practise, and the hospital is really a two-doctor clinic with a big payroll.
+  </div>
+
+  <dl class="terms">
+    <dt>Top-k routing</dt><dd>Only the k highest-scoring experts run for a token. Softmax routers can instead give soft weights.</dd>
+    <dt>Token-choice vs expert-choice</dt><dd>Tokens pick experts (risk: many tokens pick the same one) vs experts pick tokens (better load control, but coverage changes).</dd>
+    <dt>Capacity</dt><dd>The maximum tokens an expert can take per pass; overflow is rerouted or <b>dropped</b> (topic 13).</dd>
+    <dt>Multi-head attention</dt><dd>Several attention "heads", each learning a different kind of relationship between tokens, combined afterwards.</dd>
+  </dl>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Experts can live on different devices, so tokens are sent across hardware and the results are gathered back. Evaluating an MoE means checking that <b>experts and router work together</b>: inputs go to the right experts, experts are used evenly, and specialisation actually emerges.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>MoE models and their evaluation challenges</h2>
+    <p class="sub">Same label, very different systems <span class="page">📖 PDF p. 307–309</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Model</th><th>Experts / routing (as summarised in the book)</th><th>Main evaluation challenge</th></tr>
+    <tr><td>Switch Transformer</td><td>Up to 2,048 experts; top-1</td><td>Routing collapse</td></tr>
+    <tr><td>GLaM</td><td>64 experts per MoE layer; sparse</td><td>FLOP efficiency</td></tr>
+    <tr><td>Mixtral 8x7B</td><td>8 experts per MoE layer; top-2</td><td>Expert imbalance</td></tr>
+    <tr><td>Mixtral 8x22B</td><td>8 larger experts; 141B total, ~39B active</td><td>Serving latency</td></tr>
+    <tr><td>DeepSeek-MoE / V2 / V3</td><td>Fine-grained experts plus shared experts</td><td>Load balancing</td></tr>
+    <tr><td>Grok-1</td><td>314B total; ~25% of weights active per token</td><td>Reasoning consistency</td></tr>
+    <tr><td>Qwen1.5-MoE</td><td>Shared experts always on + routed experts</td><td>Multilingual fairness</td></tr>
+    <tr><td>DBRX</td><td>16 experts, 4 active per token</td><td>Enterprise latency</td></tr>
+    <tr><td>GPT-4</td><td>Widely reported as MoE, not confirmed</td><td>Black-box evaluation</td></tr>
+  </table></div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Benchmark accuracy isn't enough. Add <b>system metrics</b>: routing balance, active-parameter efficiency, expert utilisation, latency and stability per task category. With black-box APIs you can only test outputs and latency patterns.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Data quality, coverage and separability</h2>
+    <p class="sub">Experts can only specialise if the data can be told apart <span class="page">📖 PDF p. 312–318</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The router learns its boundaries from patterns in the data. If input types <b>overlap</b> heavily, it can't decide which expert should take what, experts can't specialise, and the MoE behaves like a <b>poorly optimised dense model</b> that still carries all the routing overhead. In a dense model, overlap mostly hurts generalisation; in an MoE it breaks the whole premise.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>💎 Quality</h4><p>Accuracy · annotation correctness · completeness · consistency · noise level · label reliability. Bad labels teach experts wrong patterns and the router wrong routes.</p></div>
+    <div class="tile purple"><h4>🗺️ Coverage</h4><p>Domains (science, chat, legal) · tasks (summarise, QA, reason) · <b>rare cases</b> · edge cases · enough data for <b>each expert's</b> region.</p></div>
+    <div class="tile red"><h4>⚖️ Skew</h4><p>One dominant domain → a few experts get most inputs → others stay untrained → <b>expert collapse</b>.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Where MoE is used (from the book)</span>
+    Language (domains, styles, language families) · multimodal (an expert per modality) · recommendations (user segments, product categories) · autonomous driving (weather, object types, scenarios) · <b>medical diagnosis</b>: an expert for chest X-rays, one for pathology slides, one for clinical text; the router must send each input by modality.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Data readiness: simulate the experts before training</h2>
+    <p class="sub">Diversity, separability, balance <span class="page">📖 PDF p. 318–326</span></p>
+  </div></div>
+
+  <div class="algo"><span class="label">⚙️ Expert assignment simulation (the book's method)</span>
+<pre>sample ← a slice of the training data
+<span class="kw">for</span> each of 2–3 different embedding models:      <span class="cm"># one model's biases can fake (or hide) separation</span>
+    vectors  ← embed(sample)
+    clusters ← k-means(vectors, k = number of planned experts)   <span class="cm"># e.g. 8, or a small multiple</span>
+    inspect cluster sizes
+<span class="kw">if</span> most samples land in 1–2 clusters <span class="kw">and</span> several clusters are tiny:
+    expect overload, starvation or unstable routing
+    → rebalance, resample or collect more data <span class="kw">before</span> training</pre>
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📊 Distribution and imbalance</h4><p>Histograms of domains, classes and labels.</p></div>
+    <div class="tile green"><h4>🫧 Clusters</h4><p>k-means, hierarchical; clear clusters ≈ possible expert regions.</p></div>
+    <div class="tile purple"><h4>🗺️ Embedding views</h4><p>Dimensionality reduction; compare <b>several</b> embedding models before concluding.</p></div>
+    <div class="tile orange"><h4>🧾 Profiling</h4><p>Missing values, duplicates, structural consistency; enough examples per expert region.</p></div>
+  </div>
+  <p class="muted">Tools named: Cleanlab, Great Expectations, Hugging Face Datasets, DataPrep, FiftyOne, CleanVision, Label Studio (annotation agreement), scikit-learn, TensorBoard Embedding Projector, FAISS.</p>
+
+  <div class="box remember"><span class="label">📌 Data KPIs specific to MoE</span>
+    Label correctness · missing data · consistency · duplication · domain, class and rare-case coverage · <b>embedding space coverage</b> · expert utilisation balance · <b>routing entropy</b> · data drift. Operational links: error rate per input segment, latency stability (overloaded experts slow everything), cost efficiency.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Pretraining validation and router learning</h2>
+    <p class="sub">Similar inputs together, different inputs apart <span class="page">📖 PDF p. 327–331</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Routing entropy</span>
+    Entropy measures how spread out routing is. <b>Too low</b>: nearly everything goes to a few experts (poor separability, collapse). <b>Too high</b>: routing looks random, not meaningful. You want a healthy middle that matches real specialisation.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ ➕ Worked entropy example (4 experts)</span>
+<pre>entropy = − Σ p(e) × log₂ p(e)
+even split  [0.25, 0.25, 0.25, 0.25] → 2.00 bits  <span class="cm"># maximum for 4 experts</span>
+collapsed   [0.97, 0.01, 0.01, 0.01] → ≈ 0.24 bits <span class="cm"># one expert does almost everything</span></pre>
+  </div>
+
+  <div class="grid">
+    <div class="tile green"><h4>🎯 Specialisation coherence</h4><p>Not just "expert 2 gets X-rays": measure per-expert, per-condition sensitivity, specificity, F1, AUROC (one may be better at pneumothorax, another at lung disease).</p></div>
+    <div class="tile blue"><h4>🫧 Separability</h4><p>Intra- vs inter-cluster distances in embedding space.</p></div>
+    <div class="tile orange"><h4>🔬 Probing</h4><p>Simple classifiers predicting disease, anatomy or modality from embeddings.</p></div>
+    <div class="tile red"><h4>🚫 Misrouting rate</h4><p>A pathology slide sent to the radiology expert. Checked against modality or diagnosis labels.</p></div>
+    <div class="tile purple"><h4>📏 Stability and drift</h4><p>Assignments compared across checkpoints; representation drift (too much = unstable, too little = not learning).</p></div>
+    <div class="tile teal"><h4>👯 Redundancy</h4><p>Experts with near-identical parameters or outputs waste capacity.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ A router can be confidently wrong</span>
+    Router probabilities are optimised for task performance, not honest uncertainty. Build a <b>calibration curve</b>: group routing confidence into bins and check the chosen expert's accuracy in each bin. Track <b>overconfident misrouting</b> separately; re-check after deployment, because new devices or populations can break calibration while confidence stays high.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Instruction and alignment tuning across experts</h2>
+    <p class="sub">Obey the task without breaking specialisation <span class="page">📖 PDF p. 331–336</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🚦 Instruction routing accuracy</h4><p>Share of instructions ("write a radiology impression") sent to the clinically right expert. The triage-desk test.</p></div>
+    <div class="tile green"><h4>📋 Adherence and safety</h4><p>Expert instruction adherence · clinical safety compliance (no unsupported claims or missed findings) · terminology correctness · completeness.</p></div>
+    <div class="tile purple"><h4>🎚️ Routing confidence margin</h4><p>Top probability minus second. Small margins = ambiguous routing.</p></div>
+    <div class="tile orange"><h4>⚔️ Instruction conflict rate</h4><p>Instructions that clash with an expert's specialty (radiology expert asked about pathology).</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Forgetting has a routing dimension in MoE</span>
+    In a dense model, forgetting spreads across shared parameters. In an MoE, if one expert forgets its specialty, no other expert automatically compensates. Measure the <b>expert reassignment rate</b> (did inputs move to different experts after tuning?) <b>together with</b> the expert forgetting rate. Router keeps using a degraded expert → hidden forgetting. Router routes around it → unstable specialisation. Either way it's a <b>compound failure</b>.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Also</span>
+    Specialisation preserved before vs after tuning · instruction-level diagnostic accuracy · calibration · inter-expert agreement on similar instructions · bias across groups and devices · balanced instruction load · robustness to rephrased instructions · router sensitivity to instruction meaning.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Task-specific fine-tuning and specialisation depth</h2>
+    <p class="sub">Each expert should be best at its own job <span class="page">📖 PDF p. 336–339</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Expert task accuracy differential</span>
+    Run <b>every</b> expert on <b>every</b> task's validation set. The chest X-ray expert should clearly beat the pathology and text experts on chest X-rays, and be weaker elsewhere. A big differential = real specialisation. Similar scores everywhere = <b>expert confusion</b> (weak specialisation).
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Expert ↓ · Task →</th><th>Chest X-ray</th><th>Pathology</th><th>Clinical text</th></tr>
+    <tr><td>X-ray expert</td><td><b>0.92</b></td><td>0.61</td><td>0.58</td></tr>
+    <tr><td>Pathology expert</td><td>0.63</td><td><b>0.89</b></td><td>0.55</td></tr>
+    <tr><td>Text expert</td><td>0.57</td><td>0.54</td><td><b>0.90</b></td></tr>
+  </table></div>
+  <p class="muted">➕ An illustrative cross-expert matrix (made-up numbers): a strong diagonal is what healthy specialisation looks like.</p>
+
+  <div class="box remember"><span class="label">📌 Other fine-tuning KPIs</span>
+    Task routing accuracy · sensitivity and specificity vs the pretrained state · loss convergence (train vs validation gap = overfitting) · calibration · rare-condition sensitivity · <b>expert drift</b> (losing other skills) · routing consistency across epochs · utilisation balance · error reduction · attribution to clinically relevant features · stability across hospitals and devices · agreement with human clinicians.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Generalisation, load balance, collapse and dead experts</h2>
+    <p class="sub">Is all the capacity actually used? <span class="page">📖 PDF p. 339–343</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🌍 Generalisation</h4><p>External validation accuracy · generalisation gap · subgroup consistency · variance across institutions.</p></div>
+    <div class="tile orange"><h4>⚖️ Load balance</h4><p>Utilisation per expert · <b>load imbalance ratio</b> = busiest ÷ least busy expert · activation frequency.</p></div>
+    <div class="tile red"><h4>🫠 Collapse</h4><p>Few experts get almost everything. Detected by low <b>utilisation entropy</b> and a high <b>routing concentration index</b> (share to the top few).</p></div>
+    <div class="tile purple"><h4>💀 Dead experts</h4><p>Share of experts with ~zero assignments: wasted capacity.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  D{"💀 Expert gets almost no traffic"}:::yellow --> A["🏋️ Training-time audit<br/>routing history, utilisation curves,<br/>did it get enough gradient updates?"]:::blue
+  D --> B["🌐 Inference-time audit<br/>is its domain present in production traffic?"]:::purple
+  A -->|"starved during training"| F1["Training-caused: raise load-balancing loss,<br/>change routing, better initialisation"]:::red
+  B -->|"domain absent, e.g. rare pathology"| F2["Distribution-caused: a coverage issue,<br/>keep the expert, fix data or monitoring"]:::green
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Two causes of a "dead" expert need opposite fixes; mixing them up wastes effort</div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Also track</span>
+    Performance decline in rarely used experts · specialisation retention · rare cases routed consistently · routing consistency under noise or formatting changes · cross-expert overlap (too much = no differentiation, too little = over-specialised) · confidence error rate · error concentration in one expert · temporal stability of utilisation · redundancy.
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Input validation and routing decisions at inference</h2>
+    <p class="sub">Bad inputs get misrouted <span class="page">📖 PDF p. 343–346</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🧱 Structural validation</h4><p>Resolution, modality metadata, file integrity, encoding, required fields. <b>Input rejection rate</b>: moderate is healthy; very high points upstream.</p></div>
+    <div class="tile purple"><h4>🧠 Semantic validation</h4><p>Does a "chest X-ray" actually show a thorax? Mislabelled inputs → misrouting.</p></div>
+    <div class="tile red"><h4>🚦 Routing decision accuracy</h4><p>Routing vs ground-truth modality or diagnosis labels; <b>misrouting rate</b> is critical.</p></div>
+    <div class="tile orange"><h4>❓ Out-of-distribution</h4><p>Flag unfamiliar inputs (new scanners, rare presentations) <b>before</b> routing.</p></div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Routing error attribution</span>
+    When a diagnosis is wrong, ask: was it <b>misrouted</b>, or did the right expert get it wrong? The <b>routing error attribution rate</b> (share of errors caused by misrouting) decides whether you fix the router or the expert.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Also</span>
+    Routing confidence margin · routing stability under brightness, resolution or phrasing changes · utilisation shifts over time windows · input completeness · routing latency · calibration at inference · routing accuracy by segment · <b>expert fallback rate</b> (rerouting due to capacity or uncertainty) · cold-input routing rate · drift detection · expert overload · <b>routing trace completeness</b> for audits.
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Routing stability and cold experts</h2>
+    <p class="sub">Rare but valid, or broken? <span class="page">📖 PDF p. 346–349</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A <b>cold expert</b> is rarely activated, often because it handles rare diseases or unusual scans. Rarely used doesn't mean useless. The danger is that after long <b>dormancy</b> it no longer reflects current data and performs badly when its moment comes.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📏 Stability</h4><p>Routing confidence variance for similar inputs over time · <b>assignment persistence</b> (the same domain keeps going to the same expert).</p></div>
+    <div class="tile green"><h4>❄️ Cold-expert checks</h4><p>Cold routing correctness · <b>dormancy duration</b> · cold calibration · <b>reactivation success</b> · knowledge retention vs just after fine-tuning.</p></div>
+    <div class="tile purple"><h4>📈 Long-term trends</h4><p>Gradual concentration on fewer experts = early collapse. Rare-case routing success. Stability under distribution shift.</p></div>
+    <div class="tile red"><h4>🏥 System impact</h4><p>Cross-expert interference · clinical safety incidents caused by routing instability.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 The expert readiness score</span>
+    A composite of activation frequency, accuracy, confidence stability and knowledge retention. <b>Low use + good accuracy + good calibration + correct rare-case routing</b> → monitor and <b>preserve</b>. <b>Low use + poor accuracy, calibration or reactivation</b> → intervene. Don't "fix" a healthy rare specialist.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    ➕ Keep a small <b>rare-case canary set</b> per cold expert and run it on a schedule, so you measure readiness before a real rare patient arrives.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Latency variance, throughput and cost</h2>
+    <p class="sub">Routing makes timing uneven <span class="page">📖 PDF p. 349–355</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Different tokens go to different experts on different devices, so response time varies with expert workload. Watch mean latency but especially <b>p95/p99</b> and the <b>variance</b>: overloaded experts create long tails.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Split routing latency in two</span>
+    <b>Routing computation</b> (scoring and selecting experts) vs <b>routing communication</b> (moving tokens to the devices hosting those experts). In large distributed MoEs the all-to-all token dispatch often costs <b>more</b> than computing the routing. Measure them together and you'll blame the wrong thing.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>⏱️ Latency</h4><p>Per expert processing time · variance across experts · <b>queue wait</b> after routing (overload signal).</p></div>
+    <div class="tile green"><h4>📈 Throughput</h4><p>Studies per hour · distribution across experts · stability as volume rises · scaling efficiency.</p></div>
+    <div class="tile orange"><h4>💰 Cost</h4><p>Cost per inference and its variance · cost per expert activation · cost efficiency ratio (performance ÷ cost) · <b>cost per successful inference</b> · energy.</p></div>
+    <div class="tile red"><h4>🔥 Contention</h4><p>Experts competing for the same processors or memory bandwidth · utilisation too low (wasted) or too concentrated (overload).</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Also</span>
+    Clinical workflow compliance (share meeting time limits) · cost predictability over time · latency–cost correlation (necessary complexity or waste?) · expert-level cost vs diagnostic contribution.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 9: bandwidth-bound decoding, parallelism across devices and cost per request; MoE adds routing and dispatch on top.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Output quality consistency across experts</h2>
+    <p class="sub">Quality shouldn't depend on which expert you got <span class="page">📖 PDF p. 355–357</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Specialists should raise quality, not make it a lottery. Check <b>inter-expert agreement</b> on clearly defined <b>shared-domain</b> cases (identical inputs, paraphrased instructions, augmented images, cases several specialists can judge), and accept <b>appropriate disagreement</b> on cases only one expert truly knows.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📊 Accuracy variance</h4><p>Large gaps between experts on their own validation sets = uneven training.</p></div>
+    <div class="tile green"><h4>🎯 Confidence consistency</h4><p>"80% confident" should mean the same from every expert.</p></div>
+    <div class="tile orange"><h4>📋 Completeness and errors</h4><p>All findings reported; no expert with a much higher error rate.</p></div>
+    <div class="tile purple"><h4>🔤 Semantic consistency</h4><p>Standard terminology across experts; also rare-case, longitudinal and cross-institution consistency.</p></div>
+  </div>
+</section>
+
+<!-- ===== 13 ===== -->
+<section class="card" id="t13" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">13</div><div>
+    <h2>Token dropping, and the consolidated KPI table</h2>
+    <p class="sub">A quiet MoE failure mode <span class="page">📖 PDF p. 357–363</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Each expert has a <b>capacity</b>. If too many tokens choose the same expert, extras are dropped, rerouted or sent down a fallback path. A dropped token gets a weaker representation, which can cause <b>degraded reasoning, factual errors, repetition, broken formatting</b>. It gets worse in long contexts and under heavy batching.
+  </div>
+
+  <div class="grid">
+    <div class="tile red"><h4>📉 Measure drops directly</h4><p>Token drop rate overall, by <b>sequence length</b>, by <b>token position</b>, by task type, and under high-batch serving.</p></div>
+    <div class="tile orange"><h4>🔗 Correlate with quality</h4><p>Factual accuracy, reasoning consistency, hallucination, latency, completion quality.</p></div>
+    <div class="tile purple"><h4>🗺️ Look for patterns</h4><p>Certain languages, domains, prompt styles or long tasks dropping more = strong on average, failing in deployment.</p></div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Stage</th><th>KPI</th><th>If it fails</th></tr>
+    <tr><td>Data</td><td>Label correctness, missing data, coverage, rare cases</td><td>Fix labels, ingestion checks, targeted collection or augmentation</td></tr>
+    <tr><td>Readiness</td><td>Embedding separability, simulated assignment balance</td><td>Rebalance, revise features, adjust expert count</td></tr>
+    <tr><td>Pretraining</td><td>Routing entropy, utilisation, coherence, misrouting, router calibration</td><td>Tune routing/load-balancing loss, capacity factor; recalibrate; route uncertain cases to fallback</td></tr>
+    <tr><td>Instruction tuning</td><td>Instruction routing accuracy, adherence, safety, specialisation preservation</td><td>Routing examples, alignment data, isolate expert tuning</td></tr>
+    <tr><td>Fine-tuning</td><td>Per-expert task AUROC/F1/sensitivity</td><td>Fine-tune weak experts, task examples</td></tr>
+    <tr><td>Load balance</td><td>Routing concentration, rare-case coverage, confidence reliability</td><td>Tune balancing, preserve rare experts, calibrate</td></tr>
+    <tr><td>Inference</td><td>Rejection rate, routing accuracy, OOD detection, fallback rate</td><td>Fix pipelines, update router, OOD detector + human review</td></tr>
+    <tr><td>Stability</td><td>Confidence stability, cold correctness, readiness score</td><td>Recalibrate, tell rare-but-valid from broken before retraining</td></tr>
+    <tr><td>Latency/cost</td><td>p50/p95/p99 per expert and path, throughput, cost per successful inference</td><td>Rebalance load, expert placement, fewer active experts, caching</td></tr>
+    <tr><td>Consistency</td><td>Inter-expert agreement, segment error rate, <b>routing trace completeness</b></td><td>Adjudication data, subgroup data, block unauditable use</td></tr>
+  </table></div>
+  <p class="muted">Condensed from the book's Table 7.2.</p>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Routing entropy is near its maximum for every input type. Good news?</summary>
+      <div class="answer">Not necessarily: very high entropy can mean routing is close to random rather than specialised. Check specialisation coherence and misrouting rate.</div></details>
+    <details><summary>Expert 6 handles rare skin cancers and is used in 0.2% of requests. Retrain it?</summary>
+      <div class="answer">Only if its readiness score is poor. If accuracy, calibration and rare-case routing are good, it's a rare-but-valid expert: preserve and monitor it.</div></details>
+    <details><summary>Quality drops on long documents only under heavy load. What MoE-specific cause should you check?</summary>
+      <div class="answer">Token dropping from expert capacity overflow: measure drop rate by sequence length, position and batch size.</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🧠 MoE = many experts + a router choosing top-k per token: huge capacity, small active compute.</li>
+    <li>🏷️ "MoE" models differ hugely (expert count, active experts, shared experts); add system metrics to benchmarks.</li>
+    <li>🫧 Experts need <b>separable</b> data; overlap turns an MoE into an expensive dense model. Skew → collapse.</li>
+    <li>🧪 Before training: k-means with k = experts on several embedding models; check cluster sizes.</li>
+    <li>📏 Routing entropy (not too low, not random), specialisation coherence per condition, misrouting, <b>router calibration</b>.</li>
+    <li>🔁 Alignment can cause forgetting with a routing twist: reassignment rate + forgetting rate together.</li>
+    <li>🎯 Specialisation depth = cross-expert accuracy differential (a strong diagonal).</li>
+    <li>🫠 Collapse: low utilisation entropy, high concentration, dead experts. Audit training cause vs distribution cause.</li>
+    <li>🚦 Inference: validate inputs, routing accuracy, OOD, margins, <b>routing error attribution</b>, trace completeness.</li>
+    <li>❄️ Cold experts: dormancy, reactivation, retention, <b>readiness score</b>; preserve rare-but-valid experts.</li>
+    <li>⏱️ Latency variance and tails; split routing compute vs communication; cost per successful inference.</li>
+    <li>🤝 Consistent quality across experts; agreement on shared cases, appropriate disagreement on specialist cases.</li>
+    <li>🕳️ <b>Token dropping</b>: measure by length, position, task and batch; correlate with quality.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: a mini lab</h2>
+    <p class="sub">Practise MoE metrics with a spreadsheet</p>
+  </div></div>
+  <ol>
+    <li>Invent routing counts for 8 experts over 10,000 tokens (one balanced set, one collapsed set). Compute utilisation shares, entropy and the load imbalance ratio.</li>
+    <li>Build a 3×3 cross-expert accuracy matrix like topic 7 and judge the specialisation.</li>
+    <li>Take 100 sentences from 4 topics, embed them with any free embedding model, run k-means with k = 4 and look at cluster sizes (the readiness simulation).</li>
+    <li>If you can use an open MoE model locally, log which experts fire for prompts in different languages.</li>
+  </ol>
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 9 (inference bottlenecks, parallelism, batching) · next in this book: Ch 8, evaluating <b>computer-using agents</b>.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>LLM Evaluation for Production Systems</i> (Ammar Mohanna, Packt) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
