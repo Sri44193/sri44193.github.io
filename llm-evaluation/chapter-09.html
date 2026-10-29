@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Evaluation · Ch 9 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📗 LLM Evaluation · Chapter 9</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<style>
+/* page-specific: coloured ladders and code case blocks (same as earlier chapters) */
+.ladder { display: grid; gap: 6px; margin: 12px 0; }
+.ladder div { border-radius: 12px; padding: 9px 14px; color: #fff; display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: .93rem; }
+.ladder b { font-size: .98rem; }
+@media (max-width: 560px) { .ladder div { grid-template-columns: 1fr; gap: 2px; } }
+pre.case { background: var(--code-bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; overflow-x: auto;
+  font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 12px 0; }
+</style>
+
+<header class="hero" style="background: linear-gradient(135deg, #0f766e 0%, #0891b2 45%, #2563eb 100%);">
+  <div class="kicker">LLM Evaluation for Production Systems · Ammar Mohanna · Reference book</div>
+  <h1>Chapter 9: Evaluating Information Extraction and Document-Understanding LLMs</h1>
+  <p>Pulling fields out of invoices and order confirmations: named-entity recognition (spans, labels, boundaries, confusion), robustness to noisy text, OCR and layout grounding, and what a real OCR→NER pipeline teaches about error propagation.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 414–454</span>
+    <span class="chip">⏱ ~3 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🔗 Builds on Ch 4–5 (documents)</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    Extraction quality isn't "accuracy": measure <b>exact spans, labels, boundary error types, label confusion, field-level correctness, schema validity and robustness</b> for NER; <b>CER/WER, layout grounding and image-quality sensitivity</b> for OCR; and remember that <b>OCR errors flow straight into NER</b>, so judge the whole pipeline by <b>document pass rate and automation success</b>, tied to deployment gates.
+  </div>
+
+  <div class="box example"><span class="label">🧩 The running example</span>
+    E-commerce invoices, receipts, order confirmations and shipping emails. Fixed schema: <b>product name, order ID, price, delivery date, seller name, invoice number</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Document<br/>extraction))
+    NER
+      Model types
+      Span and label metrics
+      Worked example
+      Fine-tuning and leakage
+      Boundary errors
+      Label confusion
+      Noise robustness
+      Error propagation
+    OCR
+      Task families
+      CER WER layout
+      Image quality
+      Latency
+      Automation success
+    Pipeline
+      Simulated OCR
+      Real TrOCR plus GLiNER
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> NER metrics</a>
+    <a class="pill" href="#t2"><b>2</b> NER model types</a>
+    <a class="pill" href="#t3"><b>3</b> Spans &amp; labels</a>
+    <a class="pill" href="#t4"><b>4</b> Worked example</a>
+    <a class="pill" href="#t5"><b>5</b> Fine-tuning &amp; leakage</a>
+    <a class="pill" href="#t6"><b>6</b> Boundary errors</a>
+    <a class="pill" href="#t7"><b>7</b> Label confusion</a>
+    <a class="pill" href="#t8"><b>8</b> Noise robustness</a>
+    <a class="pill" href="#t9"><b>9</b> Error propagation</a>
+    <a class="pill" href="#t10"><b>10</b> OCR tasks</a>
+    <a class="pill" href="#t11"><b>11</b> CER, WER &amp; layout</a>
+    <a class="pill" href="#t12"><b>12</b> Image quality &amp; speed</a>
+    <a class="pill" href="#t13"><b>13</b> OCR→NER pipeline</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>NER evaluation: more than "did it find the entity?"</h2>
+    <p class="sub">Span, token, entity and label metrics <span class="page">📖 PDF p. 414–419</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Named-entity recognition (NER)</b> finds pieces of text and labels them: product, order ID, price, date… A model can spot that a price exists yet grab the <b>wrong span</b>, give it the <b>wrong label</b>, or break on <b>messy input</b>. So report several metrics, each tied to a threshold, an action and a gate.
+  </div>
+
+  <dl class="terms">
+    <dt>Exact-span match</dt><dd>Predicted start and end exactly equal the annotated ones.</dd>
+    <dt>Partial-span overlap</dt><dd>Credit for overlapping but imperfect spans.</dd>
+    <dt>Token-level P/R/F1</dt><dd>Are individual tokens tagged correctly?</dd>
+    <dt>Entity-level P/R/F1</dt><dd>Are <b>whole</b> entities found <b>and</b> labelled correctly?</dd>
+    <dt>Boundary correctness</dt><dd>Start and end positions right.</dd>
+    <dt>Label consistency</dt><dd>Same kind of thing, same label, every time (label P/R/F1, confusion matrix).</dd>
+    <dt>End-to-end document pass rate</dt><dd>Share of documents where <b>all mandatory fields</b> are right and pass validation <b>without manual correction</b>.</dd>
+  </dl>
+
+  <div class="box trap"><span class="label">⚠️ Boundary errors differ in severity</span>
+    Dropping "₹" when the currency is obvious = minor (normalise it). Truncating a product name, cutting an invoice number short or misreading a price = severe (wrong billing, inventory mismatches, disputes). Make thresholds and gates <b>severity-aware</b>: strict confidence, human review or rejection for high-risk fields.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>Kinds of NER systems</h2>
+    <p class="sub">Flexible LLMs vs dedicated extractors <span class="page">📖 PDF p. 419–421</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Category</th><th>Examples</th><th>Best for</th></tr>
+    <tr><td>Retrieval-augmented NER</td><td>Relik, RAG pipelines</td><td>Extraction and linking over long documents</td></tr>
+    <tr><td>Schema-free / label-conditioned</td><td>GLiNER, InstructNER</td><td>Labels given at run time; changing schemas</td></tr>
+    <tr><td>Prompted frontier LLMs</td><td>GPT and Claude families</td><td>Complex, ambiguous, low-volume expert work</td></tr>
+    <tr><td>Multilingual</td><td>Qwen, BLOOM, multilingual BERT</td><td>Many languages and scripts</td></tr>
+    <tr><td>Domain-specific</td><td>BioBERT, ClinicalBERT</td><td>Medical, scientific, technical text</td></tr>
+    <tr><td>High-throughput</td><td>BERT-NER, DistilBERT</td><td>Low latency at scale</td></tr>
+    <tr><td>On-premise / custom</td><td>Llama, Mistral, DeepSeek</td><td>Privacy, compliance, fine-tuning</td></tr>
+    <tr><td>Hybrid / ensemble</td><td>EL4NER, ReFinED, custom ensembles</td><td>Accuracy and validation-heavy workflows</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    General LLMs can do NER by prompting, but dedicated or hybrid systems usually give better <b>span control, label consistency and throughput</b> for production. How you evaluate depends on the type: frontier LLMs on prompt quality, JSON adherence, consistency, latency and cost; encoder models on token and entity P/R/F1.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Span accuracy and label consistency</h2>
+    <p class="sub">Token F1 can look good while the field is wrong <span class="page">📖 PDF p. 421–424</span></p>
+  </div></div>
+
+  <div class="box example"><span class="label">🧩 Why token F1 misleads (the book's example)</span>
+    Gold product: <b>"Apple iPhone 15 Pro Max"</b>; predicted: <b>"iPhone 15 Pro"</b>. Most tokens are right, so token F1 looks decent, but the field is <b>wrong</b>. Downstream systems need complete fields, so <b>entity-level exact-span F1</b> and <b>field-level correctness</b> matter more.
+  </div>
+
+  <div class="box plain"><span class="label">🧒 BIO tagging</span>
+    Each token is <b>B</b> (beginning of an entity), <b>I</b> (inside) or <b>O</b> (outside). "B-PRODUCT I-PRODUCT O B-PRICE" = a two-token product, a non-entity, then the start of a price. Tags are converted into spans and compared with the ground truth.
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Label consistency</span>
+    "Order ID", "Order Number" and "Purchase Ref." should all map to the <b>same</b> label if they're the same business field.
+  </div>
+
+<pre class="case">example production gates (from the book):
+  exact-span F1, mandatory fields        > 0.90
+  field-level accuracy, price + order ID > 0.95
+  schema-valid output                    > 0.98
+  price, tax or invoice ID below confidence threshold → automatic human review</pre>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>A worked example: scoring one invoice</h2>
+    <p class="sub">Each error type points to a different fix <span class="page">📖 PDF p. 424–425</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Field</th><th>Gold</th><th>Predicted</th><th>Result</th></tr>
+    <tr><td>PRODUCT</td><td>Apple iPhone 15 Pro Max</td><td>iPhone 15 Pro</td><td>❌ Incomplete span</td></tr>
+    <tr><td>ORDER_ID</td><td>ORD-78421</td><td>ORD-78421 as ORDER_NUMBER</td><td>❌ Right span, wrong label</td></tr>
+    <tr><td>PRICE</td><td>₹79,900</td><td>79,900</td><td>❌ Missing currency symbol</td></tr>
+    <tr><td>DELIVERY_DATE</td><td>12 Feb 2026</td><td>12 Feb 2026</td><td>✅ Exact match</td></tr>
+    <tr><td>SELLER</td><td>(none)</td><td>Apple Store</td><td>❌ False positive</td></tr>
+  </table></div>
+
+  <div class="algo"><span class="label">⚙️ Entity-level metrics for this example</span>
+<pre>true positives  (TP) = 1   <span class="cm"># delivery date</span>
+false positives (FP) = 4   <span class="cm"># 4 predictions that don't exactly match a gold entity</span>
+false negatives (FN) = 3   <span class="cm"># product, order ID, price not correctly found</span>
+precision = TP ÷ (TP + FP) = 1 ÷ 5 = <span class="kw">0.20</span>
+recall    = TP ÷ (TP + FN) = 1 ÷ 4 = <span class="kw">0.25</span>
+F1        = 2 × P × R ÷ (P + R) = 0.10 ÷ 0.45 ≈ <span class="kw">0.22</span></pre>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Why this beats "accuracy"</span>
+    Each error links to an action: <b>normalise</b> (currency), <b>validate</b> (formats), <b>improve the prompt</b> (full product names), <b>redesign the schema</b> (ORDER_ID vs ORDER_NUMBER), <b>fine-tune</b>, or <b>route to human review</b>. Every run should log gold, predicted, exact-match status, boundary error type, label confusion, schema validity, confidence and the gate decision.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Fine-tuning, and the template-leakage trap</h2>
+    <p class="sub">Only fine-tune when gates fail <span class="page">📖 PDF p. 425–426</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Fine-tune only when prebuilt models fail defined gates (exact-span F1, field accuracy, schema validity, robustness, manual-review rate). It helps with domain terms, long product names, vendor-specific invoice formats and abbreviations.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Leakage through templates</span>
+    If invoices from the <b>same vendor or layout</b> (or near-duplicates) are in both training and test sets, the model looks ready but has only <b>memorised formats</b>. Split hold-outs by <b>vendor, template, time period or source</b>, remove near-duplicates across splits, and keep a <b>blind test set</b> used only after all prompt, model and fine-tuning decisions are made.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    The same leakage levels (exact, near-duplicate, paraphrase) from Chapter 2 of this book apply here at the template level.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Boundary error types</h2>
+    <p class="sub">Analyse by type, severity, field and fix <span class="page">📖 PDF p. 426–428</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Type</th><th>Example (gold → predicted)</th><th>Possible fix</th></tr>
+    <tr><td>Left truncation</td><td>"Apple iPhone 15 Pro Max" → "iPhone 15 Pro Max"</td><td>Better examples, prompt for full names, fine-tune on long names</td></tr>
+    <tr><td>Right truncation</td><td>"Samsung Galaxy S24 Ultra 256GB" → "… S24 Ultra"</td><td>Validation rules for attributes (memory, size, variant)</td></tr>
+    <tr><td>Over-extended</td><td>"₹79,900" → "Total amount payable ₹79,900 including taxes"</td><td>Stricter prompts, post-processing, regex for prices</td></tr>
+    <tr><td>Split entity</td><td>"Sony WH-1000XM5 Wireless Headphones" → two entities</td><td>Consistent span annotation; train on full names</td></tr>
+    <tr><td>Merged entities</td><td>Product "USB-C Cable" + price "₹499" → "USB-C Cable ₹499" as PRODUCT</td><td>Schema rules separating product and price</td></tr>
+    <tr><td>Wrong span, right label</td><td>PRICE "₹499" → "₹599" from another line</td><td>Line-item alignment and layout-aware checks</td></tr>
+  </table></div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Build a test case for <b>each</b> boundary type and record whether the error would be fixed by normalisation, caught by validation, or need human review.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Label confusion, and when it's the schema's fault</h2>
+    <p class="sub">Similar fields get mixed up <span class="page">📖 PDF p. 428–429</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Gold label</th><th>Predicted as</th><th>Example</th><th>Impact</th></tr>
+    <tr><td>UNIT_PRICE</td><td>TOTAL_PRICE</td><td>"₹999 per item" vs "₹4,995"</td><td>Wrong pricing and margins</td></tr>
+    <tr><td>TOTAL_PRICE</td><td>DISCOUNT_AMOUNT</td><td>"Discount ₹500" taken as total</td><td>Billing and reconciliation errors</td></tr>
+    <tr><td>SELLER_NAME</td><td>SHIPPING_PROVIDER</td><td>"BlueDart" as seller</td><td>Wrong seller attribution</td></tr>
+    <tr><td>ORDER_ID</td><td>INVOICE_ID</td><td>"INV-44920" as order ID</td><td>Failed order matching</td></tr>
+    <tr><td>PRODUCT_NAME</td><td>PRODUCT_CATEGORY</td><td>"Footwear" instead of "Nike Air Max 270"</td><td>Inventory and catalogue errors</td></tr>
+  </table></div>
+
+  <div class="box trap"><span class="label">⚠️ Audit the schema before blaming the model</span>
+    If the schema has TOTAL_PRICE, ORDER_VALUE and PAYABLE_AMOUNT with no clear definitions, or SELLER/VENDOR/MERCHANT used inconsistently, confusion reflects <b>the labels</b>, not the model. Each label needs a clear definition, mutually exclusive boundaries, positive and negative examples, and rules for ambiguous cases.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Pick the fix from the diagnosis</span>
+    Formatting inconsistent → <b>prompt</b>. Labels overlap → <b>schema redesign</b>. Structured fields (prices, SKUs, dates, IDs) → <b>post-processing and validation</b>. Persistent domain-specific errors → <b>fine-tune</b>. Each fix has a measurable rerun target.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Robustness to noisy and adversarial text</h2>
+    <p class="sub">Measure the drop, per field <span class="page">📖 PDF p. 430–432</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📄 Document noise</h4><p>Scanning or conversion corruption → partial product names.</p></div>
+    <div class="tile red"><h4>🔢 Numeric corruption</h4><p>Missing decimals, misplaced commas, wrong currency, misread digits → wrong prices or tax.</p></div>
+    <div class="tile purple"><h4>🗂️ Layout variation</h4><p>Unusual field order, nested tables, columns → total vs line price confusion.</p></div>
+    <div class="tile orange"><h4>❓ Semantic ambiguity</h4><p>Similar field names → seller vs shipping provider.</p></div>
+    <div class="tile red"><h4>💉 Adversarial manipulation</h4><p>Embedded instructions, manipulated totals, misleading wording.</p></div>
+    <div class="tile teal"><h4>🔤 Homoglyphs</h4><p>Look-alike characters: "O" vs "0" in order IDs.</p></div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Clean-to-noisy F1 drop</span>
+<pre>drop = entity F1 on clean text − entity F1 on noisy text
+example: 0.91 − 0.76 = <span class="kw">0.15</span>
+per-field thresholds (from the book):
+  low-risk descriptive fields       drop ≤ 0.10
+  price, tax, order ID, invoice no.  drop &lt; 0.03, plus review on validation failure</pre>
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Noise adaptation</span>
+    If thresholds fail, fine-tune on <b>augmented</b> data: formatting variation, character corruption, missing delimiters, reordered fields, synthetic OCR errors, adversarial examples. Report clean and noisy scores, per-field drop, OCR-induced error rate, change in label confusion, and the share of noisy documents that still pass the gate.
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Downstream error propagation</h2>
+    <p class="sub">Errors don't stay in the model <span class="page">📖 PDF p. 432–433</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  O["📷 OCR misreads '₹1,299' as '₹1,799'"]:::orange --> N["🏷️ NER extracts PRICE = ₹1,799"]:::purple
+  N --> B["💳 Billing charges the wrong amount"]:::red
+  N --> R["📊 Reconciliation and analytics drift"]:::red
+  N --> C["📞 Customer support disputes"]:::red
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">➕ My illustration: OCR comes first in most document pipelines, so its errors flow into NER and then into business systems</div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Trace a sample of extraction errors to their <b>business outcome</b> (wrong charge, failed match, wrong category) and count frequency × impact. That turns model metrics into a risk report the business understands.
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>OCR and document understanding: modular or unified</h2>
+    <p class="sub">Evaluate by task, not by model ranking <span class="page">📖 PDF p. 433–437</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🧱 Modular pipeline</h4><p>OCR → layout parsing → key information extraction → validation, each evaluated separately. Better control, debugging and error isolation.</p></div>
+    <div class="tile purple"><h4>🧠 Unified multimodal model</h4><p>Recognition, layout, extraction and reasoning together. Good for complex visual documents, but must also be tested for grounding, field correctness and reasoning reliability.</p></div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Task</th><th>Typical metrics</th><th>Best for</th></tr>
+    <tr><td>Text recognition</td><td>CER, WER, transcription accuracy</td><td>Printed invoices, receipts, scans</td></tr>
+    <tr><td>Scene text</td><td>Detection and recognition accuracy, VQA accuracy</td><td>Packaging, labels, signage</td></tr>
+    <tr><td>Document VQA</td><td>Exact match, answer F1, grounding accuracy</td><td>Forms, invoices, PDFs</td></tr>
+    <tr><td>Key information extraction</td><td>Entity P/R/F1, field accuracy, schema validity</td><td>Enterprise document extraction</td></tr>
+    <tr><td>Layout understanding</td><td>Layout detection, table structure, cell accuracy, reading order</td><td>Complex PDFs, tables, columns</td></tr>
+    <tr><td>Multimodal reasoning</td><td>Answer accuracy, reasoning consistency, citation/grounding</td><td>Complex questions over documents</td></tr>
+    <tr><td>Handwriting</td><td>CER, WER, field accuracy</td><td>Forms, notes, prescriptions</td></tr>
+    <tr><td>Noisy inputs</td><td>Clean-to-noisy drop, per-field degradation</td><td>Low-quality uploads</td></tr>
+    <tr><td>End-to-end</td><td>Field accuracy, workflow completion, manual review, downstream errors</td><td>High-volume automation</td></tr>
+  </table></div>
+  <p class="muted">Record the exact model name, version, date and configuration in formal evaluations; capabilities change by version.</p>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Transcription accuracy and layout grounding</h2>
+    <p class="sub">Reading the text isn't enough; it must land in the right field <span class="page">📖 PDF p. 438–440</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🔤 Transcription</h4><p><b>CER</b> (character error rate) · <b>WER</b> (word error rate) · exact match · normalised field-level accuracy.</p></div>
+    <div class="tile purple"><h4>📐 Layout grounding</h4><p>Bounding-box <b>IoU</b> · field-to-region accuracy · <b>reading-order</b> accuracy · table-structure and cell accuracy.</p></div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ ➕ CER in one example</span>
+<pre>CER = (substitutions + deletions + insertions) ÷ characters in the reference
+reference "ORD-78421"  (9 characters)
+OCR       "ORD-7B421"  (8 read as B → 1 substitution)
+CER = 1 ÷ 9 ≈ <span class="kw">11%</span>   <span class="cm"># tiny for prose, fatal for an order ID</span></pre>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Layout decides meaning</span>
+    The same number can be a unit price, tax, discount or total. Common failures: values misaligned to the wrong field, misread tables, unit and total price mixed up. Fine-tuning should show lower CER/WER, better field-to-region accuracy, fewer table errors and a higher document pass rate on <b>unseen vendors and layouts</b>.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Image quality, latency and automation success</h2>
+    <p class="sub">Graceful degradation, production speed, fewer manual fixes <span class="page">📖 PDF p. 440–443</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile green"><h4>✅ Semantic-preserving</h4><p>Mild skew, compression, shadow: answers should stay the same.</p></div>
+    <div class="tile orange"><h4>📉 Information-destroying</h4><p>Severe blur, low resolution, cropping: expect <b>graceful</b> degradation, not invariance.</p></div>
+  </div>
+  <p class="muted">Test controlled levels (clean, mild blur, severe blur, low resolution, skew, compression, shadow, crop) and report the drop for transcription, layout grounding and extraction separately.</p>
+
+  <div class="grid">
+    <div class="tile blue"><h4>⏱️ Production gates</h4><p>p95 time per page · documents per hour · cost per document · GPU/CPU use · queue wait · <b>human-review backlog</b>. Account for page count, resolution, OCR and layout time, context length, batch size, hardware.</p></div>
+    <div class="tile purple"><h4>🏁 Automation success</h4><p><b>Document accuracy</b> = all required fields correct, validated and accepted downstream. <b>Automation success</b> = documents completed with no manual correction.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Release rule</span>
+    Move from experiment to production only when <b>automation success, manual-review rate, downstream error rate, latency and cost</b> all meet predefined thresholds.
+  </div>
+</section>
+
+<!-- ===== 13 ===== -->
+<section class="card" id="t13" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">13</div><div>
+    <h2>Case study: simulated vs real OCR→NER pipelines</h2>
+    <p class="sub">OCR quality is not a minor preprocessing detail <span class="page">📖 PDF p. 443–453</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 The setup</span>
+    Both pipelines run on the <b>FUNSD</b> forms dataset (labels: question, answer, header), orchestrated with LangChain, with code on GitHub. Modules: config, FUNSD loader, OCR model, NER model, orchestrator, metrics (CER, WER, exact match, labelled and unlabelled P/R/F1, span accuracy, label consistency, boundary/confusion analysis, document and automation success), evaluator and main runner.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th></th><th>🧪 Simulated OCR</th><th>📷 Real OCR</th></tr>
+    <tr><td>OCR step</td><td>None: uses the dataset's own text as "perfect OCR"</td><td>TrOCR (<code>trocr-base-printed</code>) reads the <b>whole page</b> in one go</td></tr>
+    <tr><td>NER step</td><td>LayoutLMv3 fine-tuned on FUNSD (layout-aware)</td><td>GLiNER medium v2.1 on flattened text (no layout, no boxes)</td></tr>
+    <tr><td>Results</td><td>CER/WER = 0 (by construction) · labelled F1 ≈ <b>0.43</b> · unlabelled F1 ≈ <b>0.65</b> · automation ≈ <b>0.70</b></td><td>OCR exact match 0.0 · very high CER/WER · labelled and unlabelled F1 = <b>0.0</b></td></tr>
+    <tr><td>Lesson</td><td>Isolates NER; the labelled vs unlabelled gap shows spans found roughly but labels often wrong</td><td>Bad OCR + lost layout + span misalignment = total NER collapse</td></tr>
+  </table></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  I["🖼️ Dense form image"]:::blue --> T["📷 TrOCR, whole page at once<br/>built for printed text lines"]:::orange
+  T --> X["🌫️ Very noisy text, layout lost"]:::red
+  X --> G["🏷️ GLiNER on flat text<br/>can't see question–answer positions"]:::purple
+  G --> S["📉 Character spans don't line up with gold<br/>F1 collapses to 0"]:::red
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+</pre>
+    <div class="caption">Why the real baseline fails: a strict pipeline with no fallback makes error propagation structural</div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Don't confuse a simulated baseline with real performance</span>
+    Perfect OCR scores in the simulated run are an artefact. Fixes for the real pipeline: <b>region- or line-level OCR</b>, <b>layout-aware extraction</b> (LayoutLM-style models using boxes), better text alignment, or document models that use visual structure.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Gold has 4 entities. The model predicts 3, of which 2 match exactly. Precision, recall, F1?</summary>
+      <div class="answer">Precision 2/3 ≈ 0.67, recall 2/4 = 0.50, F1 = 2×0.67×0.50 ÷ 1.17 ≈ 0.57.</div></details>
+    <details><summary>The model keeps labelling TOTAL_PRICE as ORDER_VALUE. Fine-tune first?</summary>
+      <div class="answer">No: audit the schema first. If labels overlap or are poorly defined, redesign the schema and guidelines; fine-tuning won't fix ambiguous labels.</div></details>
+    <details><summary>Your test set shows F1 0.96, but all test invoices come from vendors also in training. Ready to ship?</summary>
+      <div class="answer">Not proven: possible template leakage. Re-test on a hold-out split by vendor/template/time and a blind test set.</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🏷️ NER metrics: exact-span, partial overlap, token and <b>entity</b> P/R/F1, boundaries, label consistency, <b>document pass rate</b>.</li>
+    <li>⚖️ Severity-aware gates: minor boundary slips normalised; price, ID, tax errors → strict thresholds or review.</li>
+    <li>🧰 NER types: retrieval-augmented, label-conditioned (GLiNER), prompted LLMs, multilingual, domain, high-throughput, on-prem, hybrid.</li>
+    <li>🔍 Token F1 can hide incomplete fields; use entity-level exact-span F1 and field accuracy.</li>
+    <li>🧮 Worked example: P = 0.20, R = 0.25, F1 ≈ 0.22; each error maps to a fix.</li>
+    <li>🧪 Fine-tune only after failing gates; split by vendor/template/time; blind test set.</li>
+    <li>✂️ Boundary types: left/right truncation, over-extended, split, merged, wrong span with right label.</li>
+    <li>🔀 Label confusion: unit vs total price, seller vs shipper, order vs invoice ID; <b>audit the schema</b> first.</li>
+    <li>🌪️ Clean-to-noisy F1 drop per field (≤ 0.10 low-risk, &lt; 0.03 critical); homoglyphs and injected text too.</li>
+    <li>🌊 OCR errors propagate into NER and then into billing, inventory and analytics.</li>
+    <li>📷 OCR: CER/WER, bounding-box IoU, field-to-region, reading order, table cells.</li>
+    <li>🖼️ Preserve answers under harmless changes; degrade gracefully when information is destroyed.</li>
+    <li>🏁 Ship only when automation success, review rate, downstream errors, latency and cost all pass.</li>
+    <li>📉 Real TrOCR + GLiNER on FUNSD scored F1 = 0: use region OCR and layout-aware models.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: a mini lab</h2>
+    <p class="sub">Score an extraction model on your own receipts</p>
+  </div></div>
+  <ol>
+    <li>Take 10 receipts or order emails. Write the gold JSON for product, order ID, price, date, seller.</li>
+    <li>Ask an LLM to extract the same fields. Score entity-level P/R/F1 and classify every error by <b>boundary type</b> or <b>label confusion</b>.</li>
+    <li>Corrupt the text (swap O/0, drop decimals, reorder lines) and compute the <b>clean-to-noisy F1 drop</b> per field.</li>
+    <li>Photograph two receipts and run OCR; compute CER on the order ID and total.</li>
+    <li>Write gates: which fields need exact match, which can be normalised, which go to review.</li>
+  </ol>
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 2 and 5 (structured outputs, JSON) and Ch 4 (evaluation criteria) · this book Ch 4–5 (grounded invoice extraction) · next: Ch 10, evaluating <b>reasoning</b> LLMs.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>LLM Evaluation for Production Systems</i> (Ammar Mohanna, Packt) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
