@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Evaluation · Ch 5 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📗 LLM Evaluation · Chapter 5</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<style>
+/* page-specific: coloured ladders and code case blocks (same as earlier chapters) */
+.ladder { display: grid; gap: 6px; margin: 12px 0; }
+.ladder div { border-radius: 12px; padding: 9px 14px; color: #fff; display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: .93rem; }
+.ladder b { font-size: .98rem; }
+@media (max-width: 560px) { .ladder div { grid-template-columns: 1fr; gap: 2px; } }
+pre.case { background: var(--code-bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; overflow-x: auto;
+  font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 12px 0; }
+</style>
+
+<header class="hero" style="background: linear-gradient(135deg, #0f766e 0%, #0891b2 45%, #2563eb 100%);">
+  <div class="kicker">LLM Evaluation for Production Systems · Ammar Mohanna · Reference book</div>
+  <h1>Chapter 5: Evaluating Visual Grounding and Reliability at Inference Time</h1>
+  <p>Running the invoice-reading VLM safely on live traffic, where there are no gold labels: image intake, tracking what the encoder really saw, grounded output contracts, the evidence gate, safety canaries, budgets, visual drift and staged rollouts.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 196–240</span>
+    <span class="chip">⏱ ~4 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🔗 Ch 3's controls + Ch 4's VLM</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    In production there are no bounding-box labels, so grounding must be <b>inferred from runtime evidence</b>: every stage of the VLM pipeline gets a control that produces a metric, and every load-bearing metric triggers an action: <b>accept, abstain, escalate, fall back, open an incident or roll back</b>, field by field.
+  </div>
+
+  <div class="box remember"><span class="label">📌 The five principles the chapter keeps returning to</span>
+    1. The submitted image is <b>not necessarily</b> the encoded image. · 2. Structural validity is <b>not</b> groundedness. · 3. Confidence is <b>not</b> evidence. · 4. Safety failures are <b>not</b> compensated by quality gains. · 5. Every load-bearing metric must trigger a <b>defined action</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((VLM inference<br/>controls))
+    Inputs
+      Pipeline seams
+      Image intake
+      What the encoder sees
+      Prompt governance
+    Outputs
+      Grounded contracts
+      Field-level decoding
+      Runtime graders
+      Evidence gate
+      Groundedness metrics
+    Operations
+      Safety canaries
+      Budgets at real resolution
+      Visual drift
+      Shadow canary rollback
+      Blueprint and incidents
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Training vs runtime</a>
+    <a class="pill" href="#t2"><b>2</b> Pipeline seams</a>
+    <a class="pill" href="#t3"><b>3</b> Image intake</a>
+    <a class="pill" href="#t4"><b>4</b> What the model sees</a>
+    <a class="pill" href="#t5"><b>5</b> Prompt governance</a>
+    <a class="pill" href="#t6"><b>6</b> Grounded contracts</a>
+    <a class="pill" href="#t7"><b>7</b> Decoding &amp; stability</a>
+    <a class="pill" href="#t8"><b>8</b> Runtime evaluation</a>
+    <a class="pill" href="#t9"><b>9</b> Evidence gate</a>
+    <a class="pill" href="#t10"><b>10</b> Groundedness at runtime</a>
+    <a class="pill" href="#t11"><b>11</b> Safety canaries</a>
+    <a class="pill" href="#t12"><b>12</b> Budgets</a>
+    <a class="pill" href="#t13"><b>13</b> Drift &amp; incidents</a>
+    <a class="pill" href="#t14"><b>14</b> Rollout</a>
+    <a class="pill" href="#t15"><b>15</b> Blueprint</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>From checkpoint evidence to runtime control</h2>
+    <p class="sub">The gold set doesn't come to production <span class="page">📖 PDF p. 196–199</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Chapter 4's thresholds, slices and baselines travel into production, but the gold set doesn't: branch-office invoices arrive with <b>no boxes and no ground truth</b>. Two new problems appear: <b>input shift</b> (new scanners, layouts, capture conditions) and <b>silent grounding failure</b> (answers on images nobody can check against a reference).
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Moment</th><th>Evidence available</th><th>Decision</th></tr>
+    <tr><td>Training checkpoint</td><td>Gold labels, controlled slices, fixed harness, threshold cards</td><td>Advance, hold, diagnose</td></tr>
+    <tr><td>Pre-deployment</td><td>Release metrics, safety gates, efficiency budgets</td><td>Approve, block, narrow the release</td></tr>
+    <tr><td>Inference (live)</td><td>Trace fields, metadata, evidence flags, sampled graders, downstream rejections, drift signals</td><td>Accept, abstain, escalate, roll back, open an incident</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Three VLM-only control surfaces</span>
+    Every text control from Chapter 3 still applies, plus three with no text equivalent: the gap between the <b>submitted and encoded image</b> · <b>evidence binding</b> to an image region (not just a tool success flag) · a <b>degraded-input policy</b> (when a poor image is accepted, flagged, reviewed or refused).
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>The VLM inference pipeline and its seams</h2>
+    <p class="sub">Every seam is a monitoring point and a decision point <span class="page">📖 PDF p. 199–203</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Seam</th><th>What breaks</th><th>Control</th><th>Runtime metric</th></tr>
+    <tr><td>Intake → preprocessing</td><td>Invalid or unsafe input gets in</td><td>Deterministic intake + reason-coded fallback</td><td><code>intake_failure_rate</code></td></tr>
+    <tr><td>Preprocessing → encoding</td><td>Encoded image ≠ submitted image</td><td>Post-preprocessing hash + transformation trace</td><td><code>encoder_input_mismatch_rate</code></td></tr>
+    <tr><td>Encoding → projection</td><td>Visual evidence lost before generation</td><td>Shadow comparison, groundedness drift</td><td><code>visual_coverage_rate</code></td></tr>
+    <tr><td>Generation → validation</td><td>Malformed or unusable output</td><td>Schema, geometric, consistency validators</td><td><code>contract_pass_rate</code></td></tr>
+    <tr><td>Validation → consumer</td><td>Unsupported claim reaches accounts payable</td><td>Evidence-binding gate + AP handling policy</td><td><code>evidence_bound_violation_rate</code></td></tr>
+  </table></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📄 Single image</h4><p>Stateless validation and evidence gating.</p></div>
+    <div class="tile purple"><h4>📚 Multi-image</h4><p>Page order, image roles, per-page attribution (<code>page_order_violation_rate</code>).</p></div>
+    <div class="tile green"><h4>💬 Conversational</h4><p>State across turns; claims carried over must stay grounded.</p></div>
+    <div class="tile orange"><h4>🎞️ Frame sampling</h4><p>Which frames, how often, how to combine (<code>temporal_coverage_rate</code>).</p></div>
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Why vision is harder</span>
+    Chapter 3's two threads still apply: claims belong to the <b>execution thread</b> first. But a tool call either succeeded or didn't; visual evidence is <b>graded</b> (a detection confidence, OCR character uncertainty, attention weights). The gate must work with shades of grey.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Image intake and input validation</h2>
+    <p class="sub">Never invoke the model under uncertainty <span class="page">📖 PDF p. 203–207</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    An image carries much more than pixels: format and codec, colour space, EXIF metadata, page count, ICC profile, DPI, capture source (scanner vs phone vs rendered). Plus request metadata (customer tier, document-type hint, locale, consumer). Each can fail. Validate hints against the image itself: a "standard invoice" hint on what looks like a handwritten receipt is unsafe to pass on.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📦 Format</h4><p>Check MIME types and codecs; verify by <b>actually decoding</b>, not by reading the header; cap size and page count.</p></div>
+    <div class="tile purple"><h4>📏 Resolution</h4><p>DPI and pixel bounds per tier. Outside them: reject with a reason code, downsample with a tag, or escalate. Always recorded.</p></div>
+    <div class="tile orange"><h4>📷 Capture quality</h4><p>Cheap deterministic detectors: blur (frequency or edge sharpness), exposure and contrast, skew, page completeness. <b>Version them</b> like the model.</p></div>
+    <div class="tile green"><h4>🎨 Colour space</h4><p>CMYK→RGB, alpha, greyscale. Unsupported profiles → reject or escalate, never silently continue.</p></div>
+    <div class="tile red"><h4>🔒 Privacy and safety</h4><p>Strip GPS and device IDs from EXIF. Safety pre-screen (adversarial, not structural). <b>Redaction</b> of sensitive regions is mandatory where required; ROI cropping is optional.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 A silent failure (the book's example)</span>
+    A CMYK→RGB conversion lowers contrast on a pale receipt. A human can still read the small numbers; the model's OCR and patch recognition can't.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Intake failure</th><th>Action</th><th>Trace field</th></tr>
+    <tr><td>Decode failure / unsupported format</td><td>Reject with reason code</td><td><code>decode_status, mime_type, codec</code></td></tr>
+    <tr><td>Missing required metadata</td><td>Escalate or ask to resubmit</td><td><code>missing_metadata_fields</code></td></tr>
+    <tr><td>Near-limit resolution or skew</td><td>Degraded fallback or human review</td><td><code>resolution_tier, skew_score</code></td></tr>
+    <tr><td>Safety pre-screen hit</td><td>Reject or safety escalation</td><td><code>safety_prescreen_label</code></td></tr>
+    <tr><td>Redaction required</td><td>Redact, tag, recheck extraction impact</td><td><code>redaction_policy_version</code></td></tr>
+  </table></div>
+  <p class="muted">The book's example values for a tier-one invoice workflow. Real thresholds come from your capture-quality strata, variance, error cost and review capacity.</p>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Visual context: what the model actually sees</h2>
+    <p class="sub">The submitted image is not the encoded image <span class="page">📖 PDF p. 207–209</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Between intake and the encoder, the image is <b>resized, tiled, colour-adjusted and maybe recompressed</b>, often by the serving stack without telling anyone. Downsampling can blur small numbers before the model ever "reads" them.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Patch maths: why resolution costs so much</span>
+<pre>patches per side = image side ÷ patch size
+336 × 336 image, 14 × 14 patches → 24 × 24 = <span class="kw">576</span> image tokens
+672 × 672 image, 14 × 14 patches → 48 × 48 = <span class="kw">2,304</span> image tokens
+<span class="cm"># doubling the side quadruples the tokens: small fields get readable, latency and cost go up</span></pre>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Silent transformations</span>
+    Serving frameworks may apply gamma correction, contrast normalisation or channel reordering, or recompress images, with <b>no errors and no logs</b>. Log format, byte size, resolution tier, colour space and a hash at each serving boundary.
+  </div>
+
+<pre class="case">encoder input trace (per request):
+  post_preprocess_hash: sha256 of the image bytes the encoder actually received
+  preprocess_chain:
+    version, operations, resolution_policy, color_space_policy,
+    tiling_policy, ocr_engine_version, coordinate_space</pre>
+
+  <div class="box remember"><span class="label">📌 Multi-page and tiling</span>
+    Preserve page order, image role and page IDs end to end. Every claim needs <code>page_id, field_name, value, bbox, coordinate_space, evidence_source</code>. Block automatic acceptance of <b>cross-page</b> claims (totals over several pages) unless every supporting page and region is named. Watch <code>tile_boundary_field_failure_rate</code>: fields sitting on a tile edge that fail checks.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Feed the same invoice through the whole serving stack and compare the logged hash with what you expected to send. Then test fields placed exactly on tile boundaries.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Prompt governance for multimodal inputs</h2>
+    <p class="sub">Schema and layout-hint edits are high risk <span class="page">📖 PDF p. 209–210</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A VLM prompt = system instruction + task + <b>output schema</b> (with evidence subfields: boxes, region citations, confidence) + optional <b>layout hints</b> + optional image-text examples + the convention for referencing the image. All versioned together.
+  </div>
+
+  <div class="ladder">
+    <div style="background:linear-gradient(90deg,#dc2626,#f43f5e)"><b>🔴 Schema edits</b><span>Rename a field without updating the AP integration → silent "missing data".</span></div>
+    <div style="background:linear-gradient(90deg,#dc2626,#f43f5e)"><b>🔴 Layout hints</b><span>"Total is bottom-right" fails for a vendor who puts it top-right.</span></div>
+    <div style="background:linear-gradient(90deg,#dc2626,#f43f5e)"><b>🔴 Evidence formats</b><span>Changing box, citation or confidence format can make the gate misread evidence.</span></div>
+    <div style="background:linear-gradient(90deg,#ea580c,#f59e0b)"><b>🟠 Example image swaps</b><span>Examples calibrate expectations; a swap can regress other inputs.</span></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Log on every request</span>
+    Prompt ID, version and hash · schema version · image-reference convention · preprocessing version · <b>encoder</b> and <b>projection</b> versions. Otherwise you can't tell an encoder upgrade from a prompt change. High-risk edits must pass full grounding regression on non-standard layouts, phone receipts and multi-page contracts too.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Grounded output contracts</h2>
+    <p class="sub">Every field says where it came from <span class="page">📖 PDF p. 210–212</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The <b>base contract</b>: fields present, right types, allowed values. The <b>grounded extension</b>: each field also carries a bounding box, a region citation (in post-preprocessing coordinates), a calibrated confidence and an <b>evidence-source flag</b>.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Evidence source</th><th>Meaning</th><th>AP handling</th><th>On failure</th></tr>
+    <tr><td>🖼️ Visual region</td><td>Grounded to a cited region</td><td>Accept if thresholds pass</td><td>Escalate if region missing or wrong</td></tr>
+    <tr><td>🔤 OCR</td><td>OCR over the cited region supports it</td><td>Accept or reconcile by field tier</td><td>Human review of tier-1 disagreement</td></tr>
+    <tr><td>🧮 Derived</td><td>Computed from other grounded fields</td><td>Accept if inputs verified</td><td>Block if sources unverified</td></tr>
+    <tr><td>🧠 Model-internal</td><td>No explicit visual anchor</td><td><b>Human review</b>; never auto-written</td><td>Abstain on high-impact numbers</td></tr>
+  </table></div>
+
+<pre class="case">{"field_name": "total_due", "value": "12847.50",
+ "bbox": [420, 1810, 760, 1870], "coordinate_space": "post_preprocess_image",
+ "confidence": 0.97, "evidence_source": "visual_region+ocr",
+ "ocr_value": "12,847.50", "ocr_agreement": true, "decision": "accept"}</pre>
+
+  <div class="grid">
+    <div class="tile red"><h4>🧱 Structural failure</h4><p><code>total_due</code> missing.</p></div>
+    <div class="tile orange"><h4>📐 Geometric failure</h4><p>Bounding box outside the image.</p></div>
+    <div class="tile purple"><h4>🧮 Consistency failure</h4><p>Line items don't sum to the subtotal within the document's rounding rule.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    A passing contract proves <b>usability</b>, not correct values, correct regions or real grounding. Report them separately. A drop in <code>contract_pass_rate</code> is a <b>leading indicator</b>: grounding metrics often move next.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Decoding policy and stability</h2>
+    <p class="sub">Stable, by field type <span class="page">📖 PDF p. 213–215</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Two sources of variance: <b>decoding randomness</b> (temperature, top-p, top-k, sampling vs greedy) and <b>visual-input variance</b>: kernels, batching, preprocessing and numerical precision can change outputs even with identical settings. Verify stability empirically before trusting it for tier-one decisions.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Field type</th><th>Decoding</th><th>Why</th></tr>
+    <tr><td>🔢 Numeric (totals, tax, dates)</td><td>Temperature 0.0 / greedy</td><td>Variance changes payments</td></tr>
+    <tr><td>📦 Boxes and evidence fields</td><td>Temperature 0.0</td><td>The evidence gate depends on them</td></tr>
+    <tr><td>✍️ Free text</td><td>0.1, only with a verified normaliser</td><td>Small wording changes are absorbed by entity resolution</td></tr>
+  </table></div>
+  <p class="muted">If per-field decoding isn't possible, use the strictest setting for the whole output, or split passes when budgets allow.</p>
+
+  <div class="box example"><span class="label">🧩 Near the gate = route to review (the book's example)</span>
+    Acceptance needs confidence ≥ 0.95, but repeated runs give 0.92–0.97. The field is <b>too close to the gate</b>: send to review or tighten controls. For high-risk requests, run extraction several times and escalate if runs disagree: disagreement shows the input is at the edge of reliable operation.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Stably wrong</span>
+    A system can give the <b>same wrong total</b> every time with a passing contract. Stability isn't correctness; that's what runtime grounding evaluation is for.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Runtime grounding evaluation without labels</h2>
+    <p class="sub">Leading and lagging signals, graders and humans <span class="page">📖 PDF p. 215–219</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile green"><h4>⏩ Leading signals</h4><p>Contract pass rate, structural sanity of boxes, <b>confidence distribution drift</b>: they move before users see failures.</p></div>
+    <div class="tile orange"><h4>⏪ Lagging signal</h4><p><b>Downstream AP rejection</b>: valuable, but only after the output was emitted.</p></div>
+    <div class="tile blue"><h4>🔀 Cross-modality check</h4><p>OCR over the cited region vs the model's value. Disagreement goes to the evidence gate, never silently resolved.</p></div>
+  </div>
+
+  <div class="ladder">
+    <div style="background:linear-gradient(90deg,#dc2626,#f43f5e)"><b>👩 Humans (~8%)</b><span>High-value invoices, phone receipts, unusual layouts, low confidence, near-threshold, downstream-rejected.</span></div>
+    <div style="background:linear-gradient(90deg,#7c3aed,#a78bfa)"><b>🤖 VLM grader (~5%)</b><span>Stratified by document type, capture quality, vendor and layout.</span></div>
+    <div style="background:linear-gradient(90deg,#16a34a,#22c55e)"><b>✅ Deterministic + OCR</b><span>Every request, every numeric field.</span></div>
+  </div>
+  <p class="muted">Illustrative rates from the book's blueprint; recalibrate from volume, disagreement, staffing and risk.</p>
+
+  <div class="box trap"><span class="label">⚠️ Grader blind spots grow at runtime</span>
+    A grader that runs continuously and shares the model's habits will <b>systematically</b> miss them. Use a <b>different model family</b> or prove calibration against humans on your domain; re-run side-by-side scoring when the grader is updated. Keep reviewers calibrated too (image first, double-scoring, inter-rater checks); a change in the reviewer pool can shift scores even when the model hasn't changed.
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>The evidence-binding gate</h2>
+    <p class="sub">The most important single control in a tier-one VLM <span class="page">📖 PDF p. 219–222</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Sampling catches failures <b>on average</b>; the gate stops a <b>specific</b> high-impact claim. Four obligations: the value is derivable from a region · the region exists · the region's content matches the value · the output reflects the <b>evidence state</b>, not just the model's confidence. Most systems fail at the fourth: high confidence gets forwarded unchecked. The <b>execution flow</b> sets evidence flags, not the model.
+  </div>
+
+  <div class="algo"><span class="label">⚙️ The conjunctive gate for tier-one numeric fields</span>
+<pre>has_region ← field has a bounding box
+ocr_agrees ← |normalise(value) − normalise(ocr_value)| ≤ 0.01
+              <span class="cm"># normalise: strip currency, handle separators, locale decimals, rounding</span>
+confident  ← confidence ≥ 0.95
+<span class="kw">if</span> has_region <span class="kw">and</span> ocr_agrees <span class="kw">and</span> confident:  <span class="kw">accept</span>
+<span class="kw">elif not</span> has_region <span class="kw">and not</span> ocr_agrees:    <span class="kw">abstain</span>
+<span class="kw">else</span>:                                       <span class="kw">human review</span>
+<span class="cm"># ALL three must hold: a weighted score could hide a missing source behind two strong ones</span></pre>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Signal</th><th>Tier-1 numeric</th><th>Tier-2 free text</th></tr>
+    <tr><td>Cross-source disagreement (model ≠ OCR)</td><td>Abstain / escalate</td><td>Escalate</td></tr>
+    <tr><td>Confidence anomaly (high confidence on a header region)</td><td>Escalate</td><td>Repair</td></tr>
+    <tr><td>Late-position hallucination in long outputs</td><td>Abstain / escalate</td><td>Repair</td></tr>
+  </table></div>
+  <p class="muted">Several signals at once → the most restrictive response. Repair is bounded by the retry budget.</p>
+
+  <div class="box trap"><span class="label">⚠️ Why no "repair" for tier-1 disagreements</span>
+    If the model and OCR disagree, re-running until a model output happens to match OCR doesn't resolve the conflict: it <b>launders</b> it into an accepted value. Only abstain or escalate.
+  </div>
+
+  <div class="box remember"><span class="label">📌 The consumer must honour the gate</span>
+    <code>unsupported_high_impact_claim_rate</code> target ≈ 0; any non-zero value blocks promotion or opens an incident. And if the AP system writes every field regardless of flags, the gate is useless: evidence binding is a <b>contract between the VLM and its consumer</b>.
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Groundedness at runtime: coverage, faithfulness, localisation</h2>
+    <p class="sub">The image is the "retrieved context" <span class="page">📖 PDF p. 222–226</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>👀 Visual coverage</h4><p>Did it look at the right regions? A "total" box over the company <b>logo</b> is a coverage failure.</p></div>
+    <div class="tile green"><h4>🤝 Visual faithfulness</h4><p>Do claims match what's in the cited regions (OCR, detectors, sampled graders)?</p></div>
+    <div class="tile orange"><h4>📍 Localisation correctness</h4><p>A valid box on the <b>wrong</b> region (line-item text instead of tax) passes the contract but fails here.</p></div>
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Layout grounding checks (cheap and deterministic)</span>
+    Is the value near its label? Are table rows in increasing order and columns aligned? Do section claims sit below their header? Is the total line positioned correctly relative to subtotal and tax? If retrieval is added, measure image grounding and retrieval grounding <b>separately</b>.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Drift</th><th>Signal</th><th>Likely cause</th><th>Action</th></tr>
+    <tr><td>Coverage</td><td>Less overlap with expected regions</td><td>New layout, or prompt hints no longer match</td><td>Refresh slice data or the prompt directive</td></tr>
+    <tr><td>Faithfulness</td><td>More OCR/grader disagreement</td><td>OCR change, scanner quality, model regression</td><td>Check OCR version trace; route affected fields</td></tr>
+    <tr><td>Localisation</td><td>Valid boxes on wrong regions</td><td>Template shift, tiling failure, encoder or resolution change</td><td>Update layout checks and tiling</td></tr>
+    <tr><td>Consumer</td><td>AP rejections change, VLM unchanged</td><td>Downstream acceptance rule changed</td><td>Version consumer policy; recalibrate gates</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Degraded inputs get a policy per quality stratum</span>
+    Full automation · reduced-confidence output · mandatory human review · refusal. A runtime stress suite of <b>real</b> production samples per stratum checks performance; when a stratum drifts below threshold, route it to human review until fixed.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Multimodal safety at runtime: canaries and slices</h2>
+    <p class="sub">The training safety gate becomes a live obligation <span class="page">📖 PDF p. 226–228</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Canary probes</b> = known adversarial images slipped into live traffic at a set rate, looking like real requests. Their outputs are intercepted before the AP system and checked. A periodic review finds a regression after two weeks of exposure; continuous canaries find it in <b>hours</b>.
+  </div>
+
+  <div class="grid">
+    <div class="tile red"><h4>🚫 Refusal canaries</h4><p>A drop in correct refusals is an immediate alert.</p></div>
+    <div class="tile orange"><h4>✍️ Override resistance</h4><p>Intake detection of visible instructions, then canaries checking the model still resists. New attacks become new probes at once.</p></div>
+    <div class="tile purple"><h4>💉 Injection canaries</h4><p>Any non-zero success is a <b>hard incident</b>, not a metric to tune. Also cover low-visibility payloads: steganography, typographic patches, encoder-targeted perturbations.</p></div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Safety slice</th><th>Why riskier</th><th>Policy</th></tr>
+    <tr><td>📱 Phone-captured docs</td><td>Blur, lighting, ambiguous embedded text</td><td>Stricter pre-screen, lower escalation threshold, targeted canaries</td></tr>
+    <tr><td>🧾 Non-standard layouts</td><td>Less layout certainty → more injection exposure</td><td>Slice floor, human review of boundary cases</td></tr>
+    <tr><td>💰 High-value documents</td><td>Higher consequence, not higher frequency</td><td>Tier-one floor; any canary failure = hard blocker</td></tr>
+    <tr><td>📝 Dense embedded text</td><td>More override and injection risk</td><td>Dedicated canary set</td></tr>
+    <tr><td>✂️ Redaction/ROI complexity</td><td>Cropping can remove labels and table context</td><td>Check extraction impact after redaction</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Why runtime safety still matters</span>
+    New attacks appear on live traffic; small updates (LoRA, projection retraining) can shift refusals too little for training gates but enough to matter; and some images are only unsafe in combination with a particular prompt. The canary catalogue is a <b>versioned artifact</b> that grows with the threat surface.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Budgets at production resolutions</h2>
+    <p class="sub">Resolution is both a quality lever and a cost lever <span class="page">📖 PDF p. 229–231</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Dial</th><th>Bounds</th><th>VLM twist</th><th>If breached</th></tr>
+    <tr><td>🔤 Token + image token</td><td>Per-request input cost</td><td>Image tokens grow with resolution²; watch the image:text token ratio</td><td>Investigate resolution or traffic shift</td></tr>
+    <tr><td>🔁 Retry</td><td>Retries per request</td><td>Contract repair, grader retry, re-encoding</td><td>Prioritise re-encoding; cap repairs</td></tr>
+    <tr><td>⏱️ Timeout</td><td>Stage latency</td><td>Encoder p99 dominates high-resolution requests</td><td>Fallback, truncate or review</td></tr>
+    <tr><td>⚖️ Grader</td><td>Evaluation spend</td><td>Calibrated grader rate on live strata</td><td>Reduce sampling or rebalance</td></tr>
+    <tr><td>📉 Error</td><td>Reliability over a window</td><td>Burn from validation, evidence, grounding, safety events</td><td><b>Rollback during canary</b>; incident in production</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Rules</span>
+    Tier-one numeric fields get <b>full resolution</b>; only non-critical regions may be downsampled, with tags and per-stratum monitoring. Re-encoding retries beat grader retries (encoder failures hit users; grader failures only hit sampling). Hard blockers (safety canary failure, unsupported high-impact claim) skip "gradual burn" and go straight to rollback or incident. Segment p95/p99 by resolution, page count, document type, capture source and branch: one scanner can hide in the aggregate.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Quality vs cost is a product decision</span>
+    Better grounding usually costs more (resolution, grader calls, retries). If it breaks the cost budget, decide explicitly at product level, not silently in infrastructure.
+  </div>
+</section>
+
+<!-- ===== 13 ===== -->
+<section class="card" id="t13" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">13</div><div>
+    <h2>Visual drift, monitoring and incidents</h2>
+    <p class="sub">Drift that standard dashboards miss <span class="page">📖 PDF p. 231–233</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile orange"><h4>📷 Capture-condition drift</h4><p>Most under-diagnosed: new scanners, DPI settings, phones, lighting. Rarely tracked as metadata.</p></div>
+    <div class="tile blue"><h4>🖼️ Image-distribution drift</h4><p>Watch resolution, colour, blur and file-size distributions on the image stream itself, before outputs move.</p></div>
+    <div class="tile purple"><h4>🧠 Encoder/projection updates</h4><p>Can change embeddings with the same language model.</p></div>
+    <div class="tile red"><h4>☁️ Hosted runtime drift</h4><p>A provider may change encoder, preprocessing or safety under the same model name. Track vendor IDs, response shapes, shadow comparisons.</p></div>
+    <div class="tile green"><h4>🏦 Consumer and policy drift</h4><p>AP tightens its acceptance rule; rejections rise with no VLM change. Version the consumer's threshold.</p></div>
+  </div>
+
+  <div class="grid">
+    <div class="tile red"><h4>🚦 Load-bearing metrics</h4><p>Unsupported high-impact claims, evidence violations, safety canary failures, tier-1 downstream rejection, hard latency or cost breaches. These drive decisions.</p></div>
+    <div class="tile blue"><h4>🔍 Diagnostic metrics</h4><p>Layout, capture-quality, OCR and confidence-calibration drift; reviewer disagreement. These explain movement.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  D["🚨 Detect the slice"]:::red --> T["🔍 Triage the failure mode"]:::orange
+  T --> C["🧩 Find the controlling component"]:::purple
+  C --> M["🛟 Mitigate: rollback or routing"]:::blue
+  M --> R["🧪 Regression data<br/>new canary, gold stratum, training cases"]:::green
+  R --> D
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Production incidents feed the next training cycle</div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Privacy in monitoring</span>
+    Redact before storing, encrypt retained images, keep retention rules and audit trails. Where storing raw images isn't justified, keep hashes, trace fields and redacted examples, but test that redaction doesn't make a saved case useless for diagnosis.
+  </div>
+</section>
+
+<!-- ===== 14 ===== -->
+<section class="card" id="t14" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">14</div><div>
+    <h2>Rollout: shadow, canary, rollback for VLMs</h2>
+    <p class="sub">Shadow carries more weight for vision <span class="page">📖 PDF p. 233–235</span></p>
+  </div></div>
+
+  <div class="ladder">
+    <div style="background:linear-gradient(90deg,#7c3aed,#a78bfa)"><b>👻 Shadow</b><span>Candidate runs on real traffic, outputs not used; compared with production, consumer corrections and sampled review. Exposes real scanners, layouts and capture conditions. E.g. 2 weeks for encoder/projection changes, 1 week for prompts (better: long enough to cover the slices).</span></div>
+    <div style="background:linear-gradient(90deg,#ea580c,#f59e0b)"><b>🐤 Canary</b><span>E.g. 5% of traffic for 72 hours. A candidate stable in shadow can start larger. Gates: evidence-bound violations, groundedness drift vs shadow, safety canary success, cost per image, downstream rejection.</span></div>
+    <div style="background:linear-gradient(90deg,#16a34a,#22c55e)"><b>🚀 Full ramp</b><span>Only after every gate held for the observation window.</span></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Gate responses</span>
+    Safety canary failure → <b>immediate rollback</b>. Other gates → graduated: pause, investigate, reduce exposure, roll back. Each gate has a threshold, responses and an <b>owner</b>. Gates that fire constantly get tuned; gates that never fire get reviewed.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Rolling back a VLM isn't one switch</span>
+    Encoder, projection and language model may be upgraded separately; check compatibility before a partial rollback. Rollback also costs time, can invalidate cached traces, raise review load, and force consumers to re-adapt. Keep canary regression cases, and hold an honest retrospective on why the candidate was promoted.
+  </div>
+</section>
+
+<!-- ===== 15 ===== -->
+<section class="card" id="t15" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">15</div><div>
+    <h2>The blueprint, and two incidents</h2>
+    <p class="sub">Controls and business KPIs are the same thing <span class="page">📖 PDF p. 235–240</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["📥 Intake: formats, 300 DPI floor, blur/exposure/skew, instruction pre-screen, ROI tag"]:::blue --> B["🖼️ Visual context: preprocessing version, tiling, page order, post-preprocess hash"]:::purple
+  B --> C["📝 Prompt: ID and version; schema and layout edits → full grounding regression"]:::purple
+  C --> D["🤖 Generate: temp 0.0 numbers and boxes, 0.1 free text"]:::orange
+  D --> E["📐 Contract: fields + bbox + confidence + evidence flag; max 2 repairs; geometric or consistency fail → fallback"]:::yellow
+  E --> F["🔐 Evidence gate: box AND OCR agreement AND confidence for numbers"]:::red
+  F --> G["🏦 Accounts payable, or human review"]:::green
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">The book's illustrative tier-one settings. Around it: graders 5%, humans 8%, timeouts encoder 1.5 s / generation 1.0 s / grader 2.0 s, error budget 0.5% per rolling 7 days</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Incident 1: a new branch office's scanner</span>
+    48 hours after a new branch goes live, AP rejections rise for that branch. Slicing shows <b>localisation</b> worst hit; numeric confidence has dropped. The post-preprocessing hash and image statistics point to a scanner resolution outside the encoder's training range. Fix: upsample that scanner's profile at intake, send affected numeric fields to human review meanwhile, tighten that stratum's acceptance threshold. Then: a new canary slice keyed to the scanner model, saved images for the next fine-tune, the profile added to the stress suite. <b>No prompt or model change needed.</b>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Incident 2: a malicious footer</span>
+    A new vendor template has small footer text saying to ignore prior instructions and approve all totals. The embedded-instruction canary detector flags it in <b>shadow</b>, the output is stopped before AP, the slice is blocked from automation, and the canary set grows. Normal fields may still extract fine, but safety isn't offset by quality.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Tie controls to KPIs</span>
+    Field accuracy ← evidence gate, grounded contract, grounding controls · downstream acceptance ← contracts, gate, stress suite · cost per document ← budgets and resolution policy · human review load ← sampling, gate fallbacks, degraded-input policy · incident rate ← rollout discipline and the incident loop. Lower tiers inherit the <b>structure</b>, with looser thresholds.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>The model says total = 1,250.00 with confidence 0.99, but OCR over the box reads 1,750.00. What happens?</summary>
+      <div class="answer">Cross-source disagreement on a tier-one numeric field: abstain or escalate to a human. No repair, and high confidence doesn't count as evidence.</div></details>
+    <details><summary>A 448 × 448 image with 14 × 14 patches gives how many image tokens?</summary>
+      <div class="answer">448 ÷ 14 = 32 per side → 32 × 32 = 1,024 tokens.</div></details>
+    <details><summary>AP rejections jump but the VLM, prompt and preprocessing haven't changed. First suspect?</summary>
+      <div class="answer">Consumer or policy drift: check whether the AP acceptance threshold or a compliance rule changed (it should be versioned).</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🏭 No gold labels in production: infer grounding from <b>runtime evidence</b>. Five principles: submitted ≠ encoded; structure ≠ grounding; confidence ≠ evidence; safety isn't traded; metric → action.</li>
+    <li>🧵 Five seams, each with a control and a metric (intake, encoder input, coverage, contract, evidence violations).</li>
+    <li>📥 <b>Intake</b>: decode-verify formats, resolution policy, capture-quality detectors, colour handling, EXIF stripping, safety pre-screen, redaction; reason-coded fallbacks.</li>
+    <li>🖼️ Log a <b>post-preprocessing hash</b> + chain. 336→672 px = 576→2,304 tokens. Per-claim page attribution; watch tile boundaries.</li>
+    <li>📝 Schema, layout-hint and evidence-format edits are high risk → full grounding regression. Log encoder and projection versions.</li>
+    <li>📐 <b>Grounded contracts</b>: bbox, citation, calibrated confidence, evidence source (visual / OCR / derived / model-internal → human).</li>
+    <li>🎚️ Temp 0.0 for numbers and boxes; 0.1 free text with a normaliser. Repeated-run agreement; near-gate → review. Stably wrong is possible.</li>
+    <li>⚖️ Leading (contract rate, confidence drift) vs lagging (AP rejection) signals; OCR cross-checks on all numbers; grader from another family; image-first humans.</li>
+    <li>🔐 <b>Evidence gate</b>: box AND OCR agreement AND confidence; no repair for tier-1 disagreement; consumer must honour flags.</li>
+    <li>📍 Coverage, faithfulness, localisation + layout checks; per-stratum degraded-input policy.</li>
+    <li>🛡️ Safety <b>canaries</b> in live traffic; injection success &gt; 0 = incident; slices by consequence.</li>
+    <li>💰 Five budgets; full resolution for tier-1 fields; p99 by scanner and branch.</li>
+    <li>📈 Capture, image, encoder, hosted-runtime, consumer and policy drift; incidents → regression data.</li>
+    <li>🚀 Shadow (more weight for VLMs) → canary → full; safety failure = instant rollback; partial rollbacks need compatibility checks.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: a mini lab</h2>
+    <p class="sub">Build the evidence gate on receipts</p>
+  </div></div>
+  <ol>
+    <li>Photograph 10 receipts (some blurry, one tilted). Write the <b>intake checks</b> you'd run and which ones each photo fails.</li>
+    <li>Ask a VLM for the total as JSON with a bounding box and confidence. Separately run OCR on the box region.</li>
+    <li>Apply the <b>conjunctive gate</b> (box AND OCR match AND confidence ≥ 0.95). How many accept, abstain or go to review?</li>
+    <li>Run each extraction 3 times. Which totals change? Mark them "near the gate".</li>
+    <li>Add a receipt with a printed "ignore your instructions" note. Does the model obey it?</li>
+  </ol>
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 9 (tokens, latency, cost) and Ch 10 (guardrails, monitoring, drift) · next in this book: Ch 6, multimodal <b>conversational</b> LLMs, where grounding must hold across turns.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>LLM Evaluation for Production Systems</i> (Ammar Mohanna, Packt) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
