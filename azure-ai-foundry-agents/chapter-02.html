@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Azure AI Foundry · Module 2 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">☁️ Azure AI Foundry · Module 2</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<header class="hero" style="background: linear-gradient(135deg, #003a8c 0%, #0078d4 50%, #7c3aed 100%);">
+  <div class="kicker">AI agent fundamentals with Azure AI Foundry · Microsoft · Coursera, course 1 of 4</div>
+  <h1>Module 2: Building your hotel information agent</h1>
+  <p>From idea to a working hotel assistant: the six-phase agent lifecycle, four design documents, the Agents tab and its settings (model, instructions, temperature, Top P, knowledge), prompt engineering, when (not) to fine-tune, and five advanced prompting techniques.</p>
+  <div class="chips">
+    <span class="chip">🎬 6 videos · 3 readings</span>
+    <span class="chip">⏱ ~3 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🧪 Written for a QA engineer</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the course</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole module on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The module in one sentence</span>
+    Build agents <b>in stages</b> through a planned lifecycle: design the persona, flows, boundaries and metrics first; build in the <b>Agents tab</b> (saved) rather than the Playground (temporary); shape behaviour with <b>model choice, temperature, Top P and grounding</b>; and improve answers with <b>prompt engineering</b> long before you consider <b>fine-tuning</b>.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why a QA lead should care</span>
+    This module is where testing starts to matter: the lifecycle has an explicit testing phase (unit, integration, UAT, performance, regression, security, load), design documents give you <b>acceptance criteria</b>, and agent versions plus the Evaluation tab give you <b>A/B testing</b>. Every instruction line you add is a requirement you can test.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Hotel<br/>agent))
+    Plan it
+      Enterprise lessons
+      Six-phase lifecycle
+      Four design documents
+    Build it
+      Playground vs Agents tab
+      Model choice
+      Temperature and Top P
+      Safety and grounding
+      Versions and evaluation
+    Improve it
+      Persona, boundaries
+      Context, format
+      Prompt before fine-tune
+      Hallucination and fallbacks
+      A/B, chain of thought, few-shot
+</pre>
+    <div class="caption">Module map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Enterprise lessons</a>
+    <a class="pill" href="#t2"><b>2</b> Lifecycle</a>
+    <a class="pill" href="#t3"><b>3</b> Design documents</a>
+    <a class="pill" href="#t4"><b>4</b> Playground vs Agents</a>
+    <a class="pill" href="#t5"><b>5</b> Configuration</a>
+    <a class="pill" href="#t6"><b>6</b> Agents tab settings</a>
+    <a class="pill" href="#t7"><b>7</b> Prompt engineering</a>
+    <a class="pill" href="#t8"><b>8</b> Fine-tuning?</a>
+    <a class="pill" href="#t9"><b>9</b> Advanced prompting</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Enterprise agent success stories: four lessons</h2>
+    <p class="sub">A tax assistant built in stages <span class="page">🎬 Enterprise agent success stories</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The video follows a tax company that started with a tiny FAQ bot and grew it, step by step, into an assistant used by millions. Each stage used real user data to decide what to add next.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  S1["1️⃣ Start simple<br/>FAQBot: name + one-line instructions"]:::blue --> S2["2️⃣ Add knowledge<br/>upload tax documents under Knowledge"]:::green
+  S2 --> S3["3️⃣ Personalise<br/>'I have two children and a small business'"]:::purple
+  S3 --> S4["4️⃣ Plan for scale<br/>Monitoring → Resource usage"]:::orange
+  S4 -.->|"user data and feedback"| S1
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">Each stage builds on the last</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🌱 Start simple, iterate</h4><p>Ship a small useful bot fast; it shows what users need most.</p></div>
+    <div class="tile green"><h4>📊 Let data guide you</h4><p>Feedback and usage decide the next feature.</p></div>
+    <div class="tile purple"><h4>🤝 Consistent personality</h4><p>A steady tone builds trust.</p></div>
+    <div class="tile orange"><h4>📈 Plan for scale early</h4><p>Tax season peaks; watch resource usage from day one.</p></div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Each lesson has a test: <b>consistency</b> (ask the same thing in five ways and check that the persona and facts stay the same), <b>knowledge</b> (answers match the uploaded document), <b>scale</b> (load test before the seasonal peak, not during it).
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>The agent development lifecycle: six phases</h2>
+    <p class="sub">Planning to maintenance, for a hotel agent <span class="page">📄 Agent development lifecycle</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  P["📋 Planning<br/>what should it do? align stakeholders"]:::blue --> D["✏️ Design<br/>agent type, personality, services"]:::purple
+  D --> V["🛠️ Development<br/>MVP, then agile cycles"]:::green
+  V --> T["🧪 Testing<br/>unit → integration → UAT, plus more"]:::orange
+  T --> R["🚀 Deployment<br/>pilot → soft launch → full release"]:::pink
+  R --> M["🔧 Maintenance<br/>monitor, refresh knowledge, escalate"]:::yellow
+  M -.->|"never really ends"| V
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+</pre>
+    <div class="caption">The six phases, with maintenance feeding back into development</div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Phase</th><th>Key activities (hotel example)</th></tr>
+    <tr><td>📋 <b>Planning</b></td><td>Interview managers, front-desk staff and past guests; resolve conflicts (managers want billing answers, staff warn prices change often); feasibility study, mock-ups; ends when everyone agrees on features, <b>boundaries</b> and goals.</td></tr>
+    <tr><td>✏️ <b>Design</b></td><td>Choose reactive / deliberative / hybrid; write the personality ("Welcome to Crystal Hotels!"); pick services (translation for many languages, vision for room photos); map user journeys; plan accessibility (screen readers, text size).</td></tr>
+    <tr><td>🛠️ <b>Development</b></td><td>Build an <b>MVP</b> (check-in times, directions), gather feedback ("doesn't understand late check-out", "recommends a closed restaurant"), add features in agile cycles; then harden: databases, timeouts, security, responsible AI, CI/CD and containers.</td></tr>
+    <tr><td>🧪 <b>Testing</b></td><td>Unit (right pool hours), integration (booking in one language updates the reservation system), <b>UAT</b> with real staff and sample guests, plus performance, regression, security and load tests.</td></tr>
+    <tr><td>🚀 <b>Deployment</b></td><td><b>Pilot</b> (staff or a few guests) → <b>soft launch</b> (more guests, support on standby) → <b>full release</b>, still watched closely.</td></tr>
+    <tr><td>🔧 <b>Maintenance</b></td><td>Analytics on speed and satisfaction; update for new amenities (a new spa); refresh the knowledge base; scheduled health checks; <b>escalation</b> rules to human staff.</td></tr>
+  </table></div>
+
+  <dl class="terms">
+    <dt>MVP</dt><dd>Minimum viable product: the smallest version with only the critical features, used to prove the idea works.</dd>
+    <dt>UAT</dt><dd>User acceptance testing: real users try the system in a controlled way before launch.</dd>
+    <dt>Soft launch</dt><dd>Releasing to a larger but still limited audience, with support ready to step in.</dd>
+  </dl>
+
+  <div class="box example"><span class="label">🧩 Example from the reading</span>
+    The pilot reveals the agent can't handle <b>Wi-Fi password requests after midnight</b>: a bug only real usage found, fixed before the soft launch.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    No lifecycle fits every project: startups may iterate loosely and fast (risking missed details); legal or medical agents need <b>more</b> controls and compliance checks. Choose a structure that fits your goals, resources and <b>risks</b>.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Not in the course: what's different about testing agents</span>
+    Classic unit tests expect one exact output. Agent answers vary in wording, so tests usually check <b>properties</b> instead: does it contain the right fact, stay in scope, refuse when it should, use the right tone? <i>AI Engineering</i> Ch 3–4 covers how to score these.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Which phase ends when all stakeholders agree on features, boundaries and objectives?</summary>
+      <div class="answer">Planning.</div></details>
+    <details><summary>What's the difference between UAT and a pilot launch?</summary>
+      <div class="answer">UAT is a controlled test before launch with staff and sample guests; a pilot is the first real release to a small group, in production.</div></details>
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>The design workshop: four design documents</h2>
+    <p class="sub">The blueprint before you build <span class="page">🎬 Design workshop demo</span></p>
+  </div></div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    You wouldn't build a house without a blueprint. For an agent, the blueprint is four documents, and for a tester they are the <b>acceptance criteria</b>.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🎭 1. Persona</h4><p>Name ("Hotel Assistant"), traits ("helpful, professional, calm, especially with guest problems"), sample phrases ("Hello and welcome to the hotel. How can I assist you today?").</p></div>
+    <div class="tile green"><h4>🔀 2. Conversation flows</h4><p><b>Happy path</b>: "Dinner is 6 pm–11 pm. Would you like to make a reservation?" <b>Complaint</b> with decision points: AC broken → maintenance → still unhappy → front desk.</p></div>
+    <div class="tile red"><h4>🚧 3. Boundaries</h4><p>Medical/legal: "I cannot provide medical or legal advice… dial 911… consult the front desk." Opinions: "As an AI assistant, I don't have a personal opinion, but…".</p></div>
+    <div class="tile orange"><h4>📏 4. Success metrics</h4><p>From <b>Monitoring → Resource usage</b>: total requests, token counts, latency, requests over time.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  G["😠 'The air conditioning in my room is not working'"]:::red --> A["🤖 Apologise, route to maintenance staff"]:::blue
+  A --> Q{"Guest still unhappy?"}:::yellow
+  Q -->|"no"| E["✅ Resolved, offer more help"]:::green
+  Q -->|"yes"| F["🙋 Escalate to the front desk"]:::orange
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">The complaint flow from the demo</div>
+  </div>
+
+  <dl class="terms">
+    <dt>Total requests</dt><dd>How many times the model endpoint was called: each chat message or completion is one request.</dd>
+    <dt>Prompt tokens</dt><dd>Input tokens sent to the model (instructions + conversation + question).</dd>
+    <dt>Completion tokens</dt><dd>Output tokens the model generated.</dd>
+    <dt>Total tokens</dt><dd>Prompt + completion. Tokens drive cost.</dd>
+    <dt>Latency</dt><dd>How long the model takes to start responding. Lower is better.</dd>
+  </dl>
+
+  <div class="box extra"><span class="label">➕ A realistic latency target</span>
+    The demo calls <b>under 100 ms</b> "excellent" for chat agents. In practice, large hosted models like GPT-4.1 usually take several hundred milliseconds or more before the first word, so treat 100 ms as optimistic. Set your target from <b>your own measurements</b> (for example, a 95th-percentile time to first token) rather than a fixed number.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Turn each document into test cases. Persona → greeting and tone checks. Flows → one test per branch (happy path, unhappy-then-escalate). Boundaries → a <b>negative test set</b> (medical, legal, opinion, other hotels' prices, phrased many ways). Metrics → thresholds that fail the build.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Why are boundaries a separate design document, not just part of the persona?</summary>
+      <div class="answer">They protect users and the business from wrong or dangerous advice; they need explicit examples and their own tests.</div></details>
+    <details><summary>A reply used 700 prompt tokens and 150 completion tokens. Total tokens?</summary>
+      <div class="answer">850.</div></details>
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Playground vs Agents tab</h2>
+    <p class="sub">Sketchpad vs workshop <span class="page">🎬 From testing to building</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th></th><th class="old">🧪 Chat playground</th><th class="new">🤖 Agents tab</th></tr>
+    <tr><td><b>Purpose</b></td><td>Quick, temporary experiments</td><td>Building the real, deployable agent</td></tr>
+    <tr><td><b>Saving</b></td><td>Only in your browser; lost if you clear chat or cache, switch device, or use a private window</td><td>Saved automatically</td></tr>
+    <tr><td><b>Settings</b></td><td>Deployment, instructions, add your data, parameters, sample prompts</td><td>Agent ID, name, deployment, instructions, knowledge, model settings, versions</td></tr>
+    <tr><td><b>Next step</b></td><td>Save a preset or back up your instructions</td><td>Deeper testing in the <b>Evaluation</b> tab, integration into apps</td></tr>
+  </table></div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    The Playground is a whiteboard; the Agents tab is the code repository. You sketch on the whiteboard, but you'd never ship from it.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    Spending an hour perfecting instructions in the Playground, then losing them on a cache clear. Copy good instructions into the agent (or a file under version control) as soon as they work.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Understanding agent configuration parameters</h2>
+    <p class="sub">Five levers and their trade-offs <span class="page">📄 Understanding agent configuration parameters</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Configuration isn't a one-off technical setup; it's a cycle that keeps the agent aligned with business goals and guest needs. Done well, guests barely notice; done badly, the agent miscommunicates, frustrates guests, or creates legal risk.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🧠 Model choice</h4><p>Fast, cheap models for routine FAQs; advanced models for complex, sensitive or multilingual requests. Some chains <b>blend</b>: light model for standard queries, advanced for VIPs or complex cases.</p></div>
+    <div class="tile purple"><h4>🌡️ Temperature</h4><p>Low = predictable (check-out time, rules, safety). Higher = varied and friendly (anniversary ideas). Real agents use low for compliance, warmer for experiences.</p></div>
+    <div class="tile red"><h4>🛡️ Guardrails</h4><p><b>Content filters</b> (offensive language), <b>topic restrictions</b> (no medical or legal advice), <b>data protection</b> (no personal details leaked).</p></div>
+    <div class="tile green"><h4>📏 Response length</h4><p>Lobby kiosk: longer answers OK. SMS or mobile: short. Frequent follow-up questions are a sign that default answers are too short.</p></div>
+    <div class="tile teal"><h4>📚 Grounding</h4><p>Connect answers to up-to-date sources (reservation system, today's menu), cite them, and so reduce <b>hallucination</b>.</p></div>
+  </div>
+
+  <dl class="terms">
+    <dt>Temperature</dt><dd>How random the model's word choices are. 0 ≈ the same answer every time; higher = more variety and creativity.</dd>
+    <dt>Grounding</dt><dd>Making the agent answer from specific, authoritative data you provide, rather than from its general training.</dd>
+    <dt>Hallucination</dt><dd>A confident, plausible-sounding answer that is false ("the sauna is open 24 hours" when there's no sauna).</dd>
+  </dl>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  M["👀 Monitor<br/>which questions go badly?"]:::blue --> A["🔍 Analyse<br/>patterns in feedback and logs"]:::purple
+  A --> J["🎚️ Adjust<br/>temperature, filters, knowledge"]:::orange
+  J --> T["🧪 Test<br/>pilot with a small group"]:::green
+  T --> R["🔁 Repeat"]:::yellow
+  R --> M
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+</pre>
+    <div class="caption">The feedback and improvement loop</div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Three trade-offs to remember</span>
+    • High creativity engages guests but risks mistakes if safety filters are weak.<br/>
+    • Advanced models serve better but cost more; sometimes only worth it for luxury properties or high-value guests.<br/>
+    • Tight grounding avoids mistakes, but if the source data is stale, <b>grounded answers are still wrong</b>.<br/>
+    • Filters tuned too tight make the agent seem reserved; the course says that's still better than a privacy breach.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Stale-data test: change a policy in the source document (pets now allowed) and check the agent's answer changes. If it still gives the old rule, your knowledge pipeline, not the model, is the bug.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Agents interface deep dive: settings in practice</h2>
+    <p class="sub">Model, instructions, temperature, Top P, safety, knowledge, versions <span class="page">🎬 Agents interface deep dive</span></p>
+  </div></div>
+
+  <div class="algo"><span class="label">⚙️ Building the Hotels Assistant, step by step</span>
+<pre><span class="cm"># 1. A model must be deployed first</span>
+deploy <span class="st">"GPT-4.1"</span>                 <span class="cm"># "balanced": good language skills, reasonable cost</span>
+<span class="cm"># 2. Shape the default agent in the setup panel</span>
+name         = <span class="st">"Hotels Assistant"</span>
+deployment   = <span class="st">"gpt-4.1 (2025-04-14)"</span>
+instructions = <span class="st">"You are a friendly and professional assistant for a hotel..."</span>
+<span class="cm"># 3. Model settings</span>
+temperature  = 0.5              <span class="cm"># demo: 0.2 = plain facts, 0.9 = same facts, livelier tone</span>
+top_p        = 0.5              <span class="cm"># keeps word choice focused, avoids odd or off-topic replies</span>
+<span class="cm"># 4. Safety: Azure AI Content Safety filters are on by default (no controls shown here)</span>
+<span class="cm"># 5. Grounding: Knowledge → Add → Files → upload the hotel policy document</span>
+ask(<span class="st">"What is your pet policy?"</span>)   <span class="cm"># answer now comes from the document</span>
+<span class="cm"># 6. Versions: Agents → select → Copy → edit the copy → compare in the Evaluation tab</span></pre>
+  </div>
+
+  <dl class="terms">
+    <dt>Top P</dt><dd>The model only picks from the most likely next words whose probabilities add up to P. Lower Top P (0.5) = a smaller pool of words = more focused, less surprising replies.</dd>
+    <dt>Response length limit</dt><dd>A cap on how long answers can be (max tokens). In the demo it runs on the deployment's defaults behind the scenes.</dd>
+    <dt>Azure AI Content Safety</dt><dd>Built-in filters that block harmful content in prompts and answers, on by default.</dd>
+  </dl>
+
+  <div class="bars">
+    <div class="bar"><span>Temp 0.2</span><div class="track"><div class="fill" style="width:20%;background:linear-gradient(90deg,#2563eb,#3b82f6)">facts</div></div></div>
+    <div class="bar"><span>Temp 0.5</span><div class="track"><div class="fill" style="width:50%;background:linear-gradient(90deg,#16a34a,#22c55e)">friendly + factual</div></div></div>
+    <div class="bar"><span>Temp 0.9</span><div class="track"><div class="fill" style="width:90%;background:linear-gradient(90deg,#ea580c,#f97316)">creative tone</div></div></div>
+  </div>
+
+  <div class="box extra"><span class="label">➕ Not in the course: change one knob at a time</span>
+    The demo sets both temperature 0.5 and Top P 0.5. Model providers usually advise adjusting <b>one or the other</b>, not both, because they both control randomness and the combined effect is hard to reason about. As a tester, change one setting per experiment so you know what caused a difference.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Versions + Evaluation tab = A/B testing built in. Run the <b>same test questions</b> against "formal" and "friendly" versions and compare side by side. Keep the question set fixed and saved so every future version is compared on the same ground (a regression suite).
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Why was 0.2 chosen first for the hotel agent?</summary>
+      <div class="answer">Guests asking factual questions (checkout time) need the same, consistent answer every time.</div></details>
+    <details><summary>How do you create a second version of an agent to compare?</summary>
+      <div class="answer">In the Agents tab, select the agent and use Copy, edit the copy's instructions or settings, then compare both in the Evaluation tab.</div></details>
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--pink)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>The art of prompt engineering: four components</h2>
+    <p class="sub">Better answers without changing the model <span class="page">🎬 The art of prompt engineering</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Prompt engineering</b> means writing clear instructions that tell the model how to behave. With only "You are a helpful bot", the hotel agent's reply to "Hi, how are you?" was generic and flat. Four components fixed it.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Component</th><th>Instruction added in the demo</th><th>Effect</th></tr>
+    <tr><td>🎭 <b>Persona</b></td><td>"You are the virtual concierge… warm, professional, helpful. Always greet warmly and end by asking if there's anything else."</td><td>Greets, helpful tone, concierge-style structure</td></tr>
+    <tr><td>🚧 <b>Boundaries</b></td><td>"Do not answer medical, legal or financial questions… recommend a professional or hotel staff. Serious complaint → apologise, offer the front desk manager."</td><td>"I have a headache, what medicine?" → politely declined</td></tr>
+    <tr><td>📍 <b>Context</b></td><td>"This week the city hosts its annual summer jazz festival, within walking distance."</td><td>"What is there to do?" → mentions the festival</td></tr>
+    <tr><td>📋 <b>Format</b></td><td>"Use a bulleted list for restaurant hours or amenities."</td><td>Clean, scannable list instead of a long sentence</td></tr>
+  </table></div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    Briefing a temp receptionist on day one: who you are (persona), what never to do (boundaries), what's happening this week (context), how to write things down (format).
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    One check per component: tone/greeting check (persona), refusal tests (boundaries), "does it mention this week's event?" (context), "is the answer a bullet list?" (format; easy to automate).
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Fine-tuning concepts: prompt first, fine-tune last</h2>
+    <p class="sub">The model optimisation ladder <span class="page">📄 Fine-tuning concepts</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  P["✍️ 1. Prompt engineering<br/>clear instructions, examples, cite documents<br/>free, quick, low risk"]:::green --> Q1{"Accurate enough?"}:::yellow
+  Q1 -->|"yes"| OK["✅ Stop here (most hotels)"]:::green
+  Q1 -->|"no"| M["🔁 2. Different model + enhanced prompting<br/>few-shot examples, step-by-step reasoning"]:::blue
+  M --> Q2{"Accurate enough?"}:::yellow
+  Q2 -->|"yes"| OK
+  Q2 -->|"no"| U{"Truly unique language, rigid templates,<br/>or a huge scale?"}:::yellow
+  U -->|"yes"| F["🏋️ 3. Fine-tuning<br/>training data, compute, retraining"]:::red
+  U -->|"no"| G["📚 Improve grounding and knowledge<br/>keep iterating on prompts"]:::blue
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">Ask at each step: does the prompt fix it? does another model? is my case truly unique?</div>
+  </div>
+
+  <dl class="terms">
+    <dt>Fine-tuning</dt><dd>Training an existing model further on your own examples (approved guest questions and answers), so it adopts your style or knowledge. Like extra coaching.</dd>
+    <dt>Few-shot learning</dt><dd>Putting a few example questions and ideal answers in the prompt so the model copies the pattern.</dd>
+    <dt>RAG</dt><dd>Retrieval-augmented generation: look up relevant documents at question time and give them to the model. This is how "knowledge" grounding works.</dd>
+  </dl>
+
+  <div class="grid">
+    <div class="tile red"><h4>🏋️ Fine-tune only if…</h4><p>Prompts and model choice miss your accuracy target · language or processes are so unique no model knows them (brand terms, local dialects, proprietary booking rules) · you need exact templates or rigid compliance that prompts can't guarantee.</p></div>
+    <div class="tile orange"><h4>⏱️ Need speed?</h4><p>Try a <b>smaller base model</b> first. Fine-tune a small model only if you need speed <i>and</i> custom responses.</p></div>
+    <div class="tile green"><h4>💸 Cost reality</h4><p>Prompting: days of testing, no extra cost, instant updates. Fine-tuning: compute, storage, retraining every time policies change; pays off only at thousands to millions of daily interactions.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 When fine-tuning is justified</span>
+    A luxury group in five countries whose agents keep giving wrong multi-language answers about its loyalty programme, even after prompt work: fine-tuning a multilingual model on its documents could be worth it.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Hallucination: causes and fixes</span>
+    <b>Causes</b>: no boundary like "only answer from uploaded documents"; ambiguous or out-of-scope questions ("the chef's favourite dish?"); real-time data the model can't see ("is my room ready now?").<br/>
+    <b>Fixes</b>: grounding; a <b>fallback</b> answer ("I don't have that information right now. May I ask a staff member?"); tell it not to guess; when unsure, ask for clarification or escalate to a human.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Build an "unanswerable" test set: things the hotel doesn't have (sauna, helipad), real-time questions (room ready?), opinions (chef's favourite dish). Pass = fallback or escalation; fail = any invented detail.
+  </div>
+
+  <div class="box extra"><span class="label">➕ About the reading</span>
+    The model names in the reading (GPT-4o, GPT-4 Turbo, GPT-3.5) are already older generations, and a placeholder ("Visual 3: … to be added after client review") was left in the published text. The decision logic still holds.
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Advanced prompting strategies: five techniques</h2>
+    <p class="sub">From simple tool to reliable assistant <span class="page">🎬 Advanced prompting strategies</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🅰️🅱️ Manual A/B testing</h4><p><b>Copy</b> the agent, rename it "Friendly", make the tone warmer, then ask both "Hi, how are you?" via the <b>Agent ID</b> dropdown and compare.</p></div>
+    <div class="tile purple"><h4>🪜 Chain of thought</h4><p>"Think step-by-step before you answer." Now "What time does the pool close, and can I get a late checkout tomorrow?" gets <b>both</b> parts answered.</p></div>
+    <div class="tile green"><h4>📝 Few-shot examples</h4><p>Show Q → A pairs: "What are the restaurant hours?" → "The Crystal Grill is open for breakfast 6–11 am, dinner 5–10 pm." The agent copies the format and detail.</p></div>
+    <div class="tile red"><h4>🚧 Boundaries</h4><p>"No medical or legal advice; suggest a professional. Don't discuss other hotels' details or prices."</p></div>
+    <div class="tile orange"><h4>🛟 Fallback</h4><p>"If you don't know, say: I don't have that information, but I can check with the front desk. Would you like me to?" Test: "Where is the helicopter landing pad?"</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant T as 🧪 Tester
+  participant A as 🤖 Hotel Agent (original)
+  participant B as 🤖 Hotel Agent Friendly (copy)
+  T->>A: "Hi, how are you?"
+  A-->>T: Short, polite, offers help
+  T->>B: "Hi, how are you?"
+  B-->>T: Livelier, warmer reply
+  Note over T: Pick the version that fits the brand,<br/>then re-run the full question set
+</pre>
+    <div class="caption">Manual A/B testing with two agent versions</div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    Judging an A/B test on one question. Tone and quality vary run to run; use the same 20+ questions, several runs each, and score them the same way for both versions.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Note on chain of thought</span>
+    Newer "reasoning" models already think step by step internally, so this instruction matters less for them; it still helps with standard chat models. Also check whether you want the steps <b>shown to guests</b> or just used internally.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Which technique stops the agent inventing a helipad?</summary>
+      <div class="answer">The fallback strategy (plus boundaries telling it not to guess).</div></details>
+    <details><summary>A two-part question gets only one part answered. Which technique helps?</summary>
+      <div class="answer">Chain-of-thought: "Think step-by-step before you answer."</div></details>
+    <details><summary>What do few-shot examples control?</summary>
+      <div class="answer">The desired format, tone and level of detail of answers.</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🌱 Build in stages: <b>start simple → add knowledge → personalise → plan for scale</b>; keep the personality consistent.</li>
+    <li>🔄 Lifecycle: <b>plan → design → develop (MVP) → test → deploy (pilot, soft, full) → maintain</b>.</li>
+    <li>📐 Four design docs: <b>persona, conversation flows, boundaries, success metrics</b>.</li>
+    <li>📊 Metrics: requests, prompt / completion / total tokens, latency.</li>
+    <li>🧪 Playground = temporary sketchpad; <b>Agents tab = saved, deployable</b>.</li>
+    <li>🎚️ Levers: <b>model, temperature, guardrails, response length, grounding</b>, tuned in a monitor → analyse → adjust → test loop.</li>
+    <li>🌡️ Low temperature for facts and policy; higher for creative suggestions. Lower Top P = more focused.</li>
+    <li>🛡️ Content Safety is on by default; <b>Knowledge</b> files ground answers (pet policy).</li>
+    <li>✍️ Prompt = <b>persona + boundaries + context + format</b>.</li>
+    <li>🪜 <b>Prompt first, other model second, fine-tune last</b> (only for unique language, rigid templates or huge scale).</li>
+    <li>🛟 Against hallucination: grounding, "don't guess", fallback, escalate.</li>
+    <li>🅰️🅱️ Advanced: <b>A/B versions, chain of thought, few-shot, boundaries, fallback</b>.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: the module's activities</h2>
+    <p class="sub">What the course asks you to do, plus a QA twist</p>
+  </div></div>
+  <ol>
+    <li><b>Hotel agent blueprint and lifecycle plan</b>: write the persona, two conversation flows, boundaries and three success metrics.</li>
+    <li><b>Hotel agent creation in the Agents UI</b>: deploy GPT-4.1, name and instruct the agent, set temperature, upload a hotel policy file.</li>
+    <li><b>Prompt engineering for your agent</b> (60 min): add persona, boundaries, context and format; then few-shot, chain of thought and a fallback.</li>
+    <li>➕ <b>QA twist</b>: make a 20-question test set in four groups: FAQs, multi-part questions, out-of-scope (medical, legal, other hotels), unanswerable (helipad, "is my room ready?"). Run it on two versions and record pass/fail per group.</li>
+  </ol>
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 2 (sampling: temperature, Top P), Ch 5 (prompt engineering), Ch 6 (RAG) and Ch 7 (fine-tuning: when it's worth it) · <i>Software Testing with Generative AI</i> on prompt patterns · next: <b>Module 3</b>, language understanding, knowledge search and multi-service workflows.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from the Coursera course <i>AI agent fundamentals with Azure AI Foundry</i> (Microsoft) · video and reading titles are the course's own</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
