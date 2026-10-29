@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Evaluation · Ch 6 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📗 LLM Evaluation · Chapter 6</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<style>
+/* page-specific: coloured ladders and code case blocks (same as earlier chapters) */
+.ladder { display: grid; gap: 6px; margin: 12px 0; }
+.ladder div { border-radius: 12px; padding: 9px 14px; color: #fff; display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: .93rem; }
+.ladder b { font-size: .98rem; }
+@media (max-width: 560px) { .ladder div { grid-template-columns: 1fr; gap: 2px; } }
+pre.case { background: var(--code-bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; overflow-x: auto;
+  font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 12px 0; }
+</style>
+
+<header class="hero" style="background: linear-gradient(135deg, #0f766e 0%, #0891b2 45%, #2563eb 100%);">
+  <div class="kicker">LLM Evaluation for Production Systems · Ammar Mohanna · Reference book</div>
+  <h1>Chapter 6: Evaluating Multimodal Conversational LLMs Across Training and Inference</h1>
+  <p>Chatbots that see, hear and read: a 10-phase evaluation lifecycle from data quality to conversation outcomes, illustrated with an e-commerce shopping assistant and a medical consultation assistant.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 242–303</span>
+    <span class="chip">⏱ ~4 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🔗 Builds on Ch 4–5 (VLMs)</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    A multimodal chatbot must do more than sound fluent: it must stay <b>grounded</b> in images, transcripts and records <b>across many turns</b>. Evaluate it through a <b>10-phase lifecycle</b> (data → pretraining → instruction tuning → fine-tuning → robustness → inference safeguards → decoding stability → long-conversation drift → cost → user outcomes), and turn every KPI into a <b>measurable instrument</b> with a data source, scoring rule, threshold and escalation.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why a QA lead should care</span>
+    This chapter is a giant <b>KPI catalogue</b>. Don't memorise names; learn the patterns: per-slice reporting, ablations, hard negatives, calibration, multi-turn drift tests and fallback quality. They apply to any conversational AI you'll test.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Multimodal<br/>conversational<br/>evaluation))
+    Foundations
+      Architecture and fusion
+      10-phase lifecycle
+      Data quality and coverage
+      Data readiness and KPIs
+    Training
+      Pretraining alignment
+      Instruction and modality tuning
+      Task fine-tuning
+      Robustness
+    Inference
+      Input and context checks
+      Decoding stability
+      Long-conversation drift
+      Latency and cost
+      Success friction fallback
+    Practice
+      KPI to measurement
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Architecture</a>
+    <a class="pill" href="#t2"><b>2</b> The lifecycle</a>
+    <a class="pill" href="#t3"><b>3</b> Data quality</a>
+    <a class="pill" href="#t4"><b>4</b> Coverage &amp; readiness</a>
+    <a class="pill" href="#t5"><b>5</b> Data &amp; business KPIs</a>
+    <a class="pill" href="#t6"><b>6</b> Pretraining alignment</a>
+    <a class="pill" href="#t7"><b>7</b> Instruction tuning</a>
+    <a class="pill" href="#t8"><b>8</b> Task fine-tuning</a>
+    <a class="pill" href="#t9"><b>9</b> Robustness</a>
+    <a class="pill" href="#t10"><b>10</b> Input &amp; context</a>
+    <a class="pill" href="#t11"><b>11</b> Decoding stability</a>
+    <a class="pill" href="#t12"><b>12</b> Drift over turns</a>
+    <a class="pill" href="#t13"><b>13</b> Latency &amp; cost</a>
+    <a class="pill" href="#t14"><b>14</b> Outcomes &amp; fallback</a>
+    <a class="pill" href="#t15"><b>15</b> KPI → measurement</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Architecture of multimodal conversational LLMs</h2>
+    <p class="sub">Encoders per modality, one shared backbone <span class="page">📖 PDF p. 243–250</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>✍️ Text</h4><p>Queries, dialogue, documents, logs. Input and output.</p></div>
+    <div class="tile green"><h4>🖼️ Image</h4><p>Photos, scans, screenshots; encoded by CNNs or vision transformers.</p></div>
+    <div class="tile orange"><h4>🎙️ Audio</h4><p>Speech is often <b>transcribed</b> first; adds timing and tone (prosody).</p></div>
+    <div class="tile purple"><h4>🎞️ Video</h4><p>Images over time: motion and events.</p></div>
+    <div class="tile teal"><h4>🗃️ Structured data</h4><p>Tables, records, sensor readings, knowledge graphs.</p></div>
+  </div>
+  <p class="muted">Examples the book names include GPT-4o, Gemini, Claude 3 / Claude Vision, Llama 3.2 Vision, LLaVA, BLIP-2, Flamingo, Qwen-VL; the list changes fast.</p>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Fusion strategy</th><th>How</th><th>Test it for…</th></tr>
+    <tr><td>Early fusion</td><td>Visual embeddings injected as pseudo-tokens at the input</td><td><b>Visual token dilution</b>: in long chats the model leans on text history and forgets the image</td></tr>
+    <tr><td>Late fusion</td><td>Modalities processed separately, combined near the output</td><td><b>Modality siloing</b>: weak integration between image and text</td></tr>
+    <tr><td>Interleaved</td><td>Visual and text tokens mixed within the transformer stack</td><td>Alignment precision vs compute cost</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    The fusion design decides <b>what to test</b>. Conversational systems also need dialogue state: earlier turns, instructions and references to images must stay consistently grounded. Token compression and pooling keep latency manageable but can drop detail.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>The 10-phase evaluation lifecycle</h2>
+    <p class="sub">Each phase protects the next <span class="page">📖 PDF p. 250–254</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  P1["1 Problem and KPIs<br/>use case, users, modalities, risks, success criteria"]:::blue --> P2["2 Data quality<br/>accurate, balanced, diverse, unbiased"]:::teal
+  P2 --> P3["3 Pretraining validation<br/>are modalities meaningfully linked?"]:::purple
+  P3 --> P4["4 Instruction and modality alignment<br/>follows intent, stays grounded"]:::purple
+  P4 --> P5["5 Task fine-tuning<br/>accuracy in real workflows"]:::green
+  P5 --> P6["6 Generalisation and robustness<br/>noise, gaps, attacks, new settings"]:::orange
+  P6 --> P7["7 Inference safeguards<br/>validate inputs, manage context, filter"]:::red
+  P7 --> P8["8 Runtime decoding stability"]:::red
+  P8 --> P9["9 Operations and cost"]:::yellow
+  P9 --> P10["10 Conversational outcomes<br/>task completion, satisfaction, fallback"]:::green
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef teal fill:#ccfbf1,stroke:#0d9488,color:#134e4a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+</pre>
+    <div class="caption">The lifecycle gives the structure; the rest of the chapter says what to measure at each stage</div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Phase 1 is the one testers skip: agree the <b>KPIs and acceptable risks up front</b>, or every later phase argues about what "good" means.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Data quality (e-commerce example)</h2>
+    <p class="sub">Text, vision and cross-modal quality <span class="page">📖 PDF p. 254–257</span></p>
+  </div></div>
+
+  <div class="box example"><span class="label">🧩 The scenario</span>
+    A shopping assistant: a customer uploads a photo of a jacket, says "similar but cheaper, in navy", and the bot combines catalogue images, product data, earlier turns and the upload. A wrong colour label or a mismatched image directly causes wrong recommendations, returns and lost trust.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>✍️ Text quality</h4><p>Accuracy · completeness (material, size, compatibility) · consistent terms and schema · correct intent and entity labels · linguistic diversity.</p></div>
+    <div class="tile green"><h4>🖼️ Vision quality</h4><p>Clarity · correct labels · attributes that match what's visible · each image tied to the right product.</p></div>
+    <div class="tile purple"><h4>🔗 Cross-modal quality</h4><p>Descriptions match the picture; conversations reference the right image. Misalignment → hallucinated answers.</p></div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Tool</th><th>Good for</th><th>Can't do</th></tr>
+    <tr><td>Cleanlab</td><td>Likely noisy labels</td><td>Tell "formal shoe" from "office shoe"</td></tr>
+    <tr><td>Great Expectations</td><td>Schema rules, required fields</td><td>Judge whether a description matches the image</td></tr>
+    <tr><td>CleanVision</td><td>Blur, corruption, duplicates, low resolution</td><td>Semantic correctness</td></tr>
+    <tr><td>FiftyOne</td><td>Exploring clusters, outliers, label distributions</td><td>Decide if an outlier is a real problem</td></tr>
+    <tr><td>CLIP similarity</td><td>Broad image–text mismatch</td><td>Exact shade, texture, variant, catalogue jargon (it reflects its own web training)</td></tr>
+  </table></div>
+  <p class="muted">Also: Hugging Face Datasets and DataPrep for profiling, CVAT analytics for annotation consistency.</p>
+
+  <div class="box trap"><span class="label">⚠️ Tools give false confidence</span>
+    <b>Hard labels</b> (SKU match, missing fields, duplicates, resolution) suit automation. <b>Fuzzy labels</b> (style, perceived colour, "is this a good substitute?", user intent) need <b>human calibration</b>. Always hand-audit CLIP's low-confidence and borderline pairs.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Coverage and data readiness</h2>
+    <p class="sub">Check the data before training, not after <span class="page">📖 PDF p. 257–259</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Coverage dimensions</span>
+    Product categories (apparel, electronics, home) · attributes (size, colour, material, specs) · visual diversity (lighting, angles, backgrounds, packaging) · conversational diversity (phrasing, negotiation, clarification, sentiment) · intents (search, compare, complain, recommend, after-sales) · rare products and edge cases. Without coverage the model defaults to dominant patterns.
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Readiness checks</span>
+    Distribution of categories and intents · attribute frequencies · missing data · class imbalance · embedding clusters (gaps), outliers (mislabels), image–text similarity · <b>sampled annotation audits</b> with the right agreement metric:
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Situation</th><th>Agreement metric</th></tr>
+    <tr><td>Quick categorical check</td><td>Percent agreement (overstates when labels are imbalanced)</td></tr>
+    <tr><td>Two annotators, categories</td><td>Cohen's kappa</td></tr>
+    <tr><td>More than two annotators, categories</td><td>Fleiss' kappa</td></tr>
+    <tr><td>Ordinal, missing or mixed labels</td><td><b>Krippendorff's alpha</b> (start at ≥ 0.67, subject to domain review)</td></tr>
+    <tr><td>Free text (descriptions, explanations)</td><td>Rubric-based human review + semantic similarity</td></tr>
+  </table></div>
+
+  <div class="box extra"><span class="label">➕ Why percent agreement misleads</span>
+    If 95% of items are "not defective", two annotators who both say "not defective" every time agree 95%, yet they never found a defect. Kappa-style metrics correct for agreement expected by chance.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Data KPIs linked to business KPIs</h2>
+    <p class="sub">Traceability from dataset to revenue <span class="page">📖 PDF p. 259–260</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>💎 Data quality KPIs</h4><p>Attribute accuracy rate · image–text alignment score · annotation agreement · missing metadata ratio · image quality score.</p></div>
+    <div class="tile purple"><h4>🗺️ Coverage KPIs</h4><p>Category coverage ratio · attribute coverage distribution · intent distribution · rare-case representation index · linguistic diversity.</p></div>
+    <div class="tile green"><h4>💰 Business KPIs</h4><p>Conversational success rate · grounded response accuracy · hallucination rate · <b>user friction index</b> (clarifications, backtracking) · conversion and order value · returns and complaints.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 The point</span>
+    Better alignment and coverage should show up as fewer hallucinations and more successful conversations. If data KPIs improve but business KPIs don't move, you're measuring the wrong thing.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Pretraining alignment (medical example)</h2>
+    <p class="sub">Are speech, images and text linked meaningfully? <span class="page">📖 PDF p. 261–265</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    From here the example switches to a <b>medical assistant</b>: X-rays, pathology slides, skin photos, clinical notes and dictated questions. Pretraining objectives (contrastive image–text, image-conditioned masked language modelling, matching, joint generation) must produce embeddings where findings and descriptions line up.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🔎 Cross-modal retrieval</h4><p>Given a chest X-ray, retrieve the right report (and vice versa). Accuracy at top-1, top-5, top-10.</p></div>
+    <div class="tile red"><h4>🪤 Hard negatives</h4><p>Compare true pairs not just with random pairs but with <b>similar-but-different</b> ones (same scan type, different diagnosis). AUROC of matched vs mismatched.</p></div>
+    <div class="tile green"><h4>🎭 Masked terms</h4><p>Hide diagnostic words in a report; does the image help recover them? Measure <b>perplexity reduction vs a text-only baseline</b>, and check attribution, since closed vocabularies reward guessing.</p></div>
+    <div class="tile orange"><h4>🎙️ Speech</h4><p>Transcript-only checks miss hesitation, urgency and tone. Test acoustics too, or say clearly you only test transcripts. <b>False alignment rate</b> (claiming the image supports a finding it doesn't) is safety-critical.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Other pretraining checks</span>
+    Medical VQA benchmarks · <b>calibration</b> (expected calibration error, Brier score) · fairness by age, sex and imaging device · modality balance (attention entropy, attribution) · perturbation stability · <b>rare disease</b> retrieval with macro-averaged metrics · consistency across follow-up scans over time.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Calibration in one line</span>
+    A model is calibrated if, of all the answers it gives with "80% confidence", about 80% are right. Expected calibration error measures the gap; the Brier score is the mean squared error of predicted probabilities.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Instruction and modality alignment tuning</h2>
+    <p class="sub">Follow the clinician's directive, stay grounded <span class="page">📖 PDF p. 265–270</span></p>
+  </div></div>
+
+  <div class="box example"><span class="label">🧩 Example</span>
+    "Give a ranked list of three likely diagnoses from this chest CT and report." The response must contain <b>exactly three</b>, in that format (structural adherence), answer the actual question (directive accuracy), and add nothing irrelevant (deviation rate).
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📋 Adherence</h4><p>Instruction adherence rate · format compliance · structural adherence · directive accuracy · deviation rate.</p></div>
+    <div class="tile green"><h4>🎯 Grounding</h4><p>Visual grounding precision (claims verifiable in the image) · attribution fidelity (heat map overlap with annotated lesions).</p></div>
+    <div class="tile red"><h4>👻 Hallucination</h4><p>Use <b>normal scans</b> as negative cases to get the false-positive diagnosis rate · unsupported assertion rate.</p></div>
+    <div class="tile orange"><h4>⚔️ Contradictions</h4><p>"No fracture visible" but "fracture diagnosed" = critical misalignment.</p></div>
+    <div class="tile purple"><h4>💬 Multi-turn tracking</h4><p>Instruction retention <b>and</b> behavioural compliance: still avoiding jargon five turns after being asked for patient-friendly language.</p></div>
+    <div class="tile teal"><h4>⚖️ Balance and fairness</h4><p>Ablation (remove the image: does performance stay the same? then it's ignoring it) · adherence by demographic group.</p></div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Adversarial tests at this stage</span>
+    Refusal appropriateness for disallowed advice · <b>indirect prompt injection</b> hidden in clinical notes, structured fields, OCR text, image metadata or attached reports · <b>multi-turn manipulation</b> that drifts gradually towards unsafe output · safe fallback ("consult a clinician") when uncertain. Also track the latency cost of alignment.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Task-specific fine-tuning</h2>
+    <p class="sub">Radiology, dermatology, pathology workflows <span class="page">📖 PDF p. 270–275</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🩻 Radiology</h4><p>Sensitivity, specificity, PPV, NPV per pathology · macro F1 · <b>clinically significant error rate</b> (errors that would change patient management) · report completeness and template adherence · ambiguity rate.</p></div>
+    <div class="tile orange"><h4>🩹 Dermatology triage</h4><p><b>Sensitivity for melanoma</b> at a specificity floor agreed with experts in advance · lesion features (asymmetry, border, colour, diameter) · <b>over-reassurance rate</b>.</p></div>
+    <div class="tile purple"><h4>🔬 Pathology</h4><p>Feature localisation · differential-diagnosis ranking vs expert consensus · diagnostic calibration.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Sensitivity alone is meaningless</span>
+    Report <b>sensitivity, specificity and the decision threshold together</b>. You can get 100% sensitivity by flagging everyone. ➕ Same rule for any classifier you test: a recall number without the threshold and precision isn't a result.
+  </div>
+
+  <div class="box remember"><span class="label">📌 Cross-cutting KPIs</span>
+    Multi-turn: context retention, inconsistency rate, task persistence · generalisation by demographics, device and hospital · rare-condition recall · unsupported finding rate and <b>evidence citation accuracy</b> · clinician-rated usefulness and actionability · degradation slope under poor images · safe uncertainty expression · efficiency · an <b>error taxonomy</b> (perception, reasoning, instruction misreading, memory) · drift and forgetting over updates · EHR data compatibility.
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Generalisation and robustness across modalities</h2>
+    <p class="sub">Does it hold up outside the training conditions? <span class="page">📖 PDF p. 275–280</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🏥 Distribution shift</h4><p>Cross-site accuracy on hospitals not in training; the in- vs out-of-distribution gap.</p></div>
+    <div class="tile green"><h4>⚖️ Fairness</h4><p>Accuracy by age, sex, ethnicity, comorbidity; equalised false-negative and false-positive rates.</p></div>
+    <div class="tile red"><h4>🧩 Rare conditions</h4><p>Rare-disease recall, macro F1, long-tail robustness.</p></div>
+    <div class="tile purple"><h4>❓ Out-of-distribution detection</h4><p>Unfamiliar cases should raise uncertainty, not confident errors. <b>Overconfidence under shift</b> is safety-critical.</p></div>
+    <div class="tile orange"><h4>🔄 Counterfactual fairness</h4><p>Change only the demographic words in the history, keep the image; the diagnosis shouldn't change.</p></div>
+    <div class="tile teal"><h4>⏳ Temporal and continual</h4><p>Stable findings across serial scans (false progression rate); no catastrophic forgetting after updates.</p></div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Modality dropout, done properly</span>
+<pre>score_full   ← model(text, real image)
+score_none   ← model(text, no image)
+score_blank  ← model(text, blank image)
+score_noise  ← model(text, noise image)
+<span class="kw">if</span> score_blank ≈ score_full <span class="kw">or</span> score_noise ≈ score_full:
+    model needs visual tokens present, but isn't <span class="kw">reading</span> them   <span class="cm"># shortcut</span>
+<span class="kw">if</span> score_none ≈ score_full:
+    model over-relies on text priors                         <span class="cm"># weak grounding</span></pre>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Also</span>
+    Perturbation degradation slope (noise, brightness, compression, occlusion) · paraphrase and transcription-error stability · <b>contextual stability</b> over long dialogues (change hypotheses only with new evidence) · missing metadata and partial images (graceful degradation) · stability under load · consistent explanations across runs.
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Input validation and context handling at inference</h2>
+    <p class="sub">Catch bad inputs; keep the conversation straight <span class="page">📖 PDF p. 280–284</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile red"><h4>🖼️ Image quality</h4><p>Rejection accuracy for non-diagnostic images. <b>False acceptance</b> (bad image treated as fine) = high risk; <b>false rejection</b> slows workflow.</p></div>
+    <div class="tile orange"><h4>🏷️ Metadata</h4><p>Detect missing fields and contradictions: metadata says chest X-ray, the image looks abdominal → flag.</p></div>
+    <div class="tile blue"><h4>❓ Ambiguous queries</h4><p>Ask for clarification instead of assuming (clarification initiation frequency).</p></div>
+    <div class="tile purple"><h4>🧠 Context</h4><p>Keep established findings (a nodule found in turn 2 stays found) · contextual contradiction rate · entity tracking and coreference · new images bound to the right turn.</p></div>
+  </div>
+
+  <div class="box plain"><span class="label">🧒 When the conversation gets too long</span>
+    Document the strategy (drop oldest turns, summarise, compress history, retrieve key facts) and test that it keeps <b>clinically critical</b> information (the original image evidence, established findings, prior diagnoses, safety constraints) while dropping filler. Measure an <b>information retention score</b>.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Also measure prompt-injection resistance in text inputs, malformed-file detection, validation overhead vs total latency, <b>input traceability</b> (which inputs influenced this output?) and recovery success after a fallback.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Decoding stability and cross-modal reasoning at runtime</h2>
+    <p class="sub">Same input, same diagnosis <span class="page">📖 PDF p. 285–288</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🎲 Stability</h4><p>Response variance index · <b>clinical conclusion consistency</b> across repeated runs · greedy vs sampling comparison · ensemble agreement across seeds.</p></div>
+    <div class="tile red"><h4>⚔️ Coherence</h4><p>"Clear lung fields" + "pneumonia" = cross-modal contradiction. Visual evidence citation accuracy; attribution overlap with expert regions.</p></div>
+    <div class="tile purple"><h4>🔗 Reasoning chains</h4><p>Do intermediate steps stay consistent across runs and actually support the conclusion?</p></div>
+    <div class="tile orange"><h4>🎚️ Parameter sensitivity</h4><p>Temperature sensitivity slope, beam width impact. Meaningful variation should be <b>release-blocking</b>, not just reported.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Also watch</span>
+    Runtime hallucination on <b>normal</b> cases · cross-turn drift without new evidence · calibration and overconfidence under sampling · accuracy vs latency trade-off when decoding is sped up · uncertainty on ambiguous images · anomaly alerts (sensitivity and false-alarm rate) · reproducible explanations.
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Transcription drift and reasoning degradation</h2>
+    <p class="sub">Long conversations slowly lose the plot <span class="page">📖 PDF p. 289–292</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Transcription drift</b>: small dictation errors enter the conversation memory and compound. <b>Reasoning degradation</b>: logic and grounding weaken as the dialogue grows. Word error rate alone isn't enough; measure whether <b>clinical meaning</b> and key terms survive transcription.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["🎙️ Dictation: 'no evidence of malignancy'"]:::blue --> B["📝 Transcript drops 'no'"]:::red
+  B --> C["🧠 Stored in conversation memory"]:::orange
+  C --> D["💬 Later turns reason from it"]:::orange
+  D --> E["⚠️ Unjustified escalation to malignancy"]:::red
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">➕ My own illustration of drift propagation: one small transcription error, amplified across turns</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile green"><h4>🧪 Dialogue extension tests</h4><p>Build long synthetic chats with little new information; does the model keep earlier findings (context stability, memory interference)?</p></div>
+    <div class="tile blue"><h4>🔁 Re-grounding</h4><p>Periodically ask it to restate the key visual findings; compare with the original image. Does it notice its own contradictions?</p></div>
+    <div class="tile red"><h4>📈 Hallucination growth</h4><p>Small unsupported claims grow into false stories. Does it retract when challenged?</p></div>
+    <div class="tile orange"><h4>📏 Length stress</h4><p><b>Maximum stable turn threshold</b> and <b>early degradation onset</b>: at which turn does accuracy start to fall?</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Also</span>
+    Unjustified escalation rate (benign → malignant without new data) · confidence drift · chronological confusion between scan dates · and evaluate the <b>drift monitors themselves</b>: alert precision, false alarm rate, recall against annotated drift points.
+  </div>
+</section>
+
+<!-- ===== 13 ===== -->
+<section class="card" id="t13" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">13</div><div>
+    <h2>End-to-end latency, throughput and cost</h2>
+    <p class="sub">Accurate isn't enough if it's too slow or too dear <span class="page">📖 PDF p. 293–296</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>⏱️ Latency</h4><p>Median and <b>p95</b>; compliance with a maximum allowed time. Break it down: preprocessing, inference, post-processing. Watch variance across case complexity.</p></div>
+    <div class="tile green"><h4>📈 Throughput and scale</h4><p>Maximum sustainable throughput <b>while accuracy holds</b> · degradation slope under load · horizontal and vertical scaling.</p></div>
+    <div class="tile orange"><h4>💰 Cost</h4><p>Cost per consultation · cost–accuracy curve · marginal cost efficiency · energy and carbon per thousand consultations.</p></div>
+    <div class="tile purple"><h4>🏥 Real-world operations</h4><p>Resource-limited sites · queue wait at peak, priority handling for urgent cases, overflow · EHR and imaging-archive integration · uptime and recovery · encryption overhead.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Value, not just cost</span>
+    Productivity gain (clinician time saved), cost–benefit vs labour, ROI. And perceived speed: within the technical limit can still <b>feel</b> slow to clinicians.
+  </div>
+</section>
+
+<!-- ===== 14 ===== -->
+<section class="card" id="t14" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">14</div><div>
+    <h2>Conversational success, user friction and fallback</h2>
+    <p class="sub">Did the user actually get what they needed, safely? <span class="page">📖 PDF p. 297–300</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile green"><h4>✅ Success</h4><p>Task completion rate (no escalation or abandonment) · task-aligned accuracy · grounded response proportion · unsupported claim frequency.</p></div>
+    <div class="tile orange"><h4>🧱 Friction</h4><p>Clarification frequency · repetition rate · <b>turn inefficiency</b> (turns to resolve vs benchmark) · misinterpretation before clarifying.</p></div>
+    <div class="tile purple"><h4>🤝 Trust</h4><p>Clinician trust index · patient comprehension · explanation usefulness.</p></div>
+    <div class="tile red"><h4>🛟 Fallback</h4><p><b>Safe escalation rate</b> vs <b>inappropriate autonomy rate</b>: defer neither too much nor too little. Clear uncertainty wording.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Also</span>
+    Safety-event and <b>near-miss</b> rates, in-conversation correction · turns and time to resolution · repeat use and abandonment · <b>fairness of success and fallback</b> across groups · feedback integration into updates · audit-ready logs, transparency and traceability.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 10 covers the same conversational signals from the product side: early termination, corrections, regeneration, conversation length and feedback biases.
+  </div>
+</section>
+
+<!-- ===== 15 ===== -->
+<section class="card" id="t15" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">15</div><div>
+    <h2>From KPI name to real measurement</h2>
+    <p class="sub">A KPI without a protocol is just a word <span class="page">📖 PDF p. 301–303</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The lifecycle gives the structure; the KPIs say what to measure. Before evaluation starts, every KPI needs six things. Thresholds must come from clinical, business or operational risk review (pilot data, expert baselines, acceptable failure limits), <b>not copied</b> across domains.
+  </div>
+
+<pre class="case">kpi: visual_grounding_precision           # my illustrative example
+data_source: 300 expert-labelled chest X-rays, stratified by site and age
+annotation: radiologist marks regions supporting each finding
+scoring_rule: share of claimed findings whose cited region overlaps the label
+threshold: set in risk review from a pilot (e.g. >= 0.90 overall, no slice < 0.85)
+review_process: second reader on disagreements; monthly calibration
+escalation: below threshold on any slice -> block release, open investigation</pre>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Turn the chapter into a spreadsheet: one row per KPI you actually need, with those six columns filled in. Anything you can't fill in isn't ready to be a release gate.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>A model's accuracy is the same with the real image and with a blank image. What does that tell you?</summary>
+      <div class="answer">It isn't reading the visual content; it relies on text priors or simply the presence of visual tokens. Grounding is weak.</div></details>
+    <details><summary>Why use hard negatives in retrieval tests?</summary>
+      <div class="answer">Random mismatches are easy to tell apart. Similar-but-different pairs (same scan type, different diagnosis) show whether the model separates clinically meaningful differences.</div></details>
+    <details><summary>A triage model reports 98% sensitivity for melanoma. What's missing?</summary>
+      <div class="answer">The specificity and the decision threshold. Without them, 98% sensitivity could mean referring almost everyone.</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🧩 Encoders per modality + shared backbone. <b>Early fusion</b> → test visual dilution in long chats; <b>late fusion</b> → test siloing.</li>
+    <li>🔟 Lifecycle: KPIs → data → pretraining → instruction tuning → fine-tuning → robustness → inference safeguards → decoding → cost → outcomes.</li>
+    <li>💎 Data quality: text, vision, cross-modal. Tools help with hard labels; fuzzy labels need humans. Audit CLIP borderline pairs.</li>
+    <li>🗺️ Coverage across categories, attributes, visuals, conversations, intents, rare cases. Kappa / Krippendorff's alpha (≥ 0.67 start).</li>
+    <li>🔗 Link data KPIs to business KPIs (success, friction, hallucination, conversion, returns).</li>
+    <li>🧠 Pretraining: retrieval top-k, <b>hard negatives</b>, masked terms vs text-only baseline, speech beyond transcripts, calibration, fairness, rare cases.</li>
+    <li>📋 Instruction tuning: adherence, grounding precision, negative cases, contradictions, multi-turn compliance, indirect injection, gradual manipulation.</li>
+    <li>🩻 Fine-tuning: sensitivity + specificity + threshold together; clinically significant error rate; error taxonomy.</li>
+    <li>🌐 Robustness: cross-site, fairness, rare recall, OOD uncertainty, counterfactual fairness, <b>blank/noise ablations</b>.</li>
+    <li>🛂 Inference: false acceptance of bad images, metadata contradictions, clarification, context retention strategy, traceability.</li>
+    <li>🎲 Decoding: conclusion consistency across runs; parameter sensitivity can block release.</li>
+    <li>🧵 Long chats: drift propagation, re-grounding, hallucination growth, maximum stable turns.</li>
+    <li>⏱️ Latency breakdown, throughput while accurate, cost per consultation, ROI, perceived speed.</li>
+    <li>🛟 Outcomes: completion, friction, trust, <b>safe escalation vs inappropriate autonomy</b>, fairness.</li>
+    <li>📏 Every KPI: data source, annotation, scoring rule, threshold, review, escalation.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: a mini lab</h2>
+    <p class="sub">Test a multimodal chatbot over a long conversation</p>
+  </div></div>
+  <ol>
+    <li>Upload a product photo to a multimodal assistant and state a fact about it in turn 1 (e.g. "it's size M").</li>
+    <li>Have 15 turns of filler chat, then ask it to restate the image details and the size. Note the <b>first turn</b> where anything drifts.</li>
+    <li>Repeat with the image replaced by a blank image. Do the answers change much?</li>
+    <li>Ask the same question 5 times in fresh chats. Compute <b>conclusion consistency</b>.</li>
+    <li>Pick 3 KPIs from this chapter and fill in the six-field measurement template for each.</li>
+  </ol>
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 3–4 (evaluation methods), Ch 6 (memory and context) and Ch 10 (user feedback) · next in this book: Ch 7, evaluating <b>mixture-of-experts</b> LLMs and their routing.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>LLM Evaluation for Production Systems</i> (Ammar Mohanna, Packt) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
