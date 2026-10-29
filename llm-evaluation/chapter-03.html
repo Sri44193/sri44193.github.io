@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Evaluation · Ch 3 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📗 LLM Evaluation · Chapter 3</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<style>
+/* page-specific: coloured ladders and YAML/code case blocks (same as Ch 1–2) */
+.ladder { display: grid; gap: 6px; margin: 12px 0; }
+.ladder div { border-radius: 12px; padding: 9px 14px; color: #fff; display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: .93rem; }
+.ladder b { font-size: .98rem; }
+@media (max-width: 560px) { .ladder div { grid-template-columns: 1fr; gap: 2px; } }
+pre.case { background: var(--code-bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; overflow-x: auto;
+  font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 12px 0; }
+</style>
+
+<header class="hero" style="background: linear-gradient(135deg, #0f766e 0%, #0891b2 45%, #2563eb 100%);">
+  <div class="kicker">LLM Evaluation for Production Systems · Ammar Mohanna · Reference book</div>
+  <h1>Chapter 3: Controlling Text-Only LLM Behavior at Inference Time</h1>
+  <p>Evaluation as a live control system: checks on every request, from intake and prompt versions to output contracts, evidence-backed claims, retrieval, safety gates, budgets, drift alarms and safe rollouts.</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 122–143</span>
+    <span class="chip">⏱ ~3 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🔗 Read with AI Engineering Ch 9–10</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    In production you're evaluating a <b>pipeline</b>, not a model call, so evaluation must work like a <b>control system</b>: every stage (intake, prompt, decoding, tools, retrieval, output, safety, budgets, monitoring, rollout) gets a check that produces a <b>signal</b> and triggers a defined <b>action</b>, preventing expensive failures instead of analysing them afterwards.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why a QA lead should care</span>
+    Each control here is something you can test and own: validators, contract checks, claim gates, canary criteria. Same support assistant as Chapters 1–2, with two hard rules: <b>no refund confirmation without verification</b>, and <b>never help bypass identity checks</b> (e.g. disabling 2FA).
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Inference-time<br/>control))
+    Before generation
+      Pipeline view
+      Intake policy
+      Prompt governance
+      Decoding by risk
+    Checking outputs
+      Output contracts
+      Runtime judges and humans
+      Evidence-bound tool claims
+      Retrieval groundedness
+      Safety gates by slice
+    Running it
+      Budgets
+      Drift and incidents
+      Shadow canary rollback
+      Full blueprint
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Pipeline view</a>
+    <a class="pill" href="#t2"><b>2</b> Intake policy</a>
+    <a class="pill" href="#t3"><b>3</b> Prompt governance</a>
+    <a class="pill" href="#t4"><b>4</b> Output contracts</a>
+    <a class="pill" href="#t5"><b>5</b> Decoding policy</a>
+    <a class="pill" href="#t6"><b>6</b> Runtime evaluation</a>
+    <a class="pill" href="#t7"><b>7</b> Evidence-bound claims</a>
+    <a class="pill" href="#t8"><b>8</b> Retrieval</a>
+    <a class="pill" href="#t9"><b>9</b> Safety gates</a>
+    <a class="pill" href="#t10"><b>10</b> Budgets</a>
+    <a class="pill" href="#t11"><b>11</b> Drift &amp; incidents</a>
+    <a class="pill" href="#t12"><b>12</b> Rollouts</a>
+    <a class="pill" href="#t13"><b>13</b> Blueprint</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>The inference pipeline, and why it needs controls</h2>
+    <p class="sub">Failures live in the seams between steps <span class="page">📖 PDF p. 122–124</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Inference-time evaluation</b> = continuously checking, validating and correcting behaviour as each live request flows through the pipeline: intake and validation → prompt building → optional retrieval → optional tool calls → generation under a decoding policy → output validation. Training can't reveal what goes wrong here: incomplete or adversarial inputs, drifting prompts, stale retrieval, tool timeouts, new phrasing.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>💬 User-facing thread</h4><p>Ticket in → drafted reply out. What the user sees.</p></div>
+    <div class="tile orange"><h4>⚙️ Execution thread</h4><p>Retrieval hits, tool calls, failures, retries, <b>verification flags</b>. What actually happened.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 The key rule</span>
+    A high-impact claim (like "your refund has been issued") belongs to the <b>execution thread first</b>. The reply may only say what the execution thread <b>proved</b>. Every control in this chapter must produce a measurable signal that triggers an action.
+  </div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    A waiter (the reply) may only tell you "your order is being cooked" if the kitchen ticket system (the execution thread) shows it was accepted. Sounding confident isn't evidence.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>Input validation and intake policies</h2>
+    <p class="sub">Stop bad inputs before any generation <span class="page">📖 PDF p. 124–126</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Many incidents start <b>before the model sees the ticket</b>: malformed input, missing metadata, too long, or adversarial. The input isn't just text: it includes locale, customer tier and whether identity verification is required. If required fields are missing, <b>don't guess</b>; in high-risk <code>account_access</code> cases, uncertainty is itself a reason to escalate. Intake must be <b>deterministic</b>: if validation fails, take a safe, auditable fallback path instead of generating.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  T["📨 Incoming ticket + metadata"]:::blue --> E{"Text empty?"}:::yellow
+  E -->|"yes"| F1["⛔ Reject or ask the user"]:::red
+  E -->|"no"| M{"Required fields present?<br/>locale, tier, verification flag"}:::yellow
+  M -->|"no, high risk"| F2["🙋 Escalate, don't guess"]:::red
+  M -->|"yes"| L{"Longer than the limit?"}:::yellow
+  L -->|"yes"| TR["✂️ Keep the start + the most recent lines<br/>tag it TRUNCATED"]:::orange
+  L -->|"no"| OK["✅ Normalised ticket with a known risk tier"]:::green
+  TR --> OK
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">A deterministic intake path</div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ Truncation as a product decision (the book's numbers)</span>
+<pre><span class="kw">if</span> length(text) ≤ 8,000 characters: keep it all
+<span class="kw">else</span>: keep the first 5,000 + "[TRUNCATED]" + the last 2,500
+      <span class="cm"># users often add critical details at the end</span>
+      <span class="cm"># tag it, so you can monitor how often it happens and whether it correlates with failures</span></pre>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Boundary-test intake like any API: empty text, whitespace only, 7,999 / 8,000 / 8,001 characters, missing locale, missing verification flag on an <code>account_access</code> ticket. Assert the exact fallback path each one takes.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Prompt governance: prompts as versioned product code</h2>
+    <p class="sub">The highest-frequency lever for behaviour change <span class="page">📖 PDF p. 126–128</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A tiny prompt edit can change routing, refusals, verbosity and tool use. Without versions you can't tell what caused a change; without gates you ship "regressions disguised as tone improvements". A prompt isn't one string: it's a <b>template</b> with variables, a <b>policy insert</b> and an <b>output contract</b>.
+  </div>
+
+  <div class="grid">
+    <div class="tile purple"><h4>🪪 1. Log identity</h4><p>Every request logs <code>PROMPT_ID</code>, <code>PROMPT_VERSION</code> and a <b>hash</b> of the template (e.g. SHA-256). When a metric moves, check whether the hash moved.</p></div>
+    <div class="tile orange"><h4>🎚️ 2. Classify by risk</h4><p>Each change type sets the regression scope it needs.</p></div>
+    <div class="tile green"><h4>↩️ 3. Reviewable and reversible</h4><p>Prompt diffs reviewed like code, and easy to roll back.</p></div>
+  </div>
+
+  <div class="ladder">
+    <div style="background:linear-gradient(90deg,#16a34a,#22c55e)"><b>🟢 Wording / tone</b><span>Low risk → narrow slice checks.</span></div>
+    <div style="background:linear-gradient(90deg,#ea580c,#f59e0b)"><b>🟠 Examples, structure</b><span>Medium → wider regression on affected intents.</span></div>
+    <div style="background:linear-gradient(90deg,#dc2626,#f43f5e)"><b>🔴 Constraints, output contract, tool instructions</b><span>High risk → <b>full regression</b> across every safety-critical slice, triggered automatically.</span></div>
+  </div>
+  <p class="muted">A simplified prompt-change risk matrix (the book's Figure 3.3 idea).</p>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    ➕ Put prompts in the repo, and add a CI rule: any diff touching the policy insert, the contract or tool instructions runs the full high-risk suite before merge.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Output contracts and the bounded reject–repair–fallback loop</h2>
+    <p class="sub">Structure is a control layer, not a quality score <span class="page">📖 PDF p. 128–130</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Assistants often fail on <b>structure</b>: almost-valid JSON, a missing field, a category that doesn't exist. That breaks automation and fools judges (a "helpful" reply the system can't use). The policy: <b>validate</b> the contract → <b>repair</b> only if the fix is purely syntactic and safe → <b>fall back</b> if the meaning is unclear → <b>cap retries</b>, since they add latency and cost.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  O["📤 Model output"]:::blue --> V{"Valid JSON object with category, priority,<br/>draft_reply and tool_calls as a list?"}:::yellow
+  V -->|"yes"| U["✅ Structurally usable<br/>now check correctness and safety separately"]:::green
+  V -->|"no"| R{"Purely syntactic fix?<br/>and retries left?"}:::yellow
+  R -->|"yes"| FIX["🔧 Repair or retry once"]:::orange
+  FIX --> V
+  R -->|"no"| FB["🛟 Safe fallback template or escalation"]:::red
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">Contract enforcement as a bounded loop: fails predictably and safely under load</div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ What a passing contract does NOT prove</span>
+    That the category is right, the reply is safe, or the tool calls were appropriate. Those are <b>separate controls with separate metrics</b>. Keeping them apart speeds up debugging.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Decoding policy and stability</h2>
+    <p class="sub">Less randomness where mistakes are expensive <span class="page">📖 PDF p. 130–131</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A <b>decoding policy</b> is the sampling settings (mainly <b>temperature</b> and <b>top-p</b>) that control how random answers are. Randomness can flip a refusal or verification wording in high-risk cases, so set decoding <b>by risk tier</b>.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Risk tier</th><th>Temperature</th><th>Top-p</th><th>Why</th></tr>
+    <tr><td>🔴 High</td><td>0.0</td><td>1.0</td><td>Stable decisions and refusals</td></tr>
+    <tr><td>🟠 Medium</td><td>0.2</td><td>0.9</td><td>A little variety</td></tr>
+    <tr><td>🟢 Low</td><td>0.4</td><td>0.95</td><td>Variety can improve the experience</td></tr>
+  </table></div>
+
+  <div class="box remember"><span class="label">📌 Measure stability on decisions, not wording</span>
+    Run the same input several times and check <b>decision agreement</b> on key fields: category, refusal type, whether a verification-sensitive claim appears. Different wording is fine; different decisions are not. High-risk slices need high agreement.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 2 explains temperature and top-p. Even temperature 0 isn't always perfectly deterministic in practice, which is why measuring agreement still matters.
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Runtime evaluation: calibrated judges and human sampling</h2>
+    <p class="sub">A risk-weighted sampling pyramid <span class="page">📖 PDF p. 132–133</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    On live traffic you rarely have labels for everything. So layer the checks: cheap ones on everything, expensive ones on samples, <b>stratified by slice</b> and <b>oversampling high-risk and incident-related</b> traffic. Version the judge rubric and calibrate it, so score changes mean product changes, not grader drift.
+  </div>
+
+  <div class="ladder">
+    <div style="background:linear-gradient(90deg,#dc2626,#f43f5e)"><b>👩 Humans</b><span>Smallest sample, heavily weighted to <code>account_access</code> and verification-sensitive refunds.</span></div>
+    <div style="background:linear-gradient(90deg,#7c3aed,#a78bfa)"><b>⚖️ AI judge</b><span>Slice-stratified sample across top intents and the high-risk intent.</span></div>
+    <div style="background:linear-gradient(90deg,#2563eb,#60a5fa)"><b>📏 Reference metrics</b><span>Labelled subsets, e.g. routing accuracy.</span></div>
+    <div style="background:linear-gradient(90deg,#16a34a,#22c55e)"><b>✅ Deterministic validators</b><span>Every single request.</span></div>
+  </div>
+  <p class="muted">Top = most expensive, fewest requests. Bottom = cheapest, all traffic.</p>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    This is a test strategy pyramid for production. Report each layer separately; a judge score without its sample size and slice mix is hard to trust.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Tool calling and evidence-bound claims</h2>
+    <p class="sub">Claims must be backed by executed evidence <span class="page">📖 PDF p. 133–135</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    The assistant can write a convincing refund reply without checking anything. Refund confirmation isn't a writing task; it's a <b>claim</b> that needs proof. Tool correctness is a chain of four obligations:
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  A["1️⃣ Pick the right tool"]:::blue --> B["2️⃣ Valid arguments"]:::purple
+  B --> C["3️⃣ Execution succeeds<br/>and sets an evidence flag, e.g. billing_verification_succeeded"]:::orange
+  C --> D["4️⃣ The reply's claims match the tool outcome<br/>this one protects users"]:::green
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Tool correctness as a chain of obligations</div>
+  </div>
+
+  <div class="algo"><span class="label">⚙️ The claim gate</span>
+<pre>claims_processed ← reply contains "refund issued" or "refund has been processed"
+<span class="kw">if</span> claims_processed <span class="kw">and not</span> trace.billing_verification_succeeded:
+    block the response                 <span class="cm"># don't just tune temperature</span>
+    send a safe fallback template
+    open an incident → it becomes a new regression test</pre>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Map each <b>claim class</b> to the <b>execution flag</b> that must exist before it may appear (an evidence binding map). The gate checks the trace, never the model's own say-so. "Verification-required claim without evidence" is a hard-blocker metric that must be <b>near zero</b>.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Mock the billing tool to fail, time out, or return "not verified", and assert the reply never contains confirmation language. ➕ Keyword checks miss paraphrases ("your money is on its way"), so add paraphrased claims to the test set and consider a classifier for claim detection.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Retrieval controls and groundedness</h2>
+    <p class="sub">Evaluate retrieval separately from generation <span class="page">📖 PDF p. 135–136</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Retrieval is a <b>pipeline stage</b> with its own signals. If you don't measure it separately, the model gets blamed for index, ranking or freshness problems, and people "fix" them with prompt edits. Groundedness has three separate parts:
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📚 Coverage</h4><p>Was the relevant policy or knowledge retrieved at all?</p></div>
+    <div class="tile green"><h4>🤝 Faithfulness</h4><p>Are the reply's claims supported by what was retrieved?</p></div>
+    <div class="tile purple"><h4>🔗 Citation correctness</h4><p>Do citations point to the right evidence?</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Log <b>doc IDs and ranks</b>; watch for rank instability and missing coverage on critical slices. Retrieval failures cluster by intent (refund policies change, cancellation rules differ by region, account guidance follows security policy). When coverage drops, fix retrieval and expand the suite, <b>not</b> the prompt.
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Safety controls as slice-based gates</h2>
+    <p class="sub">A low overall rate can hide a dangerous slice <span class="page">📖 PDF p. 136–137</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Chapter 2's safe outcomes (refuse, safe redirect, escalate, comply after verification) become runtime <b>hard blockers</b> on high-risk slices. "Disable 2FA" → refuse or safe redirect, often with escalation. Refund confirmations → only after verification.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Intent</th><th>Severity</th><th>Controls that must hold</th></tr>
+    <tr><td><code>account_access</code></td><td>🔴 High</td><td>No bypass guidance; refuse or redirect; escalate when verification needed (hard blocker)</td></tr>
+    <tr><td><code>refund_request</code></td><td>🟠 Medium–high</td><td>Confirmation only with evidence flag (hard blocker)</td></tr>
+    <tr><td><code>escalation</code></td><td>🟠 Medium</td><td>Routes to a human instead of unsafe self-help</td></tr>
+    <tr><td><code>bug_report</code>, <code>cancellation</code></td><td>🟢 Lower</td><td>Policy-compliant, no invented actions</td></tr>
+  </table></div>
+  <p class="muted">An illustrative safety gate stack by slice (my simplification of the book's Figure 3.9).</p>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    A safety suite needs adversarial prompts, <b>paraphrase clusters</b>, <b>tool-degraded conditions</b> (what does it say when verification is down?) and escalation tests. Always report safety <b>per slice</b>.
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Performance and cost as first-class budgets</h2>
+    <p class="sub">Five control dials <span class="page">📖 PDF p. 137–138</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Users feel the <b>tail</b> (p95/p99), not the average. Retries, long generations and tool timeouts live in the tail. Define budgets so these become controlled quantities.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🔤 Token budget</h4><p>Caps generation length.</p></div>
+    <div class="tile orange"><h4>🔁 Retry budget</h4><p>Caps contract repairs and tool retries.</p></div>
+    <div class="tile red"><h4>⏱️ Timeout budget</h4><p>Caps tool call time.</p></div>
+    <div class="tile purple"><h4>⚖️ Judge budget</h4><p>Caps expensive grading.</p></div>
+    <div class="tile green"><h4>📉 Error budget</h4><p>Caps reliability decline over time.</p></div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Why budgets help debugging</span>
+    p95 latency rises → you can see retries rose, because retries are counted in the contract loop. Cost per request rises → you can trace it to output length drift from decoding or preference tuning.
+  </div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Monitoring, drift and incident response</h2>
+    <p class="sub">Monitoring must lead to actions <span class="page">📖 PDF p. 138–140</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Drift type</th><th>Signal</th></tr>
+    <tr><td>🧑 Traffic</td><td>New intents, new phrasing</td></tr>
+    <tr><td>🛠️ Tool</td><td>Rising failure rate or latency</td></tr>
+    <tr><td>📚 Retrieval</td><td>Coverage drops, rank instability</td></tr>
+    <tr><td>📜 Policy</td><td>Behaviour no longer matches updated policy</td></tr>
+  </table></div>
+  <p class="muted">Possible actions: tighten a budget, increase escalation, roll back a canary, add a slice to the regression suite.</p>
+
+  <div class="algo"><span class="label">⚙️ A simple intent-mix drift alarm (the book's idea)</span>
+<pre>p ← share of each intent in the baseline traffic        <span class="cm"># e.g. refund 40%, bug 30%, …</span>
+q ← share of each intent in recent traffic
+delta ← Σ over all intents of |p(intent) − q(intent)|
+<span class="kw">if</span> delta &gt; 0.20:
+    alert: "offline suite may no longer represent traffic"
+    inspect new traffic → update slices → add cases</pre>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Worked example (mine)</span>
+    Baseline: refund 40%, bug 30%, account 30%. This week: refund 30%, bug 30%, account 40%. delta = |40−30| + |30−30| + |30−40| = 20 points = <b>0.20</b>: right at the threshold, so not flagged yet (it must be <i>greater</i> than 0.20).
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  A["🚨 Alert"]:::red --> B["🔍 Triage"]:::orange
+  B --> C["🧪 New test cases<br/>and slices"]:::green
+  C --> D["🚦 Revised gates"]:::purple
+  D --> E["🚀 Next rollout"]:::blue
+  E --> A
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+</pre>
+    <div class="caption">The incident loop: every failure grows the test suite</div>
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>Rollouts: shadow, canary and rollback</h2>
+    <p class="sub">Evaluation as a deployment gate <span class="page">📖 PDF p. 140–141</span></p>
+  </div></div>
+
+  <div class="ladder">
+    <div style="background:linear-gradient(90deg,#2563eb,#60a5fa)"><b>🧪 Offline suites</b><span>Regression and gate suites must pass first.</span></div>
+    <div style="background:linear-gradient(90deg,#7c3aed,#a78bfa)"><b>👻 Shadow</b><span>The candidate sees real traffic, but users never see its answers. Compare behaviour safely.</span></div>
+    <div style="background:linear-gradient(90deg,#ea580c,#f59e0b)"><b>🐤 Canary</b><span>A small share of real users; limits the blast radius. Watched by hard blockers.</span></div>
+    <div style="background:linear-gradient(90deg,#16a34a,#22c55e)"><b>🚀 Full ramp</b><span>Only when every gate holds.</span></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Canary gates for the assistant</span>
+    Roll back on: more high-risk safety violations · evidence-bound claim violations · tool failure spikes · tail latency regressions. Write <b>rollback criteria and owners before</b> the rollout, so nobody debates during an incident.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Rehearse a rollback: trigger a fake canary breach in staging and time how long it takes to revert. That's a real MTTR measurement (<i>AI Engineering</i> Ch 10).
+  </div>
+</section>
+
+<!-- ===== 13 ===== -->
+<section class="card" id="t13" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">13</div><div>
+    <h2>The end-to-end control blueprint</h2>
+    <p class="sub">Every control in its place <span class="page">📖 PDF p. 141–142</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  I["📨 Intake: normalise, tag, risk tier"]:::blue --> P["📝 Versioned prompt"]:::purple
+  P --> D["🎚️ Decoding by risk tier"]:::purple
+  D --> T["🛠️ Tools and retrieval: evidence flags, doc IDs"]:::orange
+  T --> G["🤖 Generate structured output"]:::blue
+  G --> C["📐 Contract check, bounded repair, fallback"]:::yellow
+  C --> CL["🔐 Claim gates bound to evidence"]:::red
+  CL --> S["🛡️ Safety gates by slice"]:::red
+  S --> R["📤 Reply"]:::green
+  B["💰 Budgets: tokens, retries, timeouts, judges, errors"]:::yellow -.-> C
+  M["📈 Monitoring, drift, incidents → new tests"]:::green -.-> I
+  RO["🚀 Shadow → canary → full ramp"]:::green -.-> R
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">Where each control sits in the running assistant</div>
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Routing accuracy dropped after a knowledge-base update. Should you edit the prompt?</summary>
+      <div class="answer">First check retrieval coverage and rank stability for the affected slices. It's likely a retrieval problem; fix the index or ranking and add cases, rather than patching with prompt edits.</div></details>
+    <details><summary>The reply says "refund issued" and a judge rates it 5/5. Is it OK?</summary>
+      <div class="answer">Only if the trace shows billing verification succeeded. Otherwise the claim gate blocks it, whatever the judge says.</div></details>
+    <details><summary>Why measure stability on decision fields rather than text similarity?</summary>
+      <div class="answer">Wording can vary harmlessly; what matters is whether the category, refusal type or verification claim flips between runs.</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🧭 Evaluate the <b>pipeline</b>. Two threads: user-facing reply and execution trace; claims belong to the trace first.</li>
+    <li>📨 <b>Intake</b>: required fields, no guessing, deterministic tagged truncation (5,000 head + 2,500 tail over 8,000 chars), safe fallback.</li>
+    <li>📝 <b>Prompts</b>: log ID, version and hash; classify changes by risk; contract, constraint or tool edits trigger full high-risk regression.</li>
+    <li>📐 <b>Contracts</b>: validate → syntactic repair → fallback, with capped retries. Passing ≠ correct or safe.</li>
+    <li>🎚️ <b>Decoding by risk</b>: high 0.0 / medium 0.2 / low 0.4 temperature. Measure decision agreement.</li>
+    <li>⚖️ <b>Runtime evaluation</b>: validators on all, references on labelled, judge on stratified sample, humans on high-risk.</li>
+    <li>🔐 <b>Evidence-bound claims</b>: tool → args → execution → claim matches outcome. No flag, no claim; block, fall back, open an incident.</li>
+    <li>📚 <b>Retrieval</b>: coverage, faithfulness, citations, separately. Log doc IDs and ranks.</li>
+    <li>🛡️ <b>Safety by slice</b> with hard blockers; test paraphrases and degraded tools.</li>
+    <li>💰 Five <b>budgets</b>: tokens, retries, timeouts, judges, errors. Watch the tail.</li>
+    <li>📈 <b>Drift</b>: traffic, tool, retrieval, policy; each alert → action; incidents become tests.</li>
+    <li>🚀 <b>Rollout</b>: offline → shadow → canary → full, with rollback criteria and owners set in advance.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: a mini lab</h2>
+    <p class="sub">Add three runtime controls to an LLM feature</p>
+  </div></div>
+  <ol>
+    <li>Write an <b>intake validator</b> with required fields and tagged truncation; boundary-test it.</li>
+    <li>Wrap a model call in the <b>contract loop</b>: validate, one repair, then fallback. Count how often each path happens over 50 calls.</li>
+    <li>Run 10 high-risk prompts 5 times each at temperature 0 and 0.7. Compute <b>decision agreement</b> on one key field.</li>
+    <li>Write a <b>claim gate</b> test: mock the verification tool to fail and assert no confirmation wording (include 3 paraphrases).</li>
+    <li>Write a one-page <b>canary plan</b>: gates, thresholds, rollback owner.</li>
+  </ol>
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 9 (latency, batching, caches) and Ch 10 (guardrails, gateways, monitoring, drift) · next in this book: Ch 4, grounding and reliability in <b>vision-language models</b>.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>LLM Evaluation for Production Systems</i> (Ammar Mohanna, Packt) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
