@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Azure AI Foundry · Module 3 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">☁️ Azure AI Foundry · Module 3</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<header class="hero" style="background: linear-gradient(135deg, #003a8c 0%, #0078d4 50%, #7c3aed 100%);">
+  <div class="kicker">AI agent fundamentals with Azure AI Foundry · Microsoft · Coursera, course 1 of 4</div>
+  <h1>Module 3: Enhancing your agent with AI services</h1>
+  <p>From basic Q&amp;A to an intelligent concierge: language understanding (intents, entities, key phrases, language detection), knowledge bases and how search and retrieval really work, and combining translation, sentiment, speech and vision in one agent.</p>
+  <div class="chips">
+    <span class="chip">🎬 6 videos · 1 reading</span>
+    <span class="chip">⏱ ~3 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🧪 Written for a QA engineer</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the course</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole module on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The module in one sentence</span>
+    A smart agent must <b>understand</b> the guest (what they want, the details, their language and mood), <b>know</b> the right facts (structured, unstructured and live data, found through scoring, semantic search, ranking and filtering), and <b>combine services</b> (translation, sentiment, speech, vision) into one helpful reply.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why a QA lead should care</span>
+    This is where most agent bugs live: wrong intent → wrong route; missed entity → wrong booking; bad retrieval → confident wrong answer. Each stage can be tested on its own, with measurable scores like intent accuracy, entity correctness, and retrieval <b>precision and recall</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Smarter<br/>agent))
+    Understand
+      NLU benefits
+      Intents
+      Entities
+      Key phrases
+      Language detection
+    Know
+      Structured data
+      Unstructured data
+      Dynamic data
+      Scoring and ranking
+      Semantic search
+      Five-step pipeline
+    Combine
+      Translation + intent
+      Sentiment + escalation
+      Vision + knowledge
+      Speech to text
+</pre>
+    <div class="caption">Module map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Why NLU</a>
+    <a class="pill" href="#t2"><b>2</b> Four language skills</a>
+    <a class="pill" href="#t3"><b>3</b> Three kinds of knowledge</a>
+    <a class="pill" href="#t4"><b>4</b> Search mechanisms</a>
+    <a class="pill" href="#t5"><b>5</b> Retrieval pipeline</a>
+    <a class="pill" href="#t6"><b>6</b> Knowledge demo</a>
+    <a class="pill" href="#t7"><b>7</b> Service integration</a>
+    <a class="pill" href="#t8"><b>8</b> Service deep dive</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Why language understanding matters</h2>
+    <p class="sub">NLU in the Language playground <span class="page">🎬 Why language understanding matters</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Natural language understanding (NLU)</b> is the part of AI that works out <i>what a message means</i>: what the person wants, which details matter, and which language it's in. It lets guests book, ask about amenities and find attractions in their own words and language.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📝 Summarise for call center</h4><p>Turns a conversation into <b>Recap, Issue, Resolution</b>. Demo: the "unresolved case" about an espresso machine. The issue line is effectively the guest's intent.</p></div>
+    <div class="tile green"><h4>🏷️ Extract named entities</h4><p>Pick entity types, run the <b>Travel</b> sample, see every date, place and preference tagged with details.</p></div>
+    <div class="tile purple"><h4>🌍 Multilingual</h4><p>Run the <b>non-English call center sample</b> with English output: recap, issue and resolution come back in English.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Three benefits for hotels</span>
+    1) Understand guest needs → personal service. 2) Extract details automatically → staff freed for real guest care. 3) Handle many ways of saying the same thing → consistent service across languages. The course cites a hotel chain that cut <b>misrouted queries by 60%</b> with intent recognition (a course claim; no source given).
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>Four language service capabilities</h2>
+    <p class="sub">Intent, entities, key phrases, language detection <span class="page">🎬 Language service capabilities</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th></th><th class="old">🔑 Keyword chatbot</th><th class="new">🧠 Language-enabled agent</th></tr>
+    <tr><td><b>How it reads</b></td><td>Spots words like "book" or "room", runs a fixed script</td><td>Understands the <b>intent</b> (why the guest writes), preferences and language</td></tr>
+    <tr><td><b>Paraphrase</b></td><td>Fails if the keyword is missing</td><td>Handles many phrasings</td></tr>
+    <tr><td><b>Routing</b></td><td>Manual</td><td>Automatic, by intent</td></tr>
+  </table></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  G["💬 'Quisiera una habitación doble para dos adultos<br/>del 5 al 8 de octubre, con cama king'"]:::grey --> L["🌍 Language detection<br/>Spanish"]:::purple
+  L --> I["🎯 Intent<br/>BookRoom"]:::blue
+  I --> E["🏷️ Entities<br/>double room · 2 adults · Oct 5–8"]:::green
+  E --> K["🔑 Key phrases<br/>king bed"]:::orange
+  K --> R["📤 Route to reservations,<br/>tag preferences for housekeeping"]:::yellow
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+</pre>
+    <div class="caption">The four capabilities working on one guest message (➕ combined example)</div>
+  </div>
+
+  <dl class="terms">
+    <dt>Intent</dt><dd>What the guest wants to do. Demo instruction: classify messages as <b>Book Room, Modify Reservation, Check Availability, Amenity Request</b>. "I would like to book a room for next week Monday" → Book Room, then the agent asks for the missing details.</dd>
+    <dt>Entity</dt><dd>A specific detail that goes with the intent: dates, room type, number of guests. "A double room for two adults from October 5th to the 8th" → room type, guest count, date range, passed to the reservation system.</dd>
+    <dt>Key phrase</dt><dd>The important words that reveal preferences: "a king bed and a sofa bed". Tagged for personalisation and to notify the right hotel department.</dd>
+    <dt>Dynamic language detection</dt><dd>Spotting the guest's language on the fly and routing to the right pipeline; in Foundry the recap, issue and resolution come back translated.</dd>
+  </dl>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    A good receptionist hears "Could I possibly get somewhere to sleep on the 5th?" and knows it's a booking (intent), notes the date (entity), remembers you mentioned a king bed (key phrase), and switches to your language (detection).
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    These are <b>classification and extraction</b> tasks, so you can test them like ordinary functions. Build a labelled set (message → expected intent and entities), include paraphrases, typos, mixed languages and two intents in one message, and measure <b>intent accuracy</b> and <b>entity exact-match</b>. Re-run it whenever the instructions change.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>"Can you move my Friday booking to Saturday?" Intent and entities?</summary>
+      <div class="answer">Intent: Modify Reservation. Entities: original date Friday, new date Saturday.</div></details>
+    <details><summary>What's the difference between an entity and a key phrase?</summary>
+      <div class="answer">An entity is a typed detail (date, number of guests, room type) a system needs; a key phrase is an important phrase revealing preferences (king bed and sofa bed) used for personalisation.</div></details>
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Knowledge as the agent's foundation</h2>
+    <p class="sub">Structured, unstructured and dynamic knowledge <span class="page">🎬 Knowledge as agent foundation</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📊 Structured</h4><p>Organised data such as policy tables in <b>CSV or JSON</b>. Gives precise answers: check-in time, parking fee. Easy to index and search.</p></div>
+    <div class="tile purple"><h4>📄 Unstructured</h4><p>Free text: PDFs, training manuals, guest feedback. Covers broad topics and nuance for real conversation.</p></div>
+    <div class="tile orange"><h4>⚡ Dynamic</h4><p>Live sources through <b>APIs</b>: the reservation system, hotel databases. Current, real-time answers.</p></div>
+  </div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    In the agent's setup panel, <b>Knowledge → Add</b> lets you upload local files (structured and unstructured) or connect an API endpoint (dynamic). A good knowledge base <b>mixes all three</b>. The payoff is <b>grounding</b>: "which room types are available?" is answered from the latest system data, not the model's memory.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Test each knowledge type differently. Structured: exact values ("parking fee is $25") as strict checks. Unstructured: does the answer agree with the manual (judge or human review)? Dynamic: change the live data (room sold out) and check the agent's answer changes, and that it fails gracefully when the API is down.
+  </div>
+
+  <div class="box extra"><span class="label">➕ About the "90%" claim</span>
+    The video says a strong knowledge base can cut misinformation by 90% or more. Treat that as a motivating claim; measure your own agent's error rate before and after adding knowledge.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Search mechanisms: score, search, rank, filter</h2>
+    <p class="sub">How the agent finds the right passage <span class="page">📄 Search and retrieval concepts</span></p>
+  </div></div>
+
+  <div class="box example"><span class="label">🧩 The challenge</span>
+    "Does the gym have towels, and what are the opening hours on holidays?" A human concierge connects this to the right policies instantly. An agent must extract the intent, <b>find</b> the relevant policies and <b>filter</b> the rest, or it answers slowly, partly or wrongly.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🔢 Relevance scoring</h4><p>Gives every passage a usefulness number. "pool towels policy" → pool passages score high, meeting-room text scores zero, even if it shares a word.</p></div>
+    <div class="tile purple"><h4>🧭 Semantic vs keyword</h4><p>Keyword finds exact words. Semantic matches <b>meaning</b>: "When can I print a document?" finds "business center hours".</p></div>
+    <div class="tile green"><h4>🏆 Ranking</h4><p>Orders results using score, <b>recency</b>, <b>credibility</b> (official policy beats a forum post or old brochure) and past feedback.</p></div>
+    <div class="tile red"><h4>🚧 Filtering</h4><p>Rules: only policies updated in the last year, never confidential staff material, no members-only perks for regular guests.</p></div>
+  </div>
+
+  <dl class="terms">
+    <dt>Embedding</dt><dd>A list of numbers (a vector) that captures the meaning of a text. Texts with similar meaning get similar numbers, so "printing a document" lands near "business center".</dd>
+    <dt>Semantic search</dt><dd>Search that compares embeddings (meaning) instead of exact words.</dd>
+  </dl>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th></th><th>🔑 Keyword search</th><th>🧭 Semantic search</th></tr>
+    <tr><td><b>Matches</b></td><td>Exact terms</td><td>Meaning (vectors)</td></tr>
+    <tr><td><b>Strengths</b></td><td>Fast, transparent (you can see why it matched)</td><td>Flexible, handles paraphrases and other languages</td></tr>
+    <tr><td><b>Weaknesses</b></td><td>Misses synonyms</td><td>More resources; if poorly configured, finds <b>plausible but wrong</b> passages</td></tr>
+  </table></div>
+
+  <div class="box extra"><span class="label">➕ Not in the course: hybrid search</span>
+    Many production systems (including Azure AI Search) run <b>both</b> keyword and vector search and merge the results, then often apply a <b>re-ranker</b> model. That gets exact matches (room codes, product names) and paraphrases.
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    Semantic search returns <i>something</i> for every query, even when the answer isn't in the knowledge base. Without a minimum relevance threshold, the agent answers from a loosely related passage. Test with questions whose answer truly isn't there.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Knowledge base integration: the five-step pipeline</h2>
+    <p class="sub">From documents to a grounded answer <span class="page">📄 Search and retrieval concepts</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  subgraph PREP["🗂️ Prepared ahead of time"]
+    S1["1️⃣ Ingest and clean<br/>policies, menus, FAQs<br/>remove old and duplicate text"]:::blue --> S2["2️⃣ Generate embeddings<br/>passages → vectors"]:::purple
+    S2 --> S3["3️⃣ Index in a vector store<br/>fast similarity lookup"]:::green
+  end
+  subgraph LIVE["⚡ At question time"]
+    Q["💬 Guest question"]:::grey --> S4["4️⃣ Embed the query, retrieve matches<br/>then score, rank, filter"]:::orange
+    S4 --> S5["5️⃣ Inject context into the prompt<br/>LLM writes the answer"]:::pink
+  end
+  S3 --> S4
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef pink fill:#fce7f3,stroke:#db2777,color:#831843
+</pre>
+    <div class="caption">Steps 1–3 build the index; steps 4–5 run on every question</div>
+  </div>
+
+  <dl class="terms">
+    <dt>Vector store</dt><dd>A database built to store embeddings and quickly find the closest ones (the reading names Milvus and Pinecone; Foundry agents create their own).</dd>
+    <dt>Dimensionality</dt><dd>How many numbers are in each embedding. More dimensions can capture more nuance but need more storage and compute.</dd>
+    <dt>Recall</dt><dd>Of all the passages that could answer the question, how many did we find?</dd>
+    <dt>Precision</dt><dd>Of the passages we returned, how many were actually useful?</dd>
+    <dt>Context injection</dt><dd>Putting the retrieved passages into the prompt so the model answers from them. Too much or too little context → hallucination or "I'm not sure".</dd>
+  </dl>
+
+  <div class="algo"><span class="label">⚙️ Worked example: precision and recall (➕ my numbers)</span>
+<pre><span class="cm"># The knowledge base has 4 passages about the pet policy</span>
+<span class="cm"># The search returns 5 passages; 3 of them are about pets</span>
+precision = useful returned / all returned  = 3 / 5 = <span class="st">0.60</span>
+recall    = useful returned / all useful    = 3 / 4 = <span class="st">0.75</span>
+<span class="cm"># Return more passages → recall usually goes up, precision goes down</span></pre>
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🔁 Query expansion</h4><p>Recognise alternative phrasings: "pet-friendly" ↔ "dogs allowed". Raises recall.</p></div>
+    <div class="tile green"><h4>📖 Synonym handling</h4><p>Map guest words to internal terms: "Wi-Fi" → "internet access".</p></div>
+    <div class="tile purple"><h4>🎖️ Contextual ranking</h4><p>Re-rank by conversation history or guest status (loyalty perks first for members).</p></div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Test retrieval <b>separately from the answer</b>. For each test question, list which passages <i>should</i> be found, then check what was retrieved (precision, recall). If retrieval is right but the answer is wrong, it's a prompt/model bug; if retrieval is wrong, fix the index or ranking. Also watch the edge cases the reading names: no result, ambiguous questions, and questions spanning several services.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Correction to the reading</span>
+    The reading says embeddings may come from models such as GPT-4, Claude or Llama. Those are <b>chat</b> models; embeddings normally come from dedicated <b>embedding models</b> (in Azure, for example, <code>text-embedding-3-small</code> or <code>-large</code>). The query must be embedded with the <b>same</b> embedding model as the documents.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>The agent answers using an outdated brochure instead of the current policy. Which mechanisms failed?</summary>
+      <div class="answer">Ingestion/cleaning (the old brochure shouldn't be there), ranking (official and recent should win) and possibly filtering (only policies updated in the last year).</div></details>
+    <details><summary>Search returns 10 passages, 2 relevant; there are 2 relevant in total. Precision and recall?</summary>
+      <div class="answer">Precision 2/10 = 0.2, recall 2/2 = 1.0. Everything was found, but with a lot of noise.</div></details>
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Knowledge system demo: grounding the hotel agent</h2>
+    <p class="sub">Vector store, files and a live connection <span class="page">🎬 Knowledge system demo</span></p>
+  </div></div>
+
+  <div class="algo"><span class="label">⚙️ Steps in the Foundry agent's setup panel</span>
+<pre><span class="cm"># Structured knowledge</span>
+Knowledge → Add → Files → <span class="fn">create new vector store</span>
+  Upload local → <span class="st">StructuredPolicies.json</span> → Upload and save
+<span class="cm"># Unstructured knowledge, into the same store</span>
+vector store ⋯ → Manage → add <span class="st">unstructured_hotel_policy.docx</span> → Update
+<span class="cm"># Dynamic knowledge</span>
+Knowledge → Add → <span class="fn">Microsoft Fabric</span> → Create connection (keys, name)
+<span class="cm"># Tell the agent what to trust first</span>
+Instructions += <span class="st">"Prioritise structured knowledge documents over unstructured ones"</span>
+<span class="cm"># Test with paraphrases</span>
+ask(<span class="st">"Do you have a gym in your hotel?"</span>)
+ask(<span class="st">"Is there a fitness center in your hotel?"</span>)   <span class="cm"># should give the same facts</span></pre>
+  </div>
+
+  <div class="box extra"><span class="label">➕ What's really going on</span>
+    The video calls the "prioritise structured documents" instruction <b>fine-tuning the relevance score</b> and says it gives the agent semantic search. More precisely: the <b>vector store</b> (embeddings) already provides semantic search, and the instruction only nudges how the model weighs what it retrieved. No model is fine-tuned; this is prompt engineering. The demo also mentions <b>chunking</b> (splitting documents into passages) and <b>metadata</b>, which affect what gets retrieved.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    The gym / fitness centre pair is a <b>paraphrase consistency test</b>: different words, same expected facts. Make it a pattern: 3–5 phrasings per fact, all must agree. Add a <b>conflict test</b>: put different values in the JSON and the DOCX and check that the structured one wins, as instructed.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--pink)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Service integration: three combinations</h2>
+    <p class="sub">One agent, several senses <span class="page">🎬 Service integration vision</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🌍 Translation + intent</h4><p>Instruction: reply in English and the guest's language, and classify intents. "Quiero reservar un cuarto, por favor" → Book Room, answered in Spanish and English.</p></div>
+    <div class="tile red"><h4>😠 Sentiment + routing = smart escalation</h4><p>Instruction: note the tone; if the guest seems angry or unhappy, escalate to management, otherwise reply positively. "My room is too small and the AC is not working" → escalated, asks for details.</p></div>
+    <div class="tile green"><h4>🖼️ Vision + knowledge</h4><p>Attach <code>hotel_room.png</code>: "What type of room is this, and is there availability?" → standard king room, asks for dates.</p></div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  M["💬 Guest message"]:::grey --> S{"😊 or 😠?<br/>sentiment"}:::yellow
+  S -->|"positive or neutral"| A["🤖 Normal helpful reply"]:::green
+  S -->|"angry or unhappy"| E["🚨 Tell the guest it's escalated,<br/>collect details"]:::red
+  E --> H["👔 Hotel manager"]:::orange
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">Smart escalation</div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    In the demo, the "escalation" is only the model <b>saying</b> it escalated; nothing is actually sent to a manager. A real agent needs a tool or workflow (ticket, email, Logic App) behind that promise. Test that the escalation <b>really happens</b>, not just that the reply mentions it. (Later courses in the series cover workflows.)
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Sentiment edge cases: sarcasm ("Great, another cold shower 🙃"), polite-but-angry, mixed ("lovely staff, filthy room"), and other languages. Count false escalations (annoy managers) and missed escalations (angry guest ignored) separately.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Service capabilities deep dive</h2>
+    <p class="sub">Translation, sentiment, speech, vision in the playgrounds <span class="page">🎬 Service capabilities deep dive</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Service</th><th>Playground</th><th>Demo</th><th>Settings worth knowing</th></tr>
+    <tr><td>🌍 Translation</td><td>Translator (text or document)</td><td>Spanish booking request → English, auto-detected</td><td>Advanced: profanity handling, text type, category ID (custom translator)</td></tr>
+    <tr><td>😊 Sentiment</td><td>Chat, with instructions</td><td>"Disappointing… bed not clean… small" → strong negative, complaints listed, actions suggested</td><td>Parameters: max completion tokens, reasoning level, detail</td></tr>
+    <tr><td>🎙️ Speech</td><td>Speech → Speech to text</td><td>Record "I would like to book a room for next week" → live transcript</td><td>Language, advanced options, JSON metadata of the audio</td></tr>
+    <tr><td>👁️ Vision</td><td>Chat, attach an image</td><td><code>hotel_bed_room.png</code>: "Any of these rooms available?" → recognises the room, asks for dates</td><td>Also for document checks, virtual tours</td></tr>
+  </table></div>
+
+  <div class="grid">
+    <div class="tile purple"><h4>🇫🇷 Combined: translation + sentiment</h4><p>A French guest in an English-speaking hotel is unhappy; the feedback is translated, the dissatisfaction detected, and her issue prioritised.</p></div>
+    <div class="tile teal"><h4>♿ Combined: speech + vision</h4><p>Accessibility: guests control room features by voice, with confirmations.</p></div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Multimodal test data: images that are blurry, of a different hotel, or not a room at all (a cat); audio with accents, noise and speech in two languages. The pass rule should include "asks for clarification when unsure" rather than guessing.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Which two services combine for smart escalation?</summary>
+      <div class="answer">Sentiment analysis + routing/decision logic.</div></details>
+    <details><summary>Where can you see metadata for a transcribed recording?</summary>
+      <div class="answer">The JSON view in the Speech playground's speech-to-text result.</div></details>
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🧠 <b>NLU</b>: what the guest means. Playground tools: call-centre summary (recap, issue, resolution), named entities, multilingual.</li>
+    <li>🎯🏷️🔑🌍 Four skills: <b>intent, entities, key phrases, language detection</b>. Keyword bots match words; agents understand intent.</li>
+    <li>📊📄⚡ Knowledge: <b>structured</b> (CSV/JSON), <b>unstructured</b> (PDF, manuals), <b>dynamic</b> (APIs). Mix all three for grounding.</li>
+    <li>🔢🧭🏆🚧 Search: <b>score → semantic/keyword search → rank (recency, credibility) → filter (rules)</b>.</li>
+    <li>🧬 <b>Embeddings</b> = meaning as numbers; semantic search compares them. Not a silver bullet: plausible-but-wrong matches.</li>
+    <li>🔄 Pipeline: <b>ingest/clean → embed → index → retrieve (precision vs recall) → inject context</b>.</li>
+    <li>🛠️ Optimise: query expansion, synonyms, contextual ranking; watch no-result and ambiguous queries.</li>
+    <li>🗃️ Foundry: Knowledge → Files → <b>vector store</b>; Manage to add files; Fabric for live data; test with paraphrases.</li>
+    <li>🤝 Integrations: <b>translation + intent</b>, <b>sentiment + escalation</b>, <b>vision + knowledge</b>, speech for hands-free.</li>
+    <li>🧪 Test each stage separately: intent accuracy, entity match, retrieval precision/recall, then the final answer.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: the module's activities</h2>
+    <p class="sub">What the course asks you to do, plus a QA twist</p>
+  </div></div>
+  <ol>
+    <li><b>Intent builder and language enhancement</b>: define 4–5 hotel intents and test them in the chat and language playgrounds.</li>
+    <li><b>Knowledge system implementation</b> (45 min): create a vector store, upload a JSON and a DOCX, add a prioritisation instruction.</li>
+    <li><b>Service integration exploration</b> (45 min): build translation + intent, sentiment escalation and image questions.</li>
+    <li>➕ <b>QA twist</b>: a 30-row labelled sheet (message → intent, entities, expected source passage). Score intent accuracy and retrieval recall; list every miss with its likely cause (understanding, retrieval, or generation).</li>
+  </ol>
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 6 (RAG: chunking, embeddings, retrieval metrics) · <i>LLM Evaluation</i> Ch 11 (embedding evaluation: recall@K, MRR) · <i>Software Testing with Generative AI</i> on RAG · next: <b>Module 4</b>, testing, deployment and your portfolio.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from the Coursera course <i>AI agent fundamentals with Azure AI Foundry</i> (Microsoft) · video and reading titles are the course's own</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
