@@ -1,0 +1,1324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LangGraph Field Notes</title>
+<meta name="description" content="Detailed notes on LangGraph 1.x: state, nodes, edges, persistence, human-in-the-loop, durable execution, multi-agent patterns, deployment, and testing from a QA perspective.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f6f3; --surface:#ffffff; --surface-2:#eeede8; --ink:#1b1d22; --ink-2:#4a4e57; --ink-3:#757a85;
+  --line:#dcdad2; --accent:#4b48b8; --accent-2:#38359a; --accent-soft:#e6e5f7;
+  --ok:#0d6e5f; --ok-soft:#dcefe9;
+  --warn:#9a5b00; --warn-soft:#fbefd9; --bad:#a23a2a; --bad-soft:#f8e1dc; --info:#2a5aa2; --info-soft:#e0e9f7;
+  --code-bg:#1c1e26; --code-ink:#e6e4dc; --code-dim:#8b8fa0; --code-key:#a9a6ff; --code-str:#e8c07d; --code-com:#7d8292;
+  --radius:10px; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+  --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace; --serif:"IBM Plex Serif",Georgia,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121318; --surface:#191b21; --surface-2:#20232b; --ink:#e8e7e2; --ink-2:#b5b7c0; --ink-3:#8a8e9a;
+    --line:#2d3039; --accent:#a5a2ff; --accent-2:#c3c1ff; --accent-soft:#25243f;
+    --ok:#4fc2ad; --ok-soft:#16312c;
+    --warn:#e6b25c; --warn-soft:#2e2414; --bad:#ec8b7a; --bad-soft:#341c18; --info:#8fb4ee; --info-soft:#1a2436;
+    --code-bg:#0d0e13; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121318; --surface:#191b21; --surface-2:#20232b; --ink:#e8e7e2; --ink-2:#b5b7c0; --ink-3:#8a8e9a;
+  --line:#2d3039; --accent:#a5a2ff; --accent-2:#c3c1ff; --accent-soft:#25243f;
+  --ok:#4fc2ad; --ok-soft:#16312c;
+  --warn:#e6b25c; --warn-soft:#2e2414; --bad:#ec8b7a; --bad-soft:#341c18; --info:#8fb4ee; --info-soft:#1a2436;
+  --code-bg:#0d0e13; --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{color:var(--accent-2)}
+code,kbd{font-family:var(--mono);font-size:.88em}
+:not(pre)>code{background:var(--surface-2);border:1px solid var(--line);padding:.08em .38em;border-radius:5px;overflow-wrap:anywhere}
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;padding:10px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none}
+.brand .dot{width:22px;height:22px;border-radius:6px;background:var(--accent);display:grid;place-items:center;color:var(--bg);font:600 11px var(--mono)}
+.topbar .spacer{flex:1}
+.btn{font:500 13px var(--sans);color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;text-decoration:none}
+.btn:hover{color:var(--ink);border-color:var(--ink-3)}
+#menuBtn{display:none}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+nav.toc{position:sticky;top:53px;height:calc(100vh - 53px);overflow:auto;padding:24px 14px 40px 20px;border-right:1px solid var(--line);font-size:14px}
+nav.toc .grp{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin:18px 0 6px 8px}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:4px 8px;border-radius:6px;line-height:1.35}
+nav.toc a:hover{background:var(--surface-2);color:var(--ink)}
+nav.toc a.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+main{padding:28px 44px 120px;min-width:0}
+.wrap{max-width:900px}
+.hero{padding:28px 0 18px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font:600 clamp(32px,5vw,50px)/1.08 var(--serif);letter-spacing:-.015em;margin:10px 0 14px}
+.lede{font-size:19px;color:var(--ink-2);max-width:720px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.chip{font:500 12px var(--mono);padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2)}
+.chip.ok{border-color:transparent;background:var(--accent-soft);color:var(--accent)}
+h2{font:600 30px/1.2 var(--serif);letter-spacing:-.01em;margin:64px 0 6px;padding-top:8px}
+h2 .num{font:500 14px var(--mono);color:var(--accent);display:block;margin-bottom:6px;letter-spacing:.05em}
+h3{font-size:20px;font-weight:600;margin:36px 0 8px;letter-spacing:-.005em}
+h4{font-size:15px;font-weight:600;margin:24px 0 6px}
+p{margin:10px 0}
+.sub{color:var(--ink-2);margin-top:0}
+ul,ol{padding-left:22px} li{margin:4px 0}
+hr{border:0;border-top:1px solid var(--line);margin:40px 0}
+.note{border:1px solid var(--line);border-left:4px solid var(--info);background:var(--info-soft);padding:12px 16px;border-radius:8px;margin:18px 0;font-size:15px}
+.note.tip{border-left-color:var(--accent);background:var(--accent-soft)}
+.note.qa{border-left-color:var(--ok);background:var(--ok-soft)}
+.note.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.note b.t{display:block;font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;color:var(--info)}
+.note.tip b.t{color:var(--accent)} .note.qa b.t{color:var(--ok)} .note.warn b.t{color:var(--warn)} .note.bad b.t{color:var(--bad)}
+.note ul{margin:6px 0 0}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin:18px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{margin:0;color:var(--ink-2);font-size:14.5px}
+.card .k{font:500 11px var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.tbl{overflow-x:auto;margin:16px 0;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+.code{position:relative;margin:16px 0}
+.code .lbl{font:500 11px var(--mono);color:var(--code-dim);background:var(--code-bg);padding:8px 14px 0;border-radius:var(--radius) var(--radius) 0 0;letter-spacing:.04em}
+.code pre{margin:0;background:var(--code-bg);color:var(--code-ink);padding:14px 16px 16px;border-radius:0 0 var(--radius) var(--radius);overflow:auto;font:13.5px/1.6 var(--mono);tab-size:4}
+.code .copy{position:absolute;top:6px;right:8px;font:500 11px var(--mono);background:transparent;color:var(--code-dim);border:1px solid #3a3e4a;border-radius:6px;padding:3px 8px;cursor:pointer}
+.code .copy:hover{color:var(--code-ink)}
+.c{color:var(--code-com);font-style:italic} .s{color:var(--code-str)} .kw{color:var(--code-key)}
+figure{margin:22px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;overflow-x:auto}
+figcaption{font-size:13px;color:var(--ink-3);margin-top:10px}
+svg .bx{fill:var(--surface-2);stroke:var(--line);stroke-width:1.2}
+svg .bx.a{fill:var(--accent-soft);stroke:var(--accent)}
+svg .bx.i{fill:var(--info-soft);stroke:var(--info)}
+svg .bx.w{fill:var(--warn-soft);stroke:var(--warn)}
+svg .bx.o{fill:var(--ok-soft);stroke:var(--ok)}
+svg text{fill:var(--ink);font-family:var(--sans);font-size:13px}
+svg text.sm{font-size:11px;fill:var(--ink-2)}
+svg text.h{font-weight:600}
+svg .ln{stroke:var(--ink-3);stroke-width:1.4;fill:none}
+svg .ln.d{stroke-dasharray:4 4}
+svg .ar{fill:var(--ink-3)}
+.tree{font:13.5px/1.55 var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;overflow-x:auto;white-space:pre;color:var(--ink)}
+.tree .d{color:var(--accent);font-weight:500}
+.tree .m{color:var(--ink-3)}
+ul.check{list-style:none;padding-left:0}
+ul.check li{padding-left:28px;position:relative;margin:7px 0}
+ul.check li::before{content:"";position:absolute;left:2px;top:5px;width:14px;height:14px;border:1.5px solid var(--accent);border-radius:4px}
+.steps{counter-reset:s;list-style:none;padding-left:0}
+.steps>li{counter-increment:s;position:relative;padding-left:40px;margin:14px 0}
+.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--bg);font:600 13px var(--mono);display:grid;place-items:center}
+.verified{font:500 11px var(--mono);color:var(--ok);margin-left:6px}
+footer{margin-top:80px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink-3);font-size:13px}
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  nav.toc{position:fixed;top:53px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:25;transform:translateX(-105%);transition:transform .2s;box-shadow:0 0 30px rgba(0,0,0,.2)}
+  nav.toc.open{transform:none}
+  #menuBtn{display:inline-block}
+  main{padding:20px 16px 100px}
+  h2{font-size:25px}
+  .topbar .btn.home span{display:none}
+}
+@media print{nav.toc,.topbar,.copy{display:none}.layout{display:block}main{padding:0}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+  <a class="brand" href="#top"><span class="dot">LG</span>LangGraph Notes</a>
+  <span class="spacer"></span>
+  <a class="btn home" href="../index.html">← <span>All notes</span></a>
+  <button class="btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <div class="grp">Foundations</div>
+  <a href="#what">1 · What LangGraph is</a>
+  <a href="#when">2 · When to use it</a>
+  <a href="#model">3 · Execution model</a>
+  <a href="#first">4 · First graph</a>
+  <div class="grp">Building blocks</div>
+  <a href="#state">5 · State &amp; reducers</a>
+  <a href="#nodes">6 · Nodes &amp; runtime</a>
+  <a href="#edges">7 · Edges &amp; control flow</a>
+  <a href="#command">8 · Command, Send, map-reduce</a>
+  <a href="#policies">9 · Retries, timeouts, errors</a>
+  <a href="#streaming">10 · Running &amp; streaming</a>
+  <div class="grp">Persistence</div>
+  <a href="#persistence">11 · Checkpointers &amp; threads</a>
+  <a href="#timetravel">12 · Time travel</a>
+  <a href="#memory">13 · Long-term memory (Store)</a>
+  <a href="#hitl">14 · Human-in-the-loop</a>
+  <a href="#durable">15 · Durable execution</a>
+  <div class="grp">Composition</div>
+  <a href="#functional">16 · Functional API</a>
+  <a href="#subgraphs">17 · Subgraphs</a>
+  <a href="#agents">18 · Agents &amp; tools</a>
+  <a href="#multiagent">19 · Multi-agent patterns</a>
+  <div class="grp">Ship it</div>
+  <a href="#deploy">20 · Deployment &amp; observability</a>
+  <a href="#testing">21 · Testing (QA view)</a>
+  <a href="#blueprint">22 · Project blueprint</a>
+  <a href="#pitfalls">23 · Pitfalls</a>
+  <div class="grp">Reference</div>
+  <a href="#versions">24 · Version notes</a>
+  <a href="#cheatsheet">25 · Cheat sheet</a>
+  <a href="#glossary">26 · Glossary</a>
+  <a href="#sources">Sources</a>
+</nav>
+
+<main id="top">
+<div class="wrap">
+
+<section class="hero">
+  <div class="eyebrow">Framework notes · agent orchestration</div>
+  <h1>LangGraph, from first node to production</h1>
+  <p class="lede">How the runtime actually executes your graph, every building block you'll touch, the persistence model that makes agents pausable and resumable, the multi-agent patterns, and how to test all of it.</p>
+  <div class="meta">
+    <span class="chip ok">Written against langgraph 1.2.18 (26 Oct 2026)</span>
+    <span class="chip">Python ≥ 3.10</span>
+    <span class="chip">MIT licence</span>
+    <span class="chip">Notes dated 29 Oct 2026</span>
+  </div>
+</section>
+
+<div class="note tip"><b class="t">How these notes were checked</b>Core code blocks marked <span class="verified">✓ ran on 1.2.18</span> were executed against an installed <code>langgraph==1.2.18</code> before publishing. Blocks that need a live LLM, Postgres, or a deployment are syntax-checked only. LangGraph ships patch releases several times a week, so pin your version.</div>
+
+<!-- 1 -->
+<h2 id="what"><span class="num">01</span>What LangGraph is</h2>
+<p class="sub">A low-level runtime for building stateful, long-running, multi-step LLM applications as graphs.</p>
+<p>LangGraph is an open-source (MIT) orchestration framework from LangChain Inc., available for Python and JavaScript/TypeScript. You describe your application as a <b>graph</b>: <b>nodes</b> are functions that do work (call a model, run a tool, transform data), <b>edges</b> decide what runs next, and a shared <b>state</b> object flows through it all. The runtime adds what agents need and plain code makes painful: checkpointed persistence, pause-and-resume for humans, streaming, retries, and recovery after crashes.</p>
+<p>It is deliberately <em>not</em> a prompt library or an agent abstraction. It doesn't hide your prompts or your control flow. That's its main design choice: you own the loop.</p>
+
+<h3>Where it sits in the stack</h3>
+<figure>
+<svg viewBox="0 0 820 230" width="100%" role="img" aria-label="LangChain ecosystem layers">
+  <rect class="bx a" x="10" y="10" width="560" height="56" rx="8"/>
+  <text x="290" y="34" text-anchor="middle" class="h">LangChain <tspan font-family="IBM Plex Mono">create_agent</tspan> · Deep Agents</text>
+  <text x="290" y="53" text-anchor="middle" class="sm">high-level agents with middleware — built on LangGraph</text>
+  <rect class="bx i" x="10" y="80" width="560" height="56" rx="8"/>
+  <text x="290" y="104" text-anchor="middle" class="h">LangGraph</text>
+  <text x="290" y="123" text-anchor="middle" class="sm">graph runtime: state · nodes · edges · checkpoints · interrupts · streaming</text>
+  <rect class="bx" x="10" y="150" width="560" height="56" rx="8"/>
+  <text x="290" y="174" text-anchor="middle" class="h">langchain-core · model integrations · your own code</text>
+  <text x="290" y="193" text-anchor="middle" class="sm">chat models, tools, messages — or any Python callable</text>
+  <rect class="bx w" x="600" y="10" width="210" height="196" rx="8"/>
+  <text x="705" y="40" text-anchor="middle" class="h">LangSmith</text>
+  <text x="705" y="66" text-anchor="middle" class="sm">Tracing &amp; evals</text>
+  <text x="705" y="86" text-anchor="middle" class="sm">Studio (visual debugger)</text>
+  <text x="705" y="106" text-anchor="middle" class="sm">Deployment (Agent Server)</text>
+  <text x="705" y="126" text-anchor="middle" class="sm">formerly "LangGraph Platform"</text>
+  <text x="705" y="160" text-anchor="middle" class="sm">optional, commercial</text>
+</svg>
+<figcaption>LangGraph is the open-source middle layer. LangChain's agent APIs are built on it; LangSmith is the optional hosted tooling around it.</figcaption>
+</figure>
+
+<div class="grid">
+  <div class="card"><div class="k">Controllable</div><h4>Explicit control flow</h4><p>Loops, branches, parallel fan-out and joins are edges you write and can draw, not behaviour hidden in a prompt.</p></div>
+  <div class="card"><div class="k">Stateful</div><h4>Checkpointed state</h4><p>Every step saves a snapshot per thread. That gives memory, resume after failure, and time travel.</p></div>
+  <div class="card"><div class="k">Interruptible</div><h4>Human-in-the-loop</h4><p><code>interrupt()</code> pauses anywhere and waits — minutes or days — for a person, then resumes exactly there.</p></div>
+  <div class="card"><div class="k">Observable</div><h4>Streaming</h4><p>Stream state, per-node updates, LLM tokens, custom progress events, and subgraph activity.</p></div>
+</div>
+
+<!-- 2 -->
+<h2 id="when"><span class="num">02</span>When to use it (and when not)</h2>
+<div class="tbl"><table>
+<thead><tr><th>Situation</th><th>Recommendation</th></tr></thead>
+<tbody>
+<tr><td>Single LLM call, or a fixed prompt chain</td><td>Plain code or a LangChain chain. A graph is overhead.</td></tr>
+<tr><td>Standard tool-calling agent (model ↔ tools loop)</td><td>Start with LangChain's <code>create_agent</code> — it already runs on LangGraph and adds middleware. Drop to raw LangGraph when you outgrow it.</td></tr>
+<tr><td>Custom workflow with branches, loops, validation steps</td><td><b>LangGraph</b> — this is its core use case.</td></tr>
+<tr><td>Needs human approval, edits or input mid-run</td><td><b>LangGraph</b> — <code>interrupt()</code> + checkpointer.</td></tr>
+<tr><td>Long-running jobs that must survive restarts</td><td><b>LangGraph</b> with a durable checkpointer (Postgres).</td></tr>
+<tr><td>Multiple cooperating agents with hand-offs</td><td><b>LangGraph</b> (supervisor, swarm, hierarchical patterns), or Deep Agents for planner-plus-subagent setups.</td></tr>
+<tr><td>Team wants role-play agents with minimal code</td><td>Higher-level frameworks (CrewAI etc.) are quicker to start; LangGraph gives more control.</td></tr>
+</tbody></table></div>
+
+<!-- 3 -->
+<h2 id="model"><span class="num">03</span>The execution model</h2>
+<p class="sub">Understanding this one section explains almost every surprising behaviour later.</p>
+<p>LangGraph's runtime is modelled on Google's <b>Pregel</b> / bulk-synchronous-parallel design. A compiled graph runs as a sequence of <b>supersteps</b>:</p>
+<ol class="steps">
+<li><b>Plan.</b> Work out which nodes are triggered — those whose incoming edges fired in the previous step (or <code>START</code> on the first step).</li>
+<li><b>Execute.</b> Run all triggered nodes <em>in parallel</em>. Each node sees the same state snapshot and returns a <em>partial update</em> — it never mutates state directly.</li>
+<li><b>Update.</b> Apply every node's update to the state through each key's <b>reducer</b> (or overwrite, if the key has none). Updates from parallel nodes are merged in a deterministic order.</li>
+<li><b>Checkpoint.</b> If a checkpointer is attached, save the new state as a checkpoint for this thread.</li>
+<li><b>Repeat</b> until no nodes are triggered (the graph reached <code>END</code>), an interrupt fires, or the recursion limit is hit.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 840 250" width="100%" role="img" aria-label="Supersteps">
+  <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ar"/></marker></defs>
+  <text x="90" y="22" text-anchor="middle" class="sm">superstep 1</text>
+  <text x="300" y="22" text-anchor="middle" class="sm">superstep 2 (parallel)</text>
+  <text x="510" y="22" text-anchor="middle" class="sm">superstep 3 (join)</text>
+  <text x="730" y="22" text-anchor="middle" class="sm">done</text>
+  <rect class="bx" x="40" y="90" width="100" height="44" rx="8"/><text x="90" y="117" text-anchor="middle" class="h">plan</text>
+  <rect class="bx i" x="250" y="50" width="100" height="44" rx="8"/><text x="300" y="77" text-anchor="middle" class="h">search</text>
+  <rect class="bx i" x="250" y="130" width="100" height="44" rx="8"/><text x="300" y="157" text-anchor="middle" class="h">lookup_db</text>
+  <rect class="bx" x="460" y="90" width="100" height="44" rx="8"/><text x="510" y="117" text-anchor="middle" class="h">synthesise</text>
+  <rect class="bx a" x="680" y="90" width="100" height="44" rx="8"/><text x="730" y="117" text-anchor="middle" class="h">END</text>
+  <path class="ln" d="M140 105L246 75" marker-end="url(#a1)"/>
+  <path class="ln" d="M140 120L246 150" marker-end="url(#a1)"/>
+  <path class="ln" d="M350 72L456 104" marker-end="url(#a1)"/>
+  <path class="ln" d="M350 152L456 122" marker-end="url(#a1)"/>
+  <path class="ln" d="M560 112H676" marker-end="url(#a1)"/>
+  <g>
+    <rect class="bx o" x="40" y="200" width="100" height="26" rx="5"/><text x="90" y="218" text-anchor="middle" class="sm">checkpoint 1</text>
+    <rect class="bx o" x="250" y="200" width="100" height="26" rx="5"/><text x="300" y="218" text-anchor="middle" class="sm">checkpoint 2</text>
+    <rect class="bx o" x="460" y="200" width="100" height="26" rx="5"/><text x="510" y="218" text-anchor="middle" class="sm">checkpoint 3</text>
+  </g>
+  <path class="ln d" d="M90 134V196"/><path class="ln d" d="M300 174V196"/><path class="ln d" d="M510 134V196"/>
+</svg>
+<figcaption>Both branches in step 2 read the same state and their updates merge through reducers before step 3. One checkpoint per superstep.</figcaption>
+</figure>
+
+<div class="note warn"><b class="t">Consequences you will hit</b>
+<ul>
+<li><b>Parallel writes to a key without a reducer raise <code>InvalidUpdateError</code>.</b> If two branches both write <code>results</code>, give it a reducer such as <code>operator.add</code>.</li>
+<li>A node in a parallel step can't see what its sibling wrote until the <em>next</em> step.</li>
+<li>If one node in a superstep fails, the whole superstep fails — but successful siblings' writes are kept as pending writes and aren't re-run on resume.</li>
+<li>Each superstep counts towards <code>recursion_limit</code>. An agent loop that never reaches <code>END</code> eventually raises <code>GraphRecursionError</code> — but with a high default (§7), so set your own.</li>
+</ul></div>
+
+<p><b>Channels</b> are the low-level mechanism: each state key is stored in a channel (last-value, binary-operator aggregate, topic, and from 1.2 the delta-storing <code>DeltaChannel</code>). You rarely touch channels directly — the <code>StateGraph</code> builder creates them from your state schema.</p>
+
+<!-- 4 -->
+<h2 id="first"><span class="num">04</span>Your first graph</h2>
+<div class="code"><div class="lbl">shell</div><pre>pip install -U "langgraph==1.2.18"           <span class="c"># pin; Python 3.10+</span>
+pip install langchain-openai                  <span class="c"># or langchain-anthropic etc., for model nodes</span></pre></div>
+
+<div class="code"><div class="lbl">hello_graph.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> typing <span class="kw">import</span> TypedDict
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+
+<span class="kw">class</span> State(TypedDict):
+    topic: str
+    draft: str
+    approved: bool
+
+<span class="kw">def</span> write(state: State) -&gt; dict:
+    <span class="kw">return</span> {<span class="s">"draft"</span>: <span class="s">f"A short note about {state['topic']}."</span>}
+
+<span class="kw">def</span> review(state: State) -&gt; dict:
+    <span class="kw">return</span> {<span class="s">"approved"</span>: len(state[<span class="s">"draft"</span>]) &lt; <span class="s">200</span>}
+
+builder = StateGraph(State)
+builder.add_node(<span class="s">"write"</span>, write)
+builder.add_node(<span class="s">"review"</span>, review)
+builder.add_edge(START, <span class="s">"write"</span>)
+builder.add_edge(<span class="s">"write"</span>, <span class="s">"review"</span>)
+builder.add_edge(<span class="s">"review"</span>, END)
+
+graph = builder.compile()
+print(graph.invoke({<span class="s">"topic"</span>: <span class="s">"LangGraph"</span>}))
+<span class="c"># {'topic': 'LangGraph', 'draft': 'A short note about LangGraph.', 'approved': True}</span>
+
+print(graph.get_graph().draw_mermaid())     <span class="c"># diagram source for docs/PRs</span></pre></div>
+
+<p>The pattern never changes: <b>define state → add nodes → add edges → compile → invoke</b>. <code>compile()</code> validates the graph (no orphan nodes, valid edge targets) and is where you attach a checkpointer, store, cache and static interrupts.</p>
+
+<!-- 5 -->
+<h2 id="state"><span class="num">05</span>State, schemas &amp; reducers</h2>
+
+<h3>Schema types</h3>
+<div class="tbl"><table>
+<thead><tr><th>Type</th><th>Pros</th><th>Cons</th></tr></thead>
+<tbody>
+<tr><td><code>TypedDict</code></td><td>Fast, simple, the documented default</td><td>No runtime validation</td></tr>
+<tr><td><code>dataclass</code></td><td>Default values</td><td>No validation</td></tr>
+<tr><td>Pydantic <code>BaseModel</code></td><td>Validates input to the first node; with <code>version="v2"</code> output is coerced back to the model</td><td>Slower; validation only at graph input, not on every node update</td></tr>
+</tbody></table></div>
+
+<h3>Reducers decide how updates merge</h3>
+<p>A node returns a partial dict. For each key, LangGraph either <b>overwrites</b> (default) or calls the key's <b>reducer</b> <code>reducer(current, update) → new</code>, declared with <code>Annotated</code>.</p>
+
+<div class="code"><div class="lbl">state_reducers.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">import</span> operator
+<span class="kw">from</span> typing <span class="kw">import</span> Annotated, TypedDict
+<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> AnyMessage
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> langgraph.graph.message <span class="kw">import</span> add_messages
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> Overwrite
+
+<span class="kw">class</span> State(TypedDict):
+    question: str                                        <span class="c"># overwrite</span>
+    findings: Annotated[list[str], operator.add]         <span class="c"># append</span>
+    messages: Annotated[list[AnyMessage], add_messages]  <span class="c"># append + update-by-id</span>
+
+<span class="kw">def</span> a(state): <span class="kw">return</span> {<span class="s">"findings"</span>: [<span class="s">"from a"</span>]}
+<span class="kw">def</span> b(state): <span class="kw">return</span> {<span class="s">"findings"</span>: [<span class="s">"from b"</span>]}
+<span class="kw">def</span> reset(state): <span class="kw">return</span> {<span class="s">"findings"</span>: Overwrite([<span class="s">"summary only"</span>])}  <span class="c"># bypass reducer</span>
+
+g = StateGraph(State)
+g.add_node(<span class="s">"a"</span>, a); g.add_node(<span class="s">"b"</span>, b); g.add_node(<span class="s">"reset"</span>, reset)
+g.add_edge(START, <span class="s">"a"</span>); g.add_edge(START, <span class="s">"b"</span>)       <span class="c"># a and b run in parallel</span>
+g.add_edge([<span class="s">"a"</span>, <span class="s">"b"</span>], <span class="s">"reset"</span>)                        <span class="c"># join: wait for both</span>
+g.add_edge(<span class="s">"reset"</span>, END)
+graph = g.compile()
+
+out = graph.invoke({<span class="s">"question"</span>: <span class="s">"q"</span>, <span class="s">"findings"</span>: [], <span class="s">"messages"</span>: []})
+<span class="kw">assert</span> out[<span class="s">"findings"</span>] == [<span class="s">"summary only"</span>]</pre></div>
+
+<div class="tbl"><table>
+<thead><tr><th>Built-in</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td><code>operator.add</code></td><td>List concatenation / numeric sum</td></tr>
+<tr><td><code>add_messages</code></td><td>Appends messages; a message with an existing <code>id</code> replaces it; <code>RemoveMessage(id=…)</code> deletes; accepts dict/tuple shorthand and converts to message objects</td></tr>
+<tr><td><code>MessagesState</code></td><td>Prebuilt state with <code>messages: Annotated[list[AnyMessage], add_messages]</code>; subclass it to add keys</td></tr>
+<tr><td><code>Overwrite(value)</code></td><td>Returned as an update, skips the reducer and replaces the value</td></tr>
+<tr><td><code>DeltaChannel(reducer, snapshot_frequency=…)</code></td><td>1.2+ (beta). Stores only deltas per step with a full snapshot every N updates (default 100 since 1.2.18). Cuts checkpoint storage for ever-growing keys like long message histories.</td></tr>
+</tbody></table></div>
+
+<h3>Input, output and private schemas</h3>
+<p><code>StateGraph(State, input_schema=In, output_schema=Out)</code> narrows what callers can pass and what they get back, while nodes still see the full internal state. Nodes can also declare their own input type to read a private channel that isn't part of the public state. Use this to keep scratch data (retrieved chunks, intermediate plans) out of the API contract.</p>
+
+<div class="note tip"><b class="t">Design guidance</b>Keep state small, serialisable and flat. Every key is written to every checkpoint, so large blobs (full documents, images) belong in object storage or the Store, with only references in state. Store raw data, not formatted prompts — format inside the node that needs it.</div>
+
+<!-- 6 -->
+<h2 id="nodes"><span class="num">06</span>Nodes &amp; the runtime</h2>
+<p>A node is any callable — sync or <code>async</code> — that takes the state and returns a partial update (or a <code>Command</code>). Accepted signatures:</p>
+<div class="tbl"><table>
+<thead><tr><th>Signature</th><th>Use</th></tr></thead>
+<tbody>
+<tr><td><code>def node(state)</code></td><td>Most nodes</td></tr>
+<tr><td><code>def node(state, runtime: Runtime[Ctx])</code></td><td>Needs run-scoped context (user id, model choice, DB handle), the Store, a stream writer, or execution info</td></tr>
+<tr><td><code>def node(state, config: RunnableConfig)</code></td><td>Needs raw config (thread id, tags, callbacks)</td></tr>
+</tbody></table></div>
+
+<h3>Runtime context — dependency injection for graphs</h3>
+<p>Since 0.6, static per-run dependencies go in a typed <b>context</b>, declared with <code>context_schema</code> and passed at invoke time. They're <em>not</em> part of state, so they aren't checkpointed.</p>
+
+<div class="code"><div class="lbl">runtime_context.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> typing <span class="kw">import</span> TypedDict
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> langgraph.runtime <span class="kw">import</span> Runtime
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> Ctx:
+    user_id: str
+    model_name: str = <span class="s">"small-model"</span>
+
+<span class="kw">class</span> State(TypedDict):
+    reply: str
+
+<span class="kw">def</span> respond(state: State, runtime: Runtime[Ctx]) -&gt; dict:
+    info = runtime.execution_info          <span class="c"># thread_id, run_id, node_attempt, ...</span>
+    <span class="kw">return</span> {<span class="s">"reply"</span>: <span class="s">f"{runtime.context.user_id} via {runtime.context.model_name} (attempt {info.node_attempt})"</span>}
+
+g = StateGraph(State, context_schema=Ctx)
+g.add_node(<span class="s">"respond"</span>, respond)
+g.add_edge(START, <span class="s">"respond"</span>); g.add_edge(<span class="s">"respond"</span>, END)
+graph = g.compile()
+print(graph.invoke({}, context=Ctx(user_id=<span class="s">"u-42"</span>)))</pre></div>
+
+<p>Other runtime members: <code>runtime.store</code> (long-term memory), <code>runtime.stream_writer</code> (custom stream events), <code>runtime.server_info</code> (assistant/graph/user when running on Agent Server, else <code>None</code>), and <code>runtime.drain_requested</code> for graceful shutdown.</p>
+
+<h3>Node options on <code>add_node</code></h3>
+<div class="tbl"><table>
+<thead><tr><th>Option</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>retry_policy=RetryPolicy(...)</code></td><td>Automatic retries with back-off for transient errors</td></tr>
+<tr><td><code>cache_policy=CachePolicy(ttl=…)</code></td><td>Skip re-running a node for identical input; requires <code>compile(cache=InMemoryCache())</code> (or another cache)</td></tr>
+<tr><td><code>timeout=</code> seconds or <code>TimeoutPolicy(run_timeout, idle_timeout)</code></td><td>1.2+. Per-attempt wall-clock and stall limits; async nodes only</td></tr>
+<tr><td><code>error_handler=fn</code></td><td>1.2+. Called after retries are exhausted; returns a <code>Command</code> to recover or reroute</td></tr>
+<tr><td><code>defer=True</code></td><td>Run only after all other pending work finishes — useful for joins over branches of unequal length</td></tr>
+<tr><td><code>destinations=</code></td><td>Declares possible <code>Command(goto=…)</code> targets so the drawn graph shows them</td></tr>
+<tr><td><code>input_schema=</code></td><td>Node reads a different (e.g. private) schema</td></tr>
+<tr><td><code>metadata=</code></td><td>Tags carried into traces and streaming</td></tr>
+</tbody></table></div>
+<p>Set defaults for every node at once with <code>builder.set_node_defaults(retry_policy=…, timeout=…, cache_policy=…, error_handler=…)</code> (1.2+). Per-node values override; defaults don't propagate into subgraphs.</p>
+
+<!-- 7 -->
+<h2 id="edges"><span class="num">07</span>Edges &amp; control flow</h2>
+<div class="tbl"><table>
+<thead><tr><th>Edge</th><th>API</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>Entry</td><td><code>add_edge(START, "x")</code></td><td>Where execution begins; several entry edges run in parallel</td></tr>
+<tr><td>Normal</td><td><code>add_edge("a", "b")</code></td><td>Always go a → b</td></tr>
+<tr><td>Sequence</td><td><code>add_sequence([f1, f2, f3])</code></td><td>Shorthand for a linear chain</td></tr>
+<tr><td>Conditional</td><td><code>add_conditional_edges("a", router, path_map)</code></td><td>Router reads state and returns a node name, a list of names (fan-out), <code>END</code>, or <code>Send</code> objects</td></tr>
+<tr><td>Join</td><td><code>add_edge(["a", "b"], "c")</code></td><td><code>c</code> runs once, after <em>both</em> finish. Two separate edges into <code>c</code> would instead trigger it whenever either fires.</td></tr>
+<tr><td>Exit</td><td><code>add_edge("x", END)</code></td><td>Branch terminates</td></tr>
+</tbody></table></div>
+
+<div class="code"><div class="lbl">conditional_loop.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> typing <span class="kw">import</span> Literal, TypedDict
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+
+<span class="kw">class</span> State(TypedDict):
+    attempts: int
+    score: float
+
+<span class="kw">def</span> generate(state: State) -&gt; dict:
+    n = state.get(<span class="s">"attempts"</span>, <span class="s">0</span>) + <span class="s">1</span>
+    <span class="kw">return</span> {<span class="s">"attempts"</span>: n, <span class="s">"score"</span>: <span class="s">0.3</span> * n}     <span class="c"># pretend quality improves each try</span>
+
+<span class="kw">def</span> route(state: State) -&gt; Literal[<span class="s">"generate"</span>, <span class="s">"__end__"</span>]:
+    <span class="kw">if</span> state[<span class="s">"score"</span>] &gt;= <span class="s">0.8</span> <span class="kw">or</span> state[<span class="s">"attempts"</span>] &gt;= <span class="s">5</span>:   <span class="c"># always bound loops yourself</span>
+        <span class="kw">return</span> END
+    <span class="kw">return</span> <span class="s">"generate"</span>
+
+g = StateGraph(State)
+g.add_node(<span class="s">"generate"</span>, generate)
+g.add_edge(START, <span class="s">"generate"</span>)
+g.add_conditional_edges(<span class="s">"generate"</span>, route)
+graph = g.compile()
+<span class="kw">assert</span> graph.invoke({<span class="s">"attempts"</span>: <span class="s">0</span>})[<span class="s">"attempts"</span>] == <span class="s">3</span></pre></div>
+
+<div class="note warn"><b class="t">Recursion limit — the default changed</b>Older docs and most tutorials say the default is 25 supersteps. In langgraph 1.2.18 the default is <b>10,007</b> (overridable with the <code>LANGGRAPH_DEFAULT_RECURSION_LIMIT</code> environment variable) — verified against the installed package. That is effectively no safety net for a runaway agent loop, so set one explicitly per run: <code>graph.invoke(inputs, {"recursion_limit": 25})</code>. Hitting it raises <code>GraphRecursionError</code>; treat that as a bug, since your own logic should end the loop.</div>
+
+<!-- 8 -->
+<h2 id="command"><span class="num">08</span>Command, Send &amp; map-reduce</h2>
+
+<h3>Command: update + route in one return</h3>
+<p>Return <code>Command(update={...}, goto="node")</code> from a node when the routing decision and the state change belong together — classic for agent hand-offs. Annotate the return type so the graph can be drawn correctly.</p>
+
+<div class="code"><div class="lbl">command_routing.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> typing <span class="kw">import</span> Literal, TypedDict
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> Command
+
+<span class="kw">class</span> State(TypedDict):
+    query: str
+    handled_by: str
+
+<span class="kw">def</span> triage(state: State) -&gt; Command[Literal[<span class="s">"billing"</span>, <span class="s">"support"</span>]]:
+    team = <span class="s">"billing"</span> <span class="kw">if</span> <span class="s">"refund"</span> <span class="kw">in</span> state[<span class="s">"query"</span>].lower() <span class="kw">else</span> <span class="s">"support"</span>
+    <span class="kw">return</span> Command(update={<span class="s">"handled_by"</span>: team}, goto=team)
+
+<span class="kw">def</span> billing(state): <span class="kw">return</span> {}
+<span class="kw">def</span> support(state): <span class="kw">return</span> {}
+
+g = StateGraph(State)
+g.add_node(<span class="s">"triage"</span>, triage); g.add_node(<span class="s">"billing"</span>, billing); g.add_node(<span class="s">"support"</span>, support)
+g.add_edge(START, <span class="s">"triage"</span>); g.add_edge(<span class="s">"billing"</span>, END); g.add_edge(<span class="s">"support"</span>, END)
+graph = g.compile()
+<span class="kw">assert</span> graph.invoke({<span class="s">"query"</span>: <span class="s">"I want a refund"</span>})[<span class="s">"handled_by"</span>] == <span class="s">"billing"</span></pre></div>
+
+<div class="tbl"><table>
+<thead><tr><th>Command field</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>update</code></td><td>State update, applied like a normal node return</td></tr>
+<tr><td><code>goto</code></td><td>Node name, list of names, or <code>Send</code>(s)</td></tr>
+<tr><td><code>graph=Command.PARENT</code></td><td>Route to a node in the <em>parent</em> graph from inside a subgraph (multi-agent hand-off). Shared keys need reducers in the parent.</td></tr>
+<tr><td><code>resume</code></td><td>Only used as <em>input</em> to resume after <code>interrupt()</code> — see §14</td></tr>
+</tbody></table></div>
+<p><b>Command vs conditional edge:</b> use a conditional edge when routing is a pure function of state and you want it visible as a separate decision; use <code>Command</code> when the node that does the work also decides where to go next.</p>
+
+<h3>Send: dynamic fan-out (map-reduce)</h3>
+<p>When the number of parallel branches is only known at run time — one per document, per sub-question, per file — return a list of <code>Send(node, payload)</code> from a router. Each <code>Send</code> runs the target node with its own private input; results merge back through a reducer.</p>
+
+<div class="code"><div class="lbl">map_reduce.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">import</span> operator
+<span class="kw">from</span> typing <span class="kw">import</span> Annotated, TypedDict
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> Send
+
+<span class="kw">class</span> State(TypedDict):
+    docs: list[str]
+    summaries: Annotated[list[str], operator.add]   <span class="c"># reducer collects parallel results</span>
+    final: str
+
+<span class="kw">class</span> DocInput(TypedDict):
+    doc: str
+
+<span class="kw">def</span> fan_out(state: State):
+    <span class="kw">return</span> [Send(<span class="s">"summarise"</span>, {<span class="s">"doc"</span>: d}) <span class="kw">for</span> d <span class="kw">in</span> state[<span class="s">"docs"</span>]]
+
+<span class="kw">def</span> summarise(item: DocInput) -&gt; dict:
+    <span class="kw">return</span> {<span class="s">"summaries"</span>: [item[<span class="s">"doc"</span>][:<span class="s">10</span>]]}
+
+<span class="kw">def</span> combine(state: State) -&gt; dict:
+    <span class="kw">return</span> {<span class="s">"final"</span>: <span class="s">" | "</span>.join(sorted(state[<span class="s">"summaries"</span>]))}
+
+g = StateGraph(State)
+g.add_node(<span class="s">"summarise"</span>, summarise)
+g.add_node(<span class="s">"combine"</span>, combine)
+g.add_conditional_edges(START, fan_out, [<span class="s">"summarise"</span>])
+g.add_edge(<span class="s">"summarise"</span>, <span class="s">"combine"</span>)
+g.add_edge(<span class="s">"combine"</span>, END)
+graph = g.compile()
+out = graph.invoke({<span class="s">"docs"</span>: [<span class="s">"alpha document"</span>, <span class="s">"beta document"</span>, <span class="s">"gamma document"</span>], <span class="s">"summaries"</span>: []})
+<span class="kw">assert</span> len(out[<span class="s">"summaries"</span>]) == <span class="s">3</span></pre></div>
+<p>Cap fan-out with <code>{"max_concurrency": n}</code> in the run config when branches call rate-limited APIs.</p>
+
+<!-- 9 -->
+<h2 id="policies"><span class="num">09</span>Retries, timeouts &amp; error handling</h2>
+<p class="sub">LangGraph 1.2 (May 2026) turned resilience into per-node configuration.</p>
+
+<div class="code"><div class="lbl">resilience.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> typing <span class="kw">import</span> TypedDict
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> Command, RetryPolicy, TimeoutPolicy
+<span class="kw">from</span> langgraph.errors <span class="kw">import</span> NodeError
+
+<span class="kw">class</span> State(TypedDict):
+    order_id: str
+    status: str
+
+<span class="kw">async def</span> charge_card(state: State) -&gt; dict:
+    <span class="kw">raise</span> ConnectionError(<span class="s">"payment gateway down"</span>)      <span class="c"># simulate an outage</span>
+
+<span class="kw">def</span> on_charge_failed(state: State, error: NodeError) -&gt; Command:
+    <span class="c"># Runs only after retries are exhausted. Compensate and reroute (saga pattern).</span>
+    <span class="kw">return</span> Command(update={<span class="s">"status"</span>: <span class="s">"payment_failed"</span>}, goto=<span class="s">"notify_customer"</span>)
+
+<span class="kw">def</span> notify_customer(state: State) -&gt; dict:
+    <span class="kw">return</span> {}
+
+g = StateGraph(State)
+g.add_node(
+    <span class="s">"charge_card"</span>, charge_card,
+    retry_policy=RetryPolicy(max_attempts=<span class="s">3</span>, initial_interval=<span class="s">0.01</span>, retry_on=ConnectionError),
+    timeout=TimeoutPolicy(run_timeout=<span class="s">30</span>, idle_timeout=<span class="s">10</span>),
+    error_handler=on_charge_failed,
+    destinations=(<span class="s">"notify_customer"</span>,),
+)
+g.add_node(<span class="s">"notify_customer"</span>, notify_customer)
+g.add_edge(START, <span class="s">"charge_card"</span>); g.add_edge(<span class="s">"charge_card"</span>, END); g.add_edge(<span class="s">"notify_customer"</span>, END)
+graph = g.compile()
+
+<span class="kw">import</span> asyncio
+<span class="kw">print</span>(asyncio.run(graph.ainvoke({<span class="s">"order_id"</span>: <span class="s">"A1"</span>})))    <span class="c"># {'order_id': 'A1', 'status': 'payment_failed'}</span></pre></div>
+
+<div class="tbl"><table>
+<thead><tr><th>Mechanism</th><th>Scope</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><code>RetryPolicy</code></td><td>Per node or via <code>set_node_defaults</code></td><td><code>max_attempts</code>, <code>initial_interval</code>, <code>backoff_factor</code>, <code>max_interval</code>, <code>jitter</code>, <code>retry_on</code> (exception types or predicate). Retry transient errors only.</td></tr>
+<tr><td><code>TimeoutPolicy</code></td><td>Per node, async only</td><td><code>run_timeout</code> caps one attempt; <code>idle_timeout</code> resets on progress, so it catches stalls without killing a healthy stream. Raises <code>NodeTimeoutError</code> (retryable by default); the timed-out attempt's writes are discarded.</td></tr>
+<tr><td><code>error_handler</code></td><td>Per node</td><td><code>fn(state, error: NodeError) → Command</code>, after retries. Python only.</td></tr>
+<tr><td>Graceful drain</td><td>Per run</td><td><code>RunControl().request_drain()</code> (any thread) with <code>invoke(..., control=rc)</code>: the run stops after the current superstep, checkpoints, and raises <code>GraphDrained</code>. Re-invoke on the same thread to continue. Use for deploys and autoscaling.</td></tr>
+<tr><td>Error in state</td><td>Design pattern</td><td>For expected failures (tool returned "not found"), return the error as data and let routing decide — don't raise.</td></tr>
+</tbody></table></div>
+
+<!-- 10 -->
+<h2 id="streaming"><span class="num">10</span>Running &amp; streaming</h2>
+<div class="tbl"><table>
+<thead><tr><th>Method</th><th>Returns</th></tr></thead>
+<tbody>
+<tr><td><code>invoke</code> / <code>ainvoke</code></td><td>Final state (v1: a dict; v2: <code>GraphOutput</code> with <code>.value</code> and <code>.interrupts</code>)</td></tr>
+<tr><td><code>stream</code> / <code>astream</code></td><td>Iterator of chunks for the chosen <code>stream_mode</code>(s)</td></tr>
+<tr><td><code>stream_events(..., version="v3")</code></td><td>1.2+. A run object with typed projections: <code>.values</code>, <code>.messages</code> (one stream per LLM call), <code>.lifecycle</code>, <code>.subgraphs</code>, plus <code>.interrupted</code>/<code>.interrupts</code>/<code>.output</code></td></tr>
+<tr><td><code>batch</code> / <code>abatch</code></td><td>Many inputs at once</td></tr>
+</tbody></table></div>
+
+<h3>Stream modes</h3>
+<div class="tbl"><table>
+<thead><tr><th>Mode</th><th>Emits</th><th>Typical use</th></tr></thead>
+<tbody>
+<tr><td><code>values</code></td><td>Full state after each superstep</td><td>Simple UIs, debugging</td></tr>
+<tr><td><code>updates</code></td><td><code>{node: update}</code> per node</td><td>Progress per step; tests asserting node order</td></tr>
+<tr><td><code>messages</code></td><td><code>(message_chunk, metadata)</code> tokens from any LLM call inside nodes</td><td>Chat UIs (token streaming)</td></tr>
+<tr><td><code>custom</code></td><td>Anything you emit with <code>get_stream_writer()</code> / <code>runtime.stream_writer</code></td><td>"Searching 3 sources…" progress events</td></tr>
+<tr><td><code>checkpoints</code>, <code>tasks</code>, <code>debug</code></td><td>Checkpoint and task lifecycle detail</td><td>Tooling, deep debugging</td></tr>
+</tbody></table></div>
+
+<div class="code"><div class="lbl">streaming.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> typing <span class="kw">import</span> TypedDict
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> langgraph.config <span class="kw">import</span> get_stream_writer
+
+<span class="kw">class</span> State(TypedDict):
+    n: int
+
+<span class="kw">def</span> work(state: State) -&gt; dict:
+    writer = get_stream_writer()
+    <span class="kw">for</span> pct <span class="kw">in</span> (<span class="s">25</span>, <span class="s">50</span>, <span class="s">100</span>):
+        writer({<span class="s">"progress"</span>: pct})
+    <span class="kw">return</span> {<span class="s">"n"</span>: state[<span class="s">"n"</span>] + <span class="s">1</span>}
+
+g = StateGraph(State); g.add_node(<span class="s">"work"</span>, work)
+g.add_edge(START, <span class="s">"work"</span>); g.add_edge(<span class="s">"work"</span>, END)
+graph = g.compile()
+
+<span class="c"># Multiple modes, typed v2 parts (1.1+): each part has type, ns, data</span>
+<span class="kw">for</span> part <span class="kw">in</span> graph.stream({<span class="s">"n"</span>: <span class="s">0</span>}, stream_mode=[<span class="s">"updates"</span>, <span class="s">"custom"</span>], version=<span class="s">"v2"</span>):
+    print(part[<span class="s">"type"</span>], part[<span class="s">"data"</span>])
+<span class="c"># custom {'progress': 25} ... updates {'work': {'n': 1}}</span>
+
+result = graph.invoke({<span class="s">"n"</span>: <span class="s">0</span>}, version=<span class="s">"v2"</span>)
+print(result.value, result.interrupts)          <span class="c"># {'n': 1} ()</span></pre></div>
+
+<p>Pass <code>subgraphs=True</code> to stream to also see events from nested graphs; each chunk then carries a namespace tuple telling you which subgraph produced it.</p>
+
+<div class="note warn"><b class="t">v1 vs v2 outputs</b>v2 (opt-in, 1.1+) gives typed stream parts and a <code>GraphOutput</code> from <code>invoke</code>. Dict-style access on <code>GraphOutput</code> (<code>result["__interrupt__"]</code>) is deprecated and planned for removal in LangGraph 3.0. New code should use <code>version="v2"</code> and <code>result.value</code> / <code>result.interrupts</code>.</div>
+
+<!-- 11 -->
+<h2 id="persistence"><span class="num">11</span>Persistence: checkpointers &amp; threads</h2>
+<p>Compile with a <b>checkpointer</b> and every superstep is saved as a <b>checkpoint</b> under a <b>thread</b>. A thread is one conversation or job, identified by <code>thread_id</code> in the config. This one feature unlocks multi-turn memory, human-in-the-loop, time travel and fault tolerance.</p>
+
+<div class="tbl"><table>
+<thead><tr><th>Checkpointer</th><th>Package</th><th>Use for</th></tr></thead>
+<tbody>
+<tr><td><code>InMemorySaver</code></td><td><code>langgraph</code> (built in)</td><td>Tests, notebooks. Lost on restart.</td></tr>
+<tr><td><code>SqliteSaver</code> / <code>AsyncSqliteSaver</code></td><td><code>langgraph-checkpoint-sqlite</code></td><td>Local apps, single-process tools</td></tr>
+<tr><td><code>PostgresSaver</code> / <code>AsyncPostgresSaver</code></td><td><code>langgraph-checkpoint-postgres</code></td><td>Production. Call <code>.setup()</code> once to create tables; supports <code>prune</code> (3.2+)</td></tr>
+<tr><td>Community savers</td><td>Redis, MongoDB, others</td><td>Match your existing infrastructure</td></tr>
+</tbody></table></div>
+
+<div class="code"><div class="lbl">threads.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, MessagesState, START, END
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+
+<span class="kw">def</span> echo_bot(state: MessagesState) -&gt; dict:
+    turns = sum(<span class="s">1</span> <span class="kw">for</span> m <span class="kw">in</span> state[<span class="s">"messages"</span>] <span class="kw">if</span> m.type == <span class="s">"human"</span>)
+    <span class="kw">return</span> {<span class="s">"messages"</span>: [(<span class="s">"ai"</span>, <span class="s">f"You've sent {turns} message(s)."</span>)]}
+
+g = StateGraph(MessagesState)
+g.add_node(<span class="s">"bot"</span>, echo_bot)
+g.add_edge(START, <span class="s">"bot"</span>); g.add_edge(<span class="s">"bot"</span>, END)
+graph = g.compile(checkpointer=InMemorySaver())
+
+alice = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"alice"</span>}}
+bob   = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"bob"</span>}}
+graph.invoke({<span class="s">"messages"</span>: [(<span class="s">"human"</span>, <span class="s">"hi"</span>)]}, alice)
+out = graph.invoke({<span class="s">"messages"</span>: [(<span class="s">"human"</span>, <span class="s">"again"</span>)]}, alice)
+<span class="kw">assert</span> out[<span class="s">"messages"</span>][-<span class="s">1</span>].content == <span class="s">"You've sent 2 message(s)."</span>   <span class="c"># remembered</span>
+out = graph.invoke({<span class="s">"messages"</span>: [(<span class="s">"human"</span>, <span class="s">"hello"</span>)]}, bob)
+<span class="kw">assert</span> out[<span class="s">"messages"</span>][-<span class="s">1</span>].content == <span class="s">"You've sent 1 message(s)."</span>   <span class="c"># isolated</span></pre></div>
+
+<div class="code"><div class="lbl">production checkpointer (Postgres)</div><pre><span class="kw">from</span> langgraph.checkpoint.postgres <span class="kw">import</span> PostgresSaver
+
+DB_URI = <span class="s">"postgresql://user:pass@host:5432/agents"</span>
+<span class="kw">with</span> PostgresSaver.from_conn_string(DB_URI) <span class="kw">as</span> checkpointer:
+    checkpointer.setup()                  <span class="c"># once per deploy/migration, from one process</span>
+    graph = builder.compile(checkpointer=checkpointer)
+    graph.invoke(inputs, {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"order-4471"</span>}})</pre></div>
+
+<h3>Durability modes</h3>
+<p>Choose how strictly checkpoints are written with <code>durability=</code> on <code>invoke</code>/<code>stream</code>:</p>
+<div class="tbl"><table>
+<thead><tr><th>Mode</th><th>Behaviour</th><th>Trade-off</th></tr></thead>
+<tbody>
+<tr><td><code>"exit"</code></td><td>Persist only when the run finishes, errors or interrupts</td><td>Fastest; can't recover mid-run after a crash</td></tr>
+<tr><td><code>"async"</code></td><td>Persist each step asynchronously while the next step runs</td><td>Good balance; tiny risk of losing the last step on a hard crash</td></tr>
+<tr><td><code>"sync"</code></td><td>Persist each step before the next begins</td><td>Strongest guarantee; slower</td></tr>
+</tbody></table></div>
+
+<!-- 12 -->
+<h2 id="timetravel"><span class="num">12</span>Inspecting state &amp; time travel</h2>
+<figure>
+<svg viewBox="0 0 820 190" width="100%" role="img" aria-label="Checkpoint history and fork">
+  <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ar"/></marker></defs>
+  <rect class="bx o" x="10" y="40" width="110" height="44" rx="8"/><text x="65" y="60" text-anchor="middle" class="h">ckpt 0</text><text x="65" y="76" text-anchor="middle" class="sm">input</text>
+  <rect class="bx o" x="170" y="40" width="110" height="44" rx="8"/><text x="225" y="60" text-anchor="middle" class="h">ckpt 1</text><text x="225" y="76" text-anchor="middle" class="sm">after plan</text>
+  <rect class="bx o" x="330" y="40" width="110" height="44" rx="8"/><text x="385" y="60" text-anchor="middle" class="h">ckpt 2</text><text x="385" y="76" text-anchor="middle" class="sm">after tool call</text>
+  <rect class="bx o" x="490" y="40" width="110" height="44" rx="8"/><text x="545" y="60" text-anchor="middle" class="h">ckpt 3</text><text x="545" y="76" text-anchor="middle" class="sm">bad answer</text>
+  <rect class="bx a" x="330" y="128" width="110" height="44" rx="8"/><text x="385" y="148" text-anchor="middle" class="h">ckpt 2′</text><text x="385" y="164" text-anchor="middle" class="sm">edited tool args</text>
+  <rect class="bx a" x="490" y="128" width="110" height="44" rx="8"/><text x="545" y="148" text-anchor="middle" class="h">ckpt 3′</text><text x="545" y="164" text-anchor="middle" class="sm">good answer</text>
+  <path class="ln" d="M120 62H166" marker-end="url(#a2)"/><path class="ln" d="M280 62H326" marker-end="url(#a2)"/><path class="ln" d="M440 62H486" marker-end="url(#a2)"/>
+  <path class="ln" d="M225 84V150H326" marker-end="url(#a2)"/><path class="ln" d="M440 150H486" marker-end="url(#a2)"/>
+  <text x="660" y="62" class="sm">original history</text>
+  <text x="660" y="152" class="sm">fork via update_state()</text>
+</svg>
+<figcaption>Checkpoints are immutable. Editing a past state creates a new branch; the original history is preserved.</figcaption>
+</figure>
+
+<div class="code"><div class="lbl">time_travel.py <span class="verified">✓ ran on 1.2.18</span></div><pre>config = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"t1"</span>}}
+graph.invoke(inputs, config)
+
+snap = graph.get_state(config)        <span class="c"># StateSnapshot: values, next, config, metadata, tasks, interrupts</span>
+print(snap.values, snap.next)
+
+history = list(graph.get_state_history(config))   <span class="c"># newest first</span>
+earlier = history[-<span class="s">2</span>]                               <span class="c"># pick a past checkpoint</span>
+
+<span class="c"># Replay from that checkpoint (re-executes steps after it)</span>
+graph.invoke(<span class="kw">None</span>, earlier.config)
+
+<span class="c"># Or fork: write new values as if a node produced them, then continue</span>
+fork_cfg = graph.update_state(earlier.config, {<span class="s">"topic"</span>: <span class="s">"edited"</span>}, as_node=<span class="s">"write"</span>)
+graph.invoke(<span class="kw">None</span>, fork_cfg)</pre></div>
+
+<div class="note qa"><b class="t">QA use</b>Time travel turns a production bug into a reproducible test: pull the thread, find the checkpoint before things went wrong, replay or fork it with a fix. <code>update_state(..., as_node=...)</code> is also the core of partial-graph testing (§21).</div>
+
+<!-- 13 -->
+<h2 id="memory"><span class="num">13</span>Long-term memory: the Store</h2>
+<p>Checkpoints are <b>per thread</b> (short-term memory). The <b>Store</b> is <b>cross-thread</b> key-value memory — user preferences, learned facts, profiles — organised by namespace tuples, with optional semantic search when configured with an embedding index.</p>
+
+<div class="code"><div class="lbl">store_memory.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, MessagesState, START, END
+<span class="kw">from</span> langgraph.runtime <span class="kw">import</span> Runtime
+<span class="kw">from</span> langgraph.store.memory <span class="kw">import</span> InMemoryStore
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> Ctx:
+    user_id: str
+
+<span class="kw">def</span> remember_and_reply(state: MessagesState, runtime: Runtime[Ctx]) -&gt; dict:
+    ns = (<span class="s">"users"</span>, runtime.context.user_id, <span class="s">"prefs"</span>)
+    last = state[<span class="s">"messages"</span>][-<span class="s">1</span>].content
+    <span class="kw">if</span> last.startswith(<span class="s">"I prefer "</span>):
+        runtime.store.put(ns, <span class="s">"style"</span>, {<span class="s">"value"</span>: last.removeprefix(<span class="s">"I prefer "</span>)})
+    item = runtime.store.get(ns, <span class="s">"style"</span>)
+    style = item.value[<span class="s">"value"</span>] <span class="kw">if</span> item <span class="kw">else</span> <span class="s">"unknown"</span>
+    <span class="kw">return</span> {<span class="s">"messages"</span>: [(<span class="s">"ai"</span>, <span class="s">f"Style: {style}"</span>)]}
+
+g = StateGraph(MessagesState, context_schema=Ctx)
+g.add_node(<span class="s">"reply"</span>, remember_and_reply)
+g.add_edge(START, <span class="s">"reply"</span>); g.add_edge(<span class="s">"reply"</span>, END)
+graph = g.compile(checkpointer=InMemorySaver(), store=InMemoryStore())
+
+ctx = Ctx(user_id=<span class="s">"u1"</span>)
+graph.invoke({<span class="s">"messages"</span>: [(<span class="s">"human"</span>, <span class="s">"I prefer bullet points"</span>)]}, {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"a"</span>}}, context=ctx)
+out = graph.invoke({<span class="s">"messages"</span>: [(<span class="s">"human"</span>, <span class="s">"hi"</span>)]}, {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"b"</span>}}, context=ctx)
+<span class="kw">assert</span> out[<span class="s">"messages"</span>][-<span class="s">1</span>].content == <span class="s">"Style: bullet points"</span>    <span class="c"># new thread, same user</span></pre></div>
+
+<div class="tbl"><table>
+<thead><tr><th></th><th>Checkpointer</th><th>Store</th></tr></thead>
+<tbody>
+<tr><td>Scope</td><td>One thread</td><td>Any thread (namespace you choose)</td></tr>
+<tr><td>Written</td><td>Automatically every step</td><td>Explicitly by your code</td></tr>
+<tr><td>Holds</td><td>Graph state</td><td>Facts, preferences, documents</td></tr>
+<tr><td>Search</td><td>By thread / checkpoint id</td><td>Key lookup, filters, optional semantic search</td></tr>
+<tr><td>Prod backends</td><td>Postgres, Redis…</td><td><code>PostgresStore</code>, others; TTL support</td></tr>
+</tbody></table></div>
+
+<!-- 14 -->
+<h2 id="hitl"><span class="num">14</span>Human-in-the-loop</h2>
+<p>Call <code>interrupt(payload)</code> inside a node. The run stops, the checkpoint is saved, and <code>payload</code> is returned to the caller. Later — even days later, from another process — invoke with <code>Command(resume=value)</code> on the same thread; <code>interrupt()</code> returns <code>value</code> and the node continues.</p>
+
+<div class="code"><div class="lbl">approval.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> typing <span class="kw">import</span> TypedDict
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> interrupt, Command
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+
+<span class="kw">class</span> State(TypedDict):
+    amount: float
+    status: str
+
+<span class="kw">def</span> request_approval(state: State) -&gt; dict:
+    <span class="kw">if</span> state[<span class="s">"amount"</span>] &lt; <span class="s">100</span>:
+        <span class="kw">return</span> {<span class="s">"status"</span>: <span class="s">"auto-approved"</span>}
+    decision = interrupt({<span class="s">"question"</span>: <span class="s">"Approve refund?"</span>, <span class="s">"amount"</span>: state[<span class="s">"amount"</span>]})
+    <span class="kw">return</span> {<span class="s">"status"</span>: <span class="s">"approved"</span> <span class="kw">if</span> decision == <span class="s">"yes"</span> <span class="kw">else</span> <span class="s">"rejected"</span>}
+
+g = StateGraph(State)
+g.add_node(<span class="s">"approve"</span>, request_approval)
+g.add_edge(START, <span class="s">"approve"</span>); g.add_edge(<span class="s">"approve"</span>, END)
+graph = g.compile(checkpointer=InMemorySaver())           <span class="c"># required for interrupts</span>
+
+cfg = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"refund-9"</span>}}
+first = graph.invoke({<span class="s">"amount"</span>: <span class="s">250.0</span>}, cfg, version=<span class="s">"v2"</span>)
+<span class="kw">assert</span> first.interrupts[<span class="s">0</span>].value[<span class="s">"amount"</span>] == <span class="s">250.0</span>      <span class="c"># paused, payload for the UI</span>
+
+final = graph.invoke(Command(resume=<span class="s">"yes"</span>), cfg, version=<span class="s">"v2"</span>)
+<span class="kw">assert</span> final.value[<span class="s">"status"</span>] == <span class="s">"approved"</span></pre></div>
+
+<h3>Common HITL patterns</h3>
+<div class="grid">
+  <div class="card"><div class="k">Approve / reject</div><h4>Gate a risky action</h4><p>Interrupt before a tool that sends email, moves money or deletes data; route on the answer.</p></div>
+  <div class="card"><div class="k">Edit state</div><h4>Fix the draft</h4><p>Show the draft or tool arguments; resume with corrected values and write them to state.</p></div>
+  <div class="card"><div class="k">Review tool calls</div><h4>Human checks the plan</h4><p>Before a ToolNode runs, surface the model's tool calls for accept, edit or respond.</p></div>
+  <div class="card"><div class="k">Ask for input</div><h4>Clarifying question</h4><p>Agent needs a missing detail; validate the answer and loop back via a conditional edge if invalid.</p></div>
+</div>
+
+<div class="note bad"><b class="t">Rules that cause real bugs</b>
+<ul>
+<li><b>The node re-runs from the top on resume.</b> Code before <code>interrupt()</code> executes twice — keep it idempotent, and put side effects after the interrupt or in a later node.</li>
+<li><b>Never wrap <code>interrupt()</code> in a bare <code>try/except</code></b> — it works by raising a special exception, and you'll swallow it.</li>
+<li><b>Resume values match interrupts by order</b> within a node. Don't call interrupts conditionally in a way that changes between runs.</li>
+<li><b>Payloads must be JSON-serialisable.</b></li>
+<li>Several parallel interrupts: resume with a dict mapping each interrupt <code>id</code> to its answer.</li>
+<li><code>interrupt(..., response_schema=Model)</code> (1.2.12+) validates the resume value with Pydantic/TypedDict/dataclass.</li>
+<li>Static <code>interrupt_before</code>/<code>interrupt_after</code> exist for debugging; the docs recommend <code>interrupt()</code> for real HITL.</li>
+</ul></div>
+
+<!-- 15 -->
+<h2 id="durable"><span class="num">15</span>Durable execution</h2>
+<p>With a checkpointer, a crashed or drained run resumes from its last checkpoint rather than restarting. To make that safe:</p>
+<ul>
+<li><b>Determinism on replay:</b> a resumed node re-executes from its start. Anything non-deterministic or side-effecting (random IDs, timestamps, API writes) should be wrapped in a <code>@task</code> (functional API) or isolated in its own node, so its result is checkpointed and reused instead of recomputed.</li>
+<li><b>Idempotency:</b> design external writes so repeating them is harmless (idempotency keys, upserts).</li>
+<li><b>Pending writes:</b> if one parallel node fails, its successful siblings' outputs are kept and not re-run on resume.</li>
+<li><b>Pick durability</b> per workload: <code>"sync"</code> for payments, <code>"async"</code> for chat, <code>"exit"</code> for cheap batch jobs.</li>
+</ul>
+
+<!-- 16 -->
+<h2 id="functional"><span class="num">16</span>Functional API</h2>
+<p>An alternative to building graphs: decorate a normal Python function with <code>@entrypoint</code> and its durable sub-steps with <code>@task</code>. You get checkpointing, interrupts and streaming while writing ordinary <code>if</code>/<code>for</code> code. Calling a task returns a future; <code>.result()</code> waits for it, and calling several before waiting runs them in parallel.</p>
+
+<div class="code"><div class="lbl">functional_api.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> langgraph.func <span class="kw">import</span> entrypoint, task
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> interrupt, Command
+
+<span class="kw">@task</span>
+<span class="kw">def</span> draft(topic: str) -&gt; str:
+    <span class="kw">return</span> <span class="s">f"Draft about {topic}"</span>          <span class="c"># result is checkpointed; not re-run on resume</span>
+
+<span class="kw">@task</span>
+<span class="kw">def</span> score(text: str) -&gt; int:
+    <span class="kw">return</span> len(text)
+
+<span class="kw">@entrypoint</span>(checkpointer=InMemorySaver())
+<span class="kw">def</span> workflow(topic: str) -&gt; dict:
+    text = draft(topic).result()
+    futures = [score(text), score(text.upper())]   <span class="c"># run in parallel</span>
+    scores = [f.result() <span class="kw">for</span> f <span class="kw">in</span> futures]
+    ok = interrupt({<span class="s">"review"</span>: text})                <span class="c"># human review</span>
+    <span class="kw">return</span> {<span class="s">"text"</span>: text, <span class="s">"scores"</span>: scores, <span class="s">"approved"</span>: ok}
+
+cfg = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"f1"</span>}}
+<span class="kw">for</span> _ <span class="kw">in</span> workflow.stream(<span class="s">"agents"</span>, cfg): <span class="kw">pass</span>
+<span class="kw">print</span>(workflow.invoke(Command(resume=<span class="kw">True</span>), cfg))</pre></div>
+
+<div class="tbl"><table>
+<thead><tr><th></th><th>Graph API</th><th>Functional API</th></tr></thead>
+<tbody>
+<tr><td>Control flow</td><td>Edges, explicit and drawable</td><td>Plain Python</td></tr>
+<tr><td>State</td><td>Shared schema with reducers</td><td>Function-scoped variables</td></tr>
+<tr><td>Checkpoint granularity</td><td>Every superstep</td><td>Task results + entrypoint return</td></tr>
+<tr><td>Visualisation</td><td>Full graph diagram</td><td>Limited</td></tr>
+<tr><td>Best for</td><td>Agents, branching workflows, team-readable designs</td><td>Adding durability/HITL to existing code quickly</td></tr>
+</tbody></table></div>
+<p>The two interoperate: a task can invoke a compiled graph, and a graph node can call an entrypoint. <code>entrypoint.final(value=…, save=…)</code> lets you return one thing to the caller while saving another as the persisted state for the next run.</p>
+
+<!-- 17 -->
+<h2 id="subgraphs"><span class="num">17</span>Subgraphs</h2>
+<p>A compiled graph can be a node in another graph. Use subgraphs to encapsulate a team's agent, reuse a workflow, or test a section in isolation.</p>
+<div class="tbl"><table>
+<thead><tr><th>Style</th><th>How</th><th>When</th></tr></thead>
+<tbody>
+<tr><td>Add as a node</td><td><code>parent.add_node("research", research_graph)</code></td><td>Parent and child share state keys — updates flow through automatically</td></tr>
+<tr><td>Call inside a node</td><td>A node function maps parent state → child input, calls <code>child.invoke(...)</code>, maps the output back</td><td>Different schemas, or you want an explicit contract</td></tr>
+</tbody></table></div>
+
+<div class="code"><div class="lbl">subgraph.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">from</span> typing <span class="kw">import</span> TypedDict
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+
+<span class="kw">class</span> ResearchState(TypedDict):
+    question: str
+    notes: str
+
+<span class="kw">def</span> dig(state: ResearchState) -&gt; dict:
+    <span class="kw">return</span> {<span class="s">"notes"</span>: <span class="s">f"notes on {state['question']}"</span>}
+
+sub = StateGraph(ResearchState); sub.add_node(<span class="s">"dig"</span>, dig)
+sub.add_edge(START, <span class="s">"dig"</span>); sub.add_edge(<span class="s">"dig"</span>, END)
+research = sub.compile()
+
+<span class="kw">class</span> AppState(TypedDict):
+    user_query: str
+    answer: str
+
+<span class="kw">def</span> call_research(state: AppState) -&gt; dict:      <span class="c"># explicit mapping between schemas</span>
+    out = research.invoke({<span class="s">"question"</span>: state[<span class="s">"user_query"</span>]})
+    <span class="kw">return</span> {<span class="s">"answer"</span>: out[<span class="s">"notes"</span>]}
+
+app = StateGraph(AppState); app.add_node(<span class="s">"research"</span>, call_research)
+app.add_edge(START, <span class="s">"research"</span>); app.add_edge(<span class="s">"research"</span>, END)
+<span class="kw">assert</span> app.compile().invoke({<span class="s">"user_query"</span>: <span class="s">"LangGraph"</span>})[<span class="s">"answer"</span>] == <span class="s">"notes on LangGraph"</span></pre></div>
+<p>Subgraph persistence: by default a subgraph inherits the parent's checkpointer. Compile a subgraph with <code>checkpointer=True</code> if it needs its own persistent memory across invocations (e.g. a sub-agent that remembers its own conversation). Inspect nested state with <code>graph.get_state(config, subgraphs=True)</code>.</p>
+
+<!-- 18 -->
+<h2 id="agents"><span class="num">18</span>Agents &amp; tools</h2>
+<p>The canonical agent is a loop: the model decides whether to call tools; if it does, run them and feed the results back; stop when the model answers directly.</p>
+
+<figure>
+<svg viewBox="0 0 640 170" width="100%" role="img" aria-label="ReAct agent loop">
+  <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ar"/></marker></defs>
+  <rect class="bx" x="10" y="62" width="90" height="44" rx="22"/><text x="55" y="89" text-anchor="middle" class="h">START</text>
+  <rect class="bx i" x="170" y="62" width="120" height="44" rx="8"/><text x="230" y="89" text-anchor="middle" class="h">model</text>
+  <rect class="bx w" x="390" y="10" width="120" height="44" rx="8"/><text x="450" y="37" text-anchor="middle" class="h">tools</text>
+  <rect class="bx a" x="390" y="112" width="120" height="44" rx="22"/><text x="450" y="139" text-anchor="middle" class="h">END</text>
+  <path class="ln" d="M100 84H166" marker-end="url(#a3)"/>
+  <path class="ln" d="M290 76L386 40" marker-end="url(#a3)"/><text x="300" y="44" class="sm">tool_calls?</text>
+  <path class="ln" d="M290 94L386 128" marker-end="url(#a3)"/><text x="306" y="138" class="sm">no → answer</text>
+  <path class="ln d" d="M390 24H230V58" marker-end="url(#a3)"/><text x="245" y="17" class="sm">tool results → model</text>
+</svg>
+<figcaption>The agent loop. <code>tools_condition</code> is the router; <code>ToolNode</code> executes the calls in parallel.</figcaption>
+</figure>
+
+<div class="code"><div class="lbl">react_agent.py (needs a tool-calling chat model)</div><pre><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
+<span class="kw">from</span> langchain.chat_models <span class="kw">import</span> init_chat_model
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, MessagesState, START
+<span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> ToolNode, tools_condition
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+
+<span class="kw">@tool</span>
+<span class="kw">def</span> get_order_status(order_id: str) -&gt; str:
+    <span class="s">"""Look up the shipping status of an order."""</span>
+    <span class="kw">return</span> <span class="s">f"Order {order_id} shipped yesterday."</span>
+
+tools = [get_order_status]
+llm = init_chat_model(<span class="s">"anthropic:claude-sonnet-4-5"</span>).bind_tools(tools)   <span class="c"># any provider</span>
+
+<span class="kw">def</span> call_model(state: MessagesState) -&gt; dict:
+    <span class="kw">return</span> {<span class="s">"messages"</span>: [llm.invoke(state[<span class="s">"messages"</span>])]}
+
+g = StateGraph(MessagesState)
+g.add_node(<span class="s">"model"</span>, call_model)
+g.add_node(<span class="s">"tools"</span>, ToolNode(tools))
+g.add_edge(START, <span class="s">"model"</span>)
+g.add_conditional_edges(<span class="s">"model"</span>, tools_condition)      <span class="c"># → "tools" or END</span>
+g.add_edge(<span class="s">"tools"</span>, <span class="s">"model"</span>)
+agent = g.compile(checkpointer=InMemorySaver())
+
+agent.invoke({<span class="s">"messages"</span>: [(<span class="s">"human"</span>, <span class="s">"Where is order 4471?"</span>)]},
+             {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"c1"</span>}, <span class="s">"recursion_limit"</span>: <span class="s">20</span>})</pre></div>
+
+<h3>Or let LangChain build it</h3>
+<div class="code"><div class="lbl">create_agent (LangChain 1.x, runs on LangGraph)</div><pre><span class="kw">from</span> langchain.agents <span class="kw">import</span> create_agent
+
+agent = create_agent(
+    model=<span class="s">"anthropic:claude-sonnet-4-5"</span>,
+    tools=[get_order_status],
+    system_prompt=<span class="s">"You are a concise order-support assistant."</span>,   <span class="c"># was prompt= in create_react_agent</span>
+    checkpointer=InMemorySaver(),
+)
+<span class="c"># The result is a compiled LangGraph graph: invoke, stream, interrupts, time travel all work.</span></pre></div>
+
+<div class="note warn"><b class="t">Deprecation</b><code>langgraph.prebuilt.create_react_agent</code> is deprecated since LangGraph 1.0 in favour of <code>langchain.agents.create_agent</code>, which adds a middleware system (human-in-the-loop, summarisation, PII handling, model/tool call hooks). <code>ToolNode</code> and <code>tools_condition</code> remain in <code>langgraph.prebuilt</code>. <code>MessageGraph</code> is gone — use <code>StateGraph(MessagesState)</code>.</div>
+
+<h3>Tools that update state</h3>
+<p>A tool can return a <code>Command</code> to update graph state (for example, to record the authenticated user or hand off to another agent). It must include a <code>ToolMessage</code> in the <code>messages</code> update so the model's tool call gets a reply. Tools can read graph state and the Store via injected arguments (<code>InjectedState</code>, <code>InjectedStore</code>, or a <code>ToolRuntime</code> parameter in LangChain 1.x) that the model never sees.</p>
+
+<!-- 19 -->
+<h2 id="multiagent"><span class="num">19</span>Multi-agent patterns</h2>
+<figure>
+<svg viewBox="0 0 860 200" width="100%" role="img" aria-label="Multi-agent topologies">
+  <defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" class="ar"/></marker></defs>
+  <text x="130" y="20" text-anchor="middle" class="h">Supervisor</text>
+  <rect class="bx a" x="85" y="34" width="90" height="34" rx="6"/><text x="130" y="56" text-anchor="middle" class="sm">supervisor</text>
+  <rect class="bx i" x="20" y="130" width="70" height="30" rx="6"/><text x="55" y="150" text-anchor="middle" class="sm">research</text>
+  <rect class="bx i" x="95" y="130" width="70" height="30" rx="6"/><text x="130" y="150" text-anchor="middle" class="sm">code</text>
+  <rect class="bx i" x="170" y="130" width="70" height="30" rx="6"/><text x="205" y="150" text-anchor="middle" class="sm">writer</text>
+  <path class="ln" d="M110 68L60 126" marker-end="url(#a4)"/><path class="ln" d="M130 68V126" marker-end="url(#a4)"/><path class="ln" d="M150 68L200 126" marker-end="url(#a4)"/>
+  <text x="430" y="20" text-anchor="middle" class="h">Swarm / hand-offs</text>
+  <rect class="bx i" x="340" y="50" width="80" height="32" rx="6"/><text x="380" y="71" text-anchor="middle" class="sm">triage</text>
+  <rect class="bx i" x="450" y="50" width="80" height="32" rx="6"/><text x="490" y="71" text-anchor="middle" class="sm">billing</text>
+  <rect class="bx i" x="395" y="130" width="80" height="32" rx="6"/><text x="435" y="151" text-anchor="middle" class="sm">tech</text>
+  <path class="ln" d="M420 62H446" marker-end="url(#a4)"/><path class="ln" d="M446 72H424" marker-end="url(#a4)"/>
+  <path class="ln" d="M390 82L420 126" marker-end="url(#a4)"/><path class="ln" d="M480 82L452 126" marker-end="url(#a4)"/>
+  <text x="730" y="20" text-anchor="middle" class="h">Hierarchical</text>
+  <rect class="bx a" x="690" y="30" width="80" height="28" rx="6"/><text x="730" y="49" text-anchor="middle" class="sm">top</text>
+  <rect class="bx a" x="620" y="88" width="80" height="28" rx="6"/><text x="660" y="107" text-anchor="middle" class="sm">team lead A</text>
+  <rect class="bx a" x="760" y="88" width="80" height="28" rx="6"/><text x="800" y="107" text-anchor="middle" class="sm">team lead B</text>
+  <rect class="bx i" x="600" y="150" width="50" height="26" rx="5"/><rect class="bx i" x="660" y="150" width="50" height="26" rx="5"/>
+  <rect class="bx i" x="750" y="150" width="50" height="26" rx="5"/><rect class="bx i" x="810" y="150" width="40" height="26" rx="5"/>
+  <path class="ln" d="M715 58L670 84" marker-end="url(#a4)"/><path class="ln" d="M745 58L790 84" marker-end="url(#a4)"/>
+  <path class="ln" d="M650 116L630 146" marker-end="url(#a4)"/><path class="ln" d="M670 116L683 146" marker-end="url(#a4)"/>
+  <path class="ln" d="M790 116L775 146" marker-end="url(#a4)"/><path class="ln" d="M810 116L828 146" marker-end="url(#a4)"/>
+</svg>
+<figcaption>Supervisor routes centrally; swarm agents hand off to each other directly; hierarchical nests supervisors as subgraphs.</figcaption>
+</figure>
+
+<div class="tbl"><table>
+<thead><tr><th>Pattern</th><th>How it's built</th><th>Strengths</th><th>Watch out for</th></tr></thead>
+<tbody>
+<tr><td><b>Supervisor</b></td><td>A router agent picks the next worker; workers return to it</td><td>Central control, easy to audit</td><td>Supervisor becomes a bottleneck and extra LLM cost per hop</td></tr>
+<tr><td><b>Swarm / network</b></td><td>Agents hand off with <code>Command(goto=…, graph=Command.PARENT)</code> or hand-off tools; the active agent is remembered</td><td>Fewer hops, natural conversations</td><td>Harder to reason about; ping-pong loops</td></tr>
+<tr><td><b>Hierarchical</b></td><td>Supervisors of supervisors, each team a subgraph</td><td>Scales to many specialists</td><td>Latency, debugging depth</td></tr>
+<tr><td><b>Agents as tools</b></td><td>Sub-agents wrapped as tools of a main agent</td><td>Simple, context isolation</td><td>Main agent sees only the sub-agent's final answer</td></tr>
+<tr><td><b>Plan-and-execute</b></td><td>Planner node writes steps; executor loop; re-planner</td><td>Long tasks, visible plan</td><td>Plans go stale; bound re-planning</td></tr>
+<tr><td><b>Reflection / evaluator-optimiser</b></td><td>Generator ↔ critic loop with a stop condition</td><td>Quality boost</td><td>Cost; always cap iterations</td></tr>
+<tr><td><b>Deep Agents</b></td><td>The <code>deepagents</code> package: planning tool, virtual file system, sub-agents, built on LangGraph</td><td>Long-horizon research/coding agents out of the box</td><td>Less control over internals</td></tr>
+</tbody></table></div>
+<p>Rule of thumb: start with one agent and good tools. Add agents when one prompt is trying to do clearly separate jobs, or when its tool list grows so long that tool selection degrades.</p>
+
+<!-- 20 -->
+<h2 id="deploy"><span class="num">20</span>Deployment &amp; observability</h2>
+<h3>Self-hosting</h3>
+<p>A compiled graph is just a Python object. You can serve it from FastAPI, a worker queue or a CLI, backed by a Postgres checkpointer and store. You then own threads, concurrency, streaming over HTTP, background runs and scaling.</p>
+
+<h3>LangSmith Deployment (formerly LangGraph Platform)</h3>
+<p>Renamed in October 2025. It runs your graphs on an <b>Agent Server</b> that provides assistants (versioned configs of a graph), threads, background runs, task queues, crons, webhooks, streaming, auth, and MCP/A2A endpoints, with <b>Studio</b> as a visual debugger. Options span cloud, hybrid and self-hosted.</p>
+
+<div class="code"><div class="lbl">langgraph.json</div><pre>{
+  <span class="s">"dependencies"</span>: [<span class="s">"."</span>],
+  <span class="s">"graphs"</span>: { <span class="s">"support_agent"</span>: <span class="s">"./src/agent/graph.py:graph"</span> },
+  <span class="s">"env"</span>: <span class="s">".env"</span>,
+  <span class="s">"python_version"</span>: <span class="s">"3.12"</span>
+}</pre></div>
+<div class="code"><div class="lbl">shell</div><pre>pip install -U "langgraph-cli[inmem]"
+langgraph dev            <span class="c"># local Agent Server with hot reload + Studio</span>
+langgraph build -t my-agent   <span class="c"># Docker image</span>
+langgraph deploy         <span class="c"># deploy to LangSmith (CLI 0.4.x; defaults to serverless since 0.4.37)</span></pre></div>
+<p>Clients talk to a deployment through <code>langgraph-sdk</code> (Python/JS), or wrap a deployed graph in <code>RemoteGraph</code> so it can be used locally — or as a subgraph — exactly like a compiled graph.</p>
+
+<h3>Tracing</h3>
+<p>Set <code>LANGSMITH_TRACING=true</code> and <code>LANGSMITH_API_KEY</code> and every run is traced as a tree of node, LLM and tool spans. LangGraph also exports OpenTelemetry-compatible traces, and evaluation tools such as DeepEval integrate through LangChain's callback handler (see the <a href="../deepeval/index.html">DeepEval notes</a>).</p>
+
+<!-- 21 -->
+<h2 id="testing"><span class="num">21</span>Testing LangGraph apps — the QA view</h2>
+<p class="sub">Graphs are unusually testable because state is explicit and every step is inspectable. Separate the deterministic orchestration (fully unit-testable) from the probabilistic LLM behaviour (evaluated).</p>
+
+<div class="tbl"><table>
+<thead><tr><th>Layer</th><th>What to assert</th><th>How</th><th>LLM?</th></tr></thead>
+<tbody>
+<tr><td>Node unit</td><td>Given state X, node returns update Y</td><td>Call the function directly, or <code>graph.nodes["name"].invoke(state)</code></td><td>Stubbed</td></tr>
+<tr><td>Router</td><td>Every branch, including loop exits</td><td>Call the router function with crafted states</td><td>No</td></tr>
+<tr><td>Reducers / state</td><td>Parallel merges, overwrites, message dedupe</td><td>Small graphs with stub nodes</td><td>No</td></tr>
+<tr><td>Graph path</td><td>Nodes visited in the right order; recursion bound</td><td><code>stream_mode="updates"</code> and collect node names</td><td>Stubbed / fake model</td></tr>
+<tr><td>Partial graph</td><td>A middle section in isolation</td><td><code>update_state(..., as_node=…)</code> then <code>invoke(None, interrupt_after=[…])</code></td><td>Stubbed</td></tr>
+<tr><td>Persistence</td><td>Thread isolation, resume, checkpoint history</td><td>Fresh <code>InMemorySaver</code> per test</td><td>No</td></tr>
+<tr><td>HITL</td><td>Interrupt payload, resume paths, no duplicate side effects</td><td>Invoke, assert interrupt, resume with each answer</td><td>No</td></tr>
+<tr><td>Resilience</td><td>Retries, timeouts, error handler routes</td><td>Stub nodes that raise / sleep</td><td>No</td></tr>
+<tr><td>Agent quality</td><td>Task completion, tool correctness, faithfulness</td><td>Eval framework on real model runs (DeepEval, LangSmith evals)</td><td>Real</td></tr>
+</tbody></table></div>
+
+<h3>Design for testability</h3>
+<ul>
+<li><b>Build graphs in a factory</b> — <code>build_graph(model, tools, checkpointer)</code> — so tests inject fakes. The docs recommend compiling inside each test with a new checkpointer.</li>
+<li><b>Keep routers as pure functions</b> of state.</li>
+<li>Put the LLM call in a thin node; put parsing and business logic in separately testable functions.</li>
+</ul>
+
+<div class="code"><div class="lbl">tests/test_graph.py <span class="verified">✓ ran on 1.2.18</span></div><pre><span class="kw">import</span> pytest
+<span class="kw">from</span> typing <span class="kw">import</span> TypedDict
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> interrupt, Command
+
+<span class="kw">class</span> State(TypedDict, total=<span class="kw">False</span>):
+    text: str
+    label: str
+    reviewed: bool
+
+<span class="c"># --- production code (normally in src/) ---</span>
+<span class="kw">def</span> route(state: State) -&gt; str:
+    <span class="kw">return</span> <span class="s">"review"</span> <span class="kw">if</span> state[<span class="s">"label"</span>] == <span class="s">"risky"</span> <span class="kw">else</span> END
+
+<span class="kw">def</span> build_graph(classify, checkpointer=<span class="kw">None</span>):
+    <span class="kw">def</span> classify_node(state): <span class="kw">return</span> {<span class="s">"label"</span>: classify(state[<span class="s">"text"</span>])}
+    <span class="kw">def</span> review(state): <span class="kw">return</span> {<span class="s">"reviewed"</span>: interrupt({<span class="s">"text"</span>: state[<span class="s">"text"</span>]})}
+    g = StateGraph(State)
+    g.add_node(<span class="s">"classify"</span>, classify_node); g.add_node(<span class="s">"review"</span>, review)
+    g.add_edge(START, <span class="s">"classify"</span>)
+    g.add_conditional_edges(<span class="s">"classify"</span>, route, [<span class="s">"review"</span>, END])
+    g.add_edge(<span class="s">"review"</span>, END)
+    <span class="kw">return</span> g.compile(checkpointer=checkpointer)
+
+<span class="c"># --- tests ---</span>
+fake_classifier = <span class="kw">lambda</span> text: <span class="s">"risky"</span> <span class="kw">if</span> <span class="s">"wire"</span> <span class="kw">in</span> text <span class="kw">else</span> <span class="s">"safe"</span>   <span class="c"># stands in for the LLM</span>
+
+<span class="kw">@pytest.mark.parametrize</span>(<span class="s">"label,expected"</span>, [(<span class="s">"risky"</span>, <span class="s">"review"</span>), (<span class="s">"safe"</span>, END)])
+<span class="kw">def</span> test_router(label, expected):
+    <span class="kw">assert</span> route({<span class="s">"label"</span>: label}) == expected
+
+<span class="kw">def</span> test_node_in_isolation():
+    graph = build_graph(fake_classifier)
+    <span class="kw">assert</span> graph.nodes[<span class="s">"classify"</span>].invoke({<span class="s">"text"</span>: <span class="s">"wire $5k"</span>}) == {<span class="s">"label"</span>: <span class="s">"risky"</span>}
+
+<span class="kw">def</span> test_path_for_safe_input():
+    graph = build_graph(fake_classifier)
+    visited = [k <span class="kw">for</span> chunk <span class="kw">in</span> graph.stream({<span class="s">"text"</span>: <span class="s">"hello"</span>}, stream_mode=<span class="s">"updates"</span>) <span class="kw">for</span> k <span class="kw">in</span> chunk]
+    <span class="kw">assert</span> visited == [<span class="s">"classify"</span>]
+
+<span class="kw">def</span> test_risky_input_pauses_then_resumes():
+    graph = build_graph(fake_classifier, checkpointer=InMemorySaver())
+    cfg = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"t"</span>}}
+    paused = graph.invoke({<span class="s">"text"</span>: <span class="s">"wire $5k"</span>}, cfg, version=<span class="s">"v2"</span>)
+    <span class="kw">assert</span> paused.interrupts[<span class="s">0</span>].value == {<span class="s">"text"</span>: <span class="s">"wire $5k"</span>}
+    <span class="kw">assert</span> graph.get_state(cfg).next == (<span class="s">"review"</span>,)
+    done = graph.invoke(Command(resume=<span class="kw">True</span>), cfg, version=<span class="s">"v2"</span>)
+    <span class="kw">assert</span> done.value[<span class="s">"reviewed"</span>] <span class="kw">is True</span>
+
+<span class="kw">def</span> test_partial_execution_from_midpoint():
+    graph = build_graph(fake_classifier, checkpointer=InMemorySaver())
+    cfg = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"p"</span>}}
+    graph.update_state(cfg, {<span class="s">"text"</span>: <span class="s">"x"</span>, <span class="s">"label"</span>: <span class="s">"safe"</span>}, as_node=<span class="s">"classify"</span>)
+    graph.invoke(<span class="kw">None</span>, cfg)                       <span class="c"># runs only what follows "classify"</span>
+    <span class="kw">assert</span> <span class="s">"reviewed"</span> <span class="kw">not in</span> graph.get_state(cfg).values</pre></div>
+
+<h3>Faking the model</h3>
+<p>For nodes that call a chat model, inject a fake from <code>langchain_core.language_models.fake_chat_models</code> — for example <code>GenericFakeChatModel(messages=iter([AIMessage(...)]))</code> returns scripted messages, including ones carrying <code>tool_calls</code>, so you can drive the agent loop deterministically. Keep real-model runs for the evaluation layer.</p>
+
+<h3>Test checklist for any graph</h3>
+<ul class="check">
+<li>Every conditional edge has a test per branch, including the loop exit</li>
+<li>Loops have an explicit bound that's tested, independent of <code>recursion_limit</code></li>
+<li>Keys written by parallel nodes have reducers, and a test runs them in parallel</li>
+<li>Each <code>interrupt()</code> has a pause test and a resume test per answer type, and side effects don't duplicate on resume</li>
+<li>Two threads in one test prove isolation</li>
+<li>Failure injection: retry exhausted → error handler → correct route</li>
+<li>Serialisation: state survives a round trip through the production checkpointer (no un-serialisable objects)</li>
+<li>Agent-level evals run on a pinned model with a fixed dataset</li>
+</ul>
+
+<!-- 22 -->
+<h2 id="blueprint"><span class="num">22</span>Project blueprint</h2>
+<div class="tree"><span class="d">support-agent/</span>
+├── langgraph.json               <span class="m"># graphs exposed to dev server / deployment</span>
+├── pyproject.toml               <span class="m"># pin langgraph, checkpointers, model SDKs</span>
+├── <span class="d">src/agent/</span>
+│   ├── state.py                 <span class="m"># State, input/output schemas, reducers</span>
+│   ├── context.py               <span class="m"># Runtime context dataclass (user, tenant, model)</span>
+│   ├── <span class="d">nodes/</span>                   <span class="m"># one module per node; pure logic separated from LLM calls</span>
+│   ├── routers.py               <span class="m"># pure routing functions</span>
+│   ├── tools.py                 <span class="m"># @tool functions + permissions</span>
+│   ├── prompts.py               <span class="m"># prompt templates, versioned</span>
+│   ├── <span class="d">subgraphs/</span>               <span class="m"># reusable teams/sections</span>
+│   ├── graph.py                 <span class="m"># build_graph(...) factory + module-level `graph`</span>
+│   └── persistence.py           <span class="m"># checkpointer/store wiring per environment</span>
+├── <span class="d">tests/</span>
+│   ├── <span class="d">unit/</span>                    <span class="m"># nodes, routers, reducers</span>
+│   ├── <span class="d">graph/</span>                   <span class="m"># paths, HITL, persistence, resilience (fake model)</span>
+│   └── <span class="d">evals/</span>                   <span class="m"># real-model quality suites, run nightly</span>
+└── <span class="d">scripts/</span>                     <span class="m"># replay a prod thread, export graph diagram</span></div>
+
+<h3>Design decisions to make up front</h3>
+<div class="tbl"><table>
+<thead><tr><th>Decision</th><th>Options</th><th>Default recommendation</th></tr></thead>
+<tbody>
+<tr><td>Agent API level</td><td><code>create_agent</code> vs custom graph</td><td>Start with <code>create_agent</code>; move to a graph when you need custom steps</td></tr>
+<tr><td>Graph vs functional API</td><td>Explicit edges vs plain Python</td><td>Graph API for anything a team needs to review visually</td></tr>
+<tr><td>State schema</td><td>TypedDict / dataclass / Pydantic</td><td>TypedDict; validate at the boundary</td></tr>
+<tr><td>Checkpointer</td><td>Memory / SQLite / Postgres</td><td>Memory in tests, Postgres in prod; plan pruning</td></tr>
+<tr><td>Durability</td><td>exit / async / sync</td><td>async; sync for money or irreversible actions</td></tr>
+<tr><td>Thread id</td><td>Per conversation, per job, per ticket</td><td>A business key (ticket id) so you can find and replay it</td></tr>
+<tr><td>Long-term memory</td><td>None / Store / external DB</td><td>Store with namespaces <code>(tenant, user, kind)</code></td></tr>
+<tr><td>HITL points</td><td>Where approval is mandatory</td><td>Before every irreversible or external-facing action</td></tr>
+<tr><td>Hosting</td><td>Self-host vs LangSmith Deployment</td><td>Self-host for simple request/response; managed for long-running, background, cron workloads</td></tr>
+</tbody></table></div>
+
+<!-- 23 -->
+<h2 id="pitfalls"><span class="num">23</span>Pitfalls &amp; anti-patterns</h2>
+<div class="grid">
+  <div class="card"><div class="k">✗</div><h4>Mutating state in place</h4><p><code>state["items"].append(x)</code> bypasses reducers and checkpoints. Always return an update.</p></div>
+  <div class="card"><div class="k">✗</div><h4>No reducer on parallel keys</h4><p>Two branches writing one plain key raises <code>InvalidUpdateError</code>.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Unbounded loops</h4><p>Relying on <code>recursion_limit</code> to stop an agent — the 1.2.x default is 10,007 steps. Add an iteration counter, a clear exit, and an explicit limit.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Side effects before interrupt</h4><p>They run again on resume. Move them after, or into their own node.</p></div>
+  <div class="card"><div class="k">✗</div><h4>try/except around interrupt</h4><p>Swallows the pause signal; the graph never stops.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Huge objects in state</h4><p>Bloats every checkpoint. Store references; consider <code>DeltaChannel</code> for long histories.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Using InMemorySaver in prod</h4><p>All threads vanish on restart or across replicas.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Random thread ids</h4><p>Make threads unfindable. Use business keys.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Too many agents too early</h4><p>Each hop adds latency, cost and a failure point. Earn complexity.</p></div>
+  <div class="card"><div class="k">✗</div><h4>Floating versions</h4><p>Patch releases change defaults (e.g. snapshot frequency in 1.2.18). Pin and upgrade deliberately.</p></div>
+</div>
+
+<!-- 24 -->
+<h2 id="versions"><span class="num">24</span>Version notes</h2>
+<div class="tbl"><table>
+<thead><tr><th>Version</th><th>Date</th><th>What changed</th></tr></thead>
+<tbody>
+<tr><td>0.4–0.6</td><td>2025</td><td>Node caching, deferred nodes, pre/post model hooks; <code>Runtime</code> + <code>context_schema</code> replace <code>config["configurable"]</code> for static dependencies; durability modes</td></tr>
+<tr><td><b>1.0</b></td><td>Oct 2025</td><td>Stability release — core graph API unchanged. Python 3.9 dropped (3.10+). <code>create_react_agent</code> deprecated → <code>langchain.agents.create_agent</code>; <code>MessageGraph</code> and <code>ValidationNode</code> removed; agent state/HITL types moved to <code>langchain.agents</code>. LangGraph Platform renamed LangSmith Deployment.</td></tr>
+<tr><td><b>1.1</b></td><td>Mar 2026</td><td>Opt-in <code>version="v2"</code>: typed <code>StreamPart</code>s, <code>GraphOutput</code> (<code>.value</code>, <code>.interrupts</code>), Pydantic/dataclass output coercion. Dict access on outputs deprecated (removal planned for 3.0). Richer <code>runtime.execution_info</code>.</td></tr>
+<tr><td><b>1.2</b></td><td>May 2026</td><td>Per-node <code>timeout</code>/<code>TimeoutPolicy</code>, <code>error_handler</code>, <code>set_node_defaults</code>, graceful drain (<code>RunControl</code>, <code>GraphDrained</code>), <code>DeltaChannel</code> (beta), <code>stream_events(version="v3")</code></td></tr>
+<tr><td>1.2.12</td><td>2026</td><td><code>interrupt(..., response_schema=…)</code> resume validation</td></tr>
+<tr><td>1.2.16–1.2.18</td><td>Oct 2026</td><td>Resume fixes for subgraphs; recursion-limit fixes; error-handler recovery; <b>DeltaChannel snapshot default changed 1000 → 100</b> (pass <code>snapshot_frequency=1000</code> to restore). Postgres checkpointer 3.2 adds <code>prune</code>.</td></tr>
+</tbody></table></div>
+
+<!-- 25 -->
+<h2 id="cheatsheet"><span class="num">25</span>Cheat sheet</h2>
+<div class="code"><div class="lbl">imports you'll actually use</div><pre><span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, MessagesState, START, END
+<span class="kw">from</span> langgraph.graph.message <span class="kw">import</span> add_messages
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> (Command, Send, interrupt, Overwrite,
+                             RetryPolicy, CachePolicy, TimeoutPolicy)
+<span class="kw">from</span> langgraph.runtime <span class="kw">import</span> Runtime, RunControl
+<span class="kw">from</span> langgraph.config <span class="kw">import</span> get_stream_writer
+<span class="kw">from</span> langgraph.errors <span class="kw">import</span> GraphRecursionError, NodeError, NodeTimeoutError, GraphDrained
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+<span class="kw">from</span> langgraph.store.memory <span class="kw">import</span> InMemoryStore
+<span class="kw">from</span> langgraph.cache.memory <span class="kw">import</span> InMemoryCache
+<span class="kw">from</span> langgraph.func <span class="kw">import</span> entrypoint, task
+<span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> ToolNode, tools_condition
+<span class="kw">from</span> langgraph.channels <span class="kw">import</span> DeltaChannel</pre></div>
+
+<div class="tbl"><table>
+<thead><tr><th>I want to…</th><th>Use</th></tr></thead>
+<tbody>
+<tr><td>Append to a list from many nodes</td><td><code>Annotated[list, operator.add]</code></td></tr>
+<tr><td>Keep a chat history</td><td><code>MessagesState</code></td></tr>
+<tr><td>Branch on state</td><td><code>add_conditional_edges</code></td></tr>
+<tr><td>Update and jump in one go</td><td><code>Command(update=…, goto=…)</code></td></tr>
+<tr><td>One branch per item</td><td><code>Send</code></td></tr>
+<tr><td>Wait for all branches</td><td><code>add_edge(["a","b"], "c")</code> or <code>defer=True</code></td></tr>
+<tr><td>Remember a conversation</td><td>checkpointer + <code>thread_id</code></td></tr>
+<tr><td>Remember a user across chats</td><td>Store + namespace</td></tr>
+<tr><td>Ask a human</td><td><code>interrupt()</code> → <code>Command(resume=…)</code></td></tr>
+<tr><td>Inspect or rewind</td><td><code>get_state</code>, <code>get_state_history</code>, <code>update_state</code></td></tr>
+<tr><td>Pass user/tenant/model config</td><td><code>context_schema</code> + <code>invoke(..., context=…)</code></td></tr>
+<tr><td>Survive flaky APIs</td><td><code>RetryPolicy</code>, <code>TimeoutPolicy</code>, <code>error_handler</code></td></tr>
+<tr><td>Stream tokens to a UI</td><td><code>stream_mode="messages"</code></td></tr>
+<tr><td>Stream custom progress</td><td><code>get_stream_writer()</code> + <code>stream_mode="custom"</code></td></tr>
+<tr><td>Stop cleanly during deploys</td><td><code>RunControl.request_drain()</code></td></tr>
+</tbody></table></div>
+
+<!-- 26 -->
+<h2 id="glossary"><span class="num">26</span>Glossary</h2>
+<div class="tbl"><table><tbody>
+<tr><td><b>State</b></td><td>The shared, typed data that flows through the graph.</td></tr>
+<tr><td><b>Node</b></td><td>A function that reads state and returns a partial update.</td></tr>
+<tr><td><b>Edge</b></td><td>A rule for which node runs next (fixed or conditional).</td></tr>
+<tr><td><b>Reducer</b></td><td>Function combining an existing value with an update.</td></tr>
+<tr><td><b>Channel</b></td><td>Low-level storage for one state key.</td></tr>
+<tr><td><b>Superstep</b></td><td>One round of parallel node execution followed by a state merge.</td></tr>
+<tr><td><b>Checkpoint</b></td><td>Saved snapshot of state after a superstep.</td></tr>
+<tr><td><b>Thread</b></td><td>A sequence of checkpoints for one conversation or job (<code>thread_id</code>).</td></tr>
+<tr><td><b>Store</b></td><td>Cross-thread long-term memory, keyed by namespace.</td></tr>
+<tr><td><b>Interrupt</b></td><td>A pause that waits for external input before resuming.</td></tr>
+<tr><td><b>Command</b></td><td>Node return (or resume input) combining update, routing and resume.</td></tr>
+<tr><td><b>Send</b></td><td>Dynamic dispatch of a node with its own input — map-reduce.</td></tr>
+<tr><td><b>Runtime context</b></td><td>Typed, non-persisted per-run dependencies.</td></tr>
+<tr><td><b>Durability</b></td><td>How strictly checkpoints are written (exit/async/sync).</td></tr>
+<tr><td><b>Subgraph</b></td><td>A compiled graph used as a node of another graph.</td></tr>
+<tr><td><b>Agent Server</b></td><td>LangSmith's runtime for deployed graphs (threads, runs, crons).</td></tr>
+</tbody></table></div>
+
+<h2 id="sources"><span class="num">—</span>Sources</h2>
+<ul>
+<li><a href="https://docs.langchain.com/oss/langgraph/use-graph-api">LangGraph docs — Use the Graph API</a></li>
+<li><a href="https://docs.langchain.com/oss/python/langgraph/interrupts">LangGraph docs — Interrupts</a></li>
+<li><a href="https://docs.langchain.com/oss/python/langgraph/durable-execution">LangGraph docs — Durable execution / persistence</a></li>
+<li><a href="https://docs.langchain.com/oss/python/langgraph/test">LangGraph docs — Test</a></li>
+<li><a href="https://docs.langchain.com/oss/python/releases/langgraph-v1">LangGraph v1 release notes</a> and <a href="https://docs.langchain.com/oss/python/migrate/langgraph-v1">v1 migration guide</a></li>
+<li><a href="https://newreleases.io/project/pypi/langgraph/release/1.1.0">langgraph 1.1.0 release notes</a></li>
+<li><a href="https://dev.to/x4nent/langgraph-12-deep-dive-per-node-timeouts-error-handlers-graceful-shutdown-deltachannel--2mp2">LangGraph 1.2 deep dive (DEV Community)</a></li>
+<li><a href="https://releasebot.io/updates/langchain-ai/langgraph">LangGraph release feed (Oct 2026)</a></li>
+<li><a href="https://www.langchain.com/langsmith/deployment">LangSmith Deployment</a></li>
+<li><a href="https://github.com/langchain-ai/langgraph">langchain-ai/langgraph on GitHub</a></li>
+</ul>
+
+<footer>
+  LangGraph field notes · compiled 29 October 2026 against langgraph 1.2.18. Not affiliated with LangChain Inc. Verify APIs against the docs for your pinned version.
+</footer>
+
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement, key="lg-theme";
+  try{var saved=localStorage.getItem(key); if(saved) root.setAttribute("data-theme",saved);}catch(e){}
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    var dark = root.getAttribute("data-theme")==="dark" ||
+      (!root.getAttribute("data-theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    var next = dark ? "light" : "dark";
+    root.setAttribute("data-theme",next);
+    try{localStorage.setItem(key,next);}catch(e){}
+  });
+  var toc=document.getElementById("toc");
+  document.getElementById("menuBtn").addEventListener("click",function(){toc.classList.toggle("open");});
+  toc.addEventListener("click",function(e){if(e.target.tagName==="A")toc.classList.remove("open");});
+  document.querySelectorAll(".code").forEach(function(block){
+    var b=document.createElement("button"); b.className="copy"; b.textContent="copy";
+    b.addEventListener("click",function(){
+      var txt=block.querySelector("pre").innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){
+        b.textContent="copied"; setTimeout(function(){b.textContent="copy";},1400);
+      }).catch(function(){b.textContent="select & copy";});
+    });
+    block.appendChild(b);
+  });
+  var links=[].slice.call(toc.querySelectorAll("a")), map={};
+  links.forEach(function(a){map[a.getAttribute("href").slice(1)]=a;});
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){links.forEach(function(l){l.classList.remove("active");}); var a=map[en.target.id]; if(a)a.classList.add("active");}
+      });
+    },{rootMargin:"-80px 0px -70% 0px"});
+    document.querySelectorAll("h2[id]").forEach(function(h){io.observe(h);});
+  }
+})();
+</script>
+</body>
+</html>
