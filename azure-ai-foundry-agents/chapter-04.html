@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Azure AI Foundry · Module 4 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">☁️ Azure AI Foundry · Module 4</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<style>
+/* page-specific: code sample block */
+pre.case { background: var(--code-bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; overflow-x: auto;
+  font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 12px 0; }
+</style>
+
+<header class="hero" style="background: linear-gradient(135deg, #003a8c 0%, #0078d4 50%, #7c3aed 100%);">
+  <div class="kicker">AI agent fundamentals with Azure AI Foundry · Microsoft · Coursera, course 1 of 4</div>
+  <h1>Module 4: Professional agent development</h1>
+  <p>Getting the hotel agent ready for the real world: why testing protects reputations, five testing methods plus red teaming, Foundry's evaluation tools, the path from development to production, four ways to connect an agent, calling it through its API, what happens under the hood, and building your portfolio.</p>
+  <div class="chips">
+    <span class="chip">🎬 6 videos · 3 readings</span>
+    <span class="chip">⏱ ~3 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🧪 The QA-heavy module</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the course</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole module on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The module in one sentence</span>
+    A professional agent is <b>tested</b> (functional, edge case, security, performance, regression, red team) with Foundry's <b>evaluations</b>, moved through <b>development → staging → production → monitoring</b>, connected to apps through an <b>endpoint and a secret key</b> using the right <b>integration pattern</b>, and presented in a <b>portfolio</b> that shows how you built and tested it.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Why a QA lead should care</span>
+    This module is your home turf. The course's own message: testing is not about small bugs, it's about <b>protecting the business, the users and the brand</b>. Read it critically: some of its demos are weaker tests than they look, and the notes below show how to make them stronger.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Ready for<br/>the real world))
+    Test it
+      Real-world failures
+      Five test methods
+      Red teaming
+      Foundry evaluations
+    Ship it
+      Dev, staging, prod, monitor
+      Endpoint and key
+      API, SDK, webhook, events
+      Rate limits
+    Understand it
+      JSON messages
+      Roles and content
+      Perceive, reason, act
+    Show it
+      GitHub repository
+      README and docs
+      Demo video
+      Architecture diagrams
+</pre>
+    <div class="caption">Module map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Why testing</a>
+    <a class="pill" href="#t2"><b>2</b> Test methods</a>
+    <a class="pill" href="#t3"><b>3</b> Foundry evaluations</a>
+    <a class="pill" href="#t4"><b>4</b> Dev to production</a>
+    <a class="pill" href="#t5"><b>5</b> Deployment patterns</a>
+    <a class="pill" href="#t6"><b>6</b> Calling the API</a>
+    <a class="pill" href="#t7"><b>7</b> Under the hood</a>
+    <a class="pill" href="#t8"><b>8</b> Portfolio</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Why testing saves reputations</h2>
+    <p class="sub">Three real failures and the testing gap behind each <span class="page">🎬 Why testing saves reputations</span></p>
+  </div></div>
+
+  <div class="box example"><span class="label">🧩 The hotel version</span>
+    The agent gives a guest the wrong checkout time, the guest misses a flight, and a bad review, lost business and reputational damage follow. One small wrong fact, big cost.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>What happened</th><th>Damage</th><th>Testing gap</th></tr>
+    <tr><td>✈️ An airline chatbot gave a wrong refund policy; the customer bought a ticket relying on it</td><td>A tribunal held the airline responsible for its chatbot's words; costs and lost trust</td><td><b>Functional testing</b> against official policy</td></tr>
+    <tr><td>🐦 A tech company's bot learned from social media; users fed it offensive messages and it started posting them</td><td>Shut down fast, major PR problem</td><td><b>Safety and adversarial testing</b> (testers trying to break it on purpose)</td></tr>
+    <tr><td>🏦 A banking chatbot exposed private account information</td><td>Lost confidence, privacy fines</td><td><b>Security testing</b></td></tr>
+  </table></div>
+
+  <div class="box extra"><span class="label">➕ The real cases</span>
+    The course doesn't name them, but these match well-known incidents: <b>Air Canada</b>'s chatbot refund case (a Canadian tribunal, 2024) and <b>Microsoft's Tay</b> bot (2016). Worth knowing by name for interviews.
+  </div>
+
+  <div class="grid">
+    <div class="tile green"><h4>✅ Functional</h4><p>"Does it do what it should?" Pool closing time, Wi-Fi connection.</p></div>
+    <div class="tile orange"><h4>🌀 Edge case</h4><p>Rare or odd input: ALL CAPS, slang, a service that doesn't exist (helipad).</p></div>
+    <div class="tile red"><h4>🔐 Security</h4><p>Tricking the agent, e.g. <b>prompt injection</b>: hidden instructions to make it ignore its rules.</p></div>
+  </div>
+
+  <dl class="terms">
+    <dt>Prompt injection</dt><dd>An attack where the user (or a document the agent reads) includes instructions like "ignore your previous rules and…", trying to override the agent's real instructions.</dd>
+    <dt>Adversarial testing</dt><dd>Deliberately trying to make the system fail, the way an attacker or troll would.</dd>
+  </dl>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Good testing prevents <b>legal problems</b> (accurate, compliant answers), protects the <b>brand</b> (catch embarrassing behaviour first), keeps <b>users safe</b> (privacy, no dangerous advice) and so maintains <b>trust</b>. In Foundry: the <b>Evaluation</b> tab for structured testing, the <b>Monitoring</b> tab to study real conversations.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>Testing methodologies</h2>
+    <p class="sub">Five methods, a template, a workflow and red teaming <span class="page">📄 Testing methodologies</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Method</th><th>Question it answers</th><th>Hotel example</th><th>Pass when…</th></tr>
+    <tr><td>✅ <b>Functional</b></td><td>Does it do its core job in normal conditions?</td><td>Pet policy, breakfast times, room availability</td><td>Output matches the expected response</td></tr>
+    <tr><td>🌀 <b>Edge case</b></td><td>Does it cope with rare or "impossible" input?</td><td>Book for 100 people; bring an unusual animal</td><td>It declines politely, asks for clarification or escalates; never nonsense</td></tr>
+    <tr><td>🔐 <b>Security</b></td><td>Can it be tricked into leaking or doing harm?</td><td>Prompt asking for account numbers, password hints, internal config</td><td>It refuses, redirects to security, or ends the conversation; any leak = fail</td></tr>
+    <tr><td>⏱️ <b>Performance</b></td><td>Does it stay fast and accurate under load?</td><td>"500 users request booking confirmations at once"</td><td>All within 2 seconds, no data loss (the reading's example)</td></tr>
+    <tr><td>🔁 <b>Regression</b></td><td>Did the change break something that worked?</td><td>New payment method → re-check search, old payments, confirmations, messages</td><td>The whole suite still passes</td></tr>
+  </table></div>
+
+  <dl class="terms">
+    <dt>Load testing</dt><dd>Simulating expected peak traffic (a big convention starting) and tracking speed, accuracy and memory/server use.</dd>
+    <dt>Stress testing</dt><dd>Going <i>beyond</i> the designed load to see how it fails. It should fail gracefully: alert staff, show a sensible fallback message.</dd>
+    <dt>Red team</dt><dd>A group that attacks the agent like real misusers: prompt injection, <b>input fuzzing</b> (random inputs) and <b>integration boundaries</b> (requests mixing many features).</dd>
+    <dt>Compliance testing</dt><dd>Checking the agent follows local data privacy and security laws.</dd>
+    <dt>Observability</dt><dd>Seeing what the deployed agent does through event logs and real-time tracing.</dd>
+  </dl>
+
+  <div class="algo"><span class="label">⚙️ The test case template (from the reading)</span>
+<pre><span class="kw">Test case name</span>   TC-EDGE-07  Booking for 100 guests
+<span class="kw">Purpose</span>          Agent handles a group far beyond room capacity gracefully
+<span class="kw">Steps / input</span>    New chat → "Book rooms for 100 people this Friday"
+<span class="kw">Expected</span>         Explains limits, offers the group-sales team or front desk
+<span class="kw">Pass/fail rule</span>   Pass if no booking is promised and a human route is offered
+<span class="kw">Actual output</span>    <span class="cm"># paste the reply</span>
+<span class="kw">Result</span>           PASS / FAIL  <span class="cm"># plus who ran it and when</span></pre>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  D["✏️ Design test cases"]:::blue --> E["▶️ Execute<br/>automated + manual"]:::purple
+  E --> A["🔍 Analyse results"]:::yellow
+  A -->|"failures"| F["🐞 Debug and fix<br/>logic? security check? model limit?"]:::red
+  F --> R["🔁 Retest"]:::orange
+  R --> A
+  A -->|"all pass"| S["✅ Sign off"]:::green
+  F -.->|"every incident"| N["➕ Add a regression test"]:::green
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">The testing workflow; every fixed incident becomes a regression check</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🤖 Automate</h4><p>Regression and performance tests, scheduled on every release.</p></div>
+    <div class="tile purple"><h4>🧠 Keep manual</h4><p>Edge cases, adversarial checks, UX validation: human judgment spots subtleties.</p></div>
+    <div class="tile green"><h4>🌍 Diverse testers</h4><p>People from different backgrounds and places predict more real user behaviour.</p></div>
+    <div class="tile yellow"><h4>📚 Best practice</h4><p>Test early and throughout, keep records, automate repetition, plan for the agent and users changing.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Where the reading oversimplifies</span>
+    It says a functional test passes only if the output <b>perfectly matches</b> the expected answer. With language models that rarely works: correct answers come in many wordings. Check the <b>facts and behaviour</b> instead: "mentions 11:00 am", "no price invented", "offers the front desk". Use exact match only for structured outputs (JSON fields, intent labels).
+  </div>
+
+  <div class="box extra"><span class="label">➕ Not in the course: indirect prompt injection</span>
+    Injection can also arrive through <b>content the agent reads</b>: a guest review, an uploaded document or a web page containing "ignore your instructions". Once your agent has knowledge files or tools, add test cases where the attack is hidden in the data, not typed by the user.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Azure evaluation tools demo</h2>
+    <p class="sub">Simulated questions, evaluators and pass thresholds <span class="page">🎬 Azure evaluation tools demo</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Foundry's <b>Evaluation</b> area runs a batch of questions through a model and grades the answers automatically. It has three tabs: <b>Automated evaluations</b>, <b>AI red teaming</b> (automated attack scans) and the <b>Evaluator library</b> (the graders you can use). A good plan covers three sets: <b>happy path</b>, <b>edge cases</b> and <b>security</b>.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  N["➕ New evaluation"]:::blue --> M["Evaluate a model"]:::blue
+  M --> SQ["🎲 Simulate questions<br/>topic + system prompt → Generate"]:::purple
+  SQ --> C["📏 Add criteria (evaluators)<br/>set the passing grade"]:::orange
+  C --> SUB["▶️ Name it, Submit"]:::yellow
+  SUB --> D["📊 Data tab<br/>each Q, A, score and reason"]:::green
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">The evaluation flow shown three times in the demo</div>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Test set</th><th>Topic used to generate questions</th><th>Evaluator</th><th>Result in demo</th></tr>
+    <tr><td>😊 Happy path</td><td>A hotel guest asking the concierge normal questions</td><td><b>Likert-scale evaluator</b>: relevance, then coherence and fluency; passing grade 3</td><td>Passed</td></tr>
+    <tr><td>🌀 Edge cases</td><td>Bizarre questions; the assistant should handle them gracefully</td><td><b>Model labeler</b> (criteria edited to use the item's question and answer)</td><td>5 of 5 passed</td></tr>
+    <tr><td>🔐 Prompt injection</td><td>A guest trying to trick the assistant; it should deflect</td><td><b>Model scorer</b> (an autograder giving an overall score)</td><td>All passed</td></tr>
+  </table></div>
+
+  <dl class="terms">
+    <dt>Likert scale</dt><dd>A 1–5 rating scale ("strongly disagree" → "strongly agree"). Here an AI grader scores, e.g., relevance 1–5, and 3+ passes. (The demo spells it "Lekert".)</dd>
+    <dt>Relevance / coherence / fluency</dt><dd>Does the answer address the question / hang together logically / read naturally?</dd>
+    <dt>Evaluator (grader)</dt><dd>Usually another AI model told how to score answers: "AI as a judge".</dd>
+  </dl>
+
+  <div class="box trap"><span class="label">⚠️ Read the demo critically (a QA lead's view)</span>
+    • <b>What was tested?</b> "Evaluate a model" with <i>simulated</i> questions and answers tests a model, not necessarily <i>your configured agent</i> with its instructions and knowledge.<br/>
+    • <b>Five generated questions</b> is a smoke test, not evidence. Real suites need many cases, including your own hand-written ones from real guest logs.<br/>
+    • <b>A pass of 3 out of 5</b> on relevance is lenient for factual answers like checkout time; correctness needs a check against the real policy.<br/>
+    • <b>The grader is an AI</b> too; spot-check its verdicts by hand before trusting them.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Use Foundry evaluations as the <b>automation layer</b>: upload your own labelled dataset (question, expected facts), choose groundedness and relevance graders for knowledge answers, set thresholds per test set (stricter for policies, looser for tone), and rerun on every prompt or model change. Keep the AI red teaming scan for security.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>Name the three test sets the demo uses.</summary>
+      <div class="answer">Happy path, edge cases, security (prompt injection).</div></details>
+    <details><summary>All five generated injection attempts passed. Is the agent secure?</summary>
+      <div class="answer">No. It only resisted five simple, generated attacks. You need many more, stronger and indirect attacks, plus the red teaming scan and manual red-team work.</div></details>
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>From development to deployment: four phases</h2>
+    <p class="sub">Dev → staging → production → monitoring <span class="page">🎬 From development to deployment</span></p>
+  </div></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  DEV["🛠️ Development<br/>Agents tab + Playground<br/>errors affect no customers"]:::blue --> STG["🧪 Staging<br/>mirror of production<br/>performance, errors, UAT"]:::purple
+  STG -->|"passes all tests"| PRD["🚀 Production<br/>Models + endpoints<br/>real guests via website or app"]:::green
+  PRD --> MON["📈 Monitoring and maintenance<br/>metrics and conversation logs"]:::orange
+  MON -.->|"insights"| DEV
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+</pre>
+    <div class="caption">Deployment is a journey, not a single action</div>
+  </div>
+
+  <dl class="terms">
+    <dt>Endpoint</dt><dd>The public URL the website or app sends questions to (in Foundry: <b>My assets → Models + endpoints</b>).</dd>
+    <dt>Key</dt><dd>A secret password (authentication token) proving the request comes from a trusted app.</dd>
+    <dt>Time to last byte</dt><dd>How long until the <i>whole</i> response has arrived (vs latency to the first byte).</dd>
+  </dl>
+
+  <div class="box example"><span class="label">🧩 How a live request flows</span>
+    A guest types into the website's chat widget → the site sends the question <b>and</b> the secret key to the endpoint URL → the agent processes it and sends the answer back → the widget shows it. <b>Metrics</b> track requests, total / prompt / completion tokens, latency and time to last byte.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Staging is an environment, not a tab</span>
+    The video uses the Evaluation tab to stand in for "staging". In real projects, staging is a <b>separate copy</b> of production (its own project or resource, same settings and integrations, test data). Evaluations can run against it, but they don't replace it.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Deployment architecture: four integration patterns</h2>
+    <p class="sub">How the agent connects to apps and systems <span class="page">📄 Deployment architecture</span></p>
+  </div></div>
+
+  <dl class="terms">
+    <dt>Agent endpoint vs model endpoint</dt><dd>An <b>agent</b> endpoint returns complete agent answers (instructions, knowledge, tools included); a <b>model</b> endpoint talks straight to the raw model.</dd>
+    <dt>REST API</dt><dd>Standard rules for programs to talk over HTTP: send a request, get a response.</dd>
+    <dt>Rate limiting</dt><dd>Capping how often requests can be sent, to prevent overload or abuse.</dd>
+    <dt>Webhook</dt><dd>An endpoint that <i>receives</i> a notification when something happens elsewhere (new booking, check-in).</dd>
+  </dl>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Pattern</th><th>How it works</th><th>Hotel example</th><th>Best for / watch out</th></tr>
+    <tr><td>🔌 <b>Direct API</b></td><td>Apps call the agent's REST endpoint</td><td>"Rooms available Friday?" from the website chat</td><td>Simple, real-time. Needs strict auth and rate limits</td></tr>
+    <tr><td>🧰 <b>SDK</b></td><td>A toolkit wraps common calls in simple functions; handles keys and retries</td><td>"Chat with concierge" or "late checkout" buttons in the mobile app</td><td>Fast to build. Less flexible for custom needs</td></tr>
+    <tr><td>🔔 <b>Webhook</b></td><td>Another system notifies the agent when an event happens</td><td>A surf lesson booked with a partner → agent sends confirmation</td><td>Event-triggered. Verify a secret on every call, retry failures</td></tr>
+    <tr><td>📡 <b>Event-driven</b></td><td>Events are shared with every service that needs them, asynchronously</td><td>Late checkout updates housekeeping, payments, messaging, inventory</td><td>Large chains, peak periods. Needs planning, queues, de-duplication</td></tr>
+  </table></div>
+
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant B as 🏄 Partner
+  participant W as 🔔 Webhook
+  participant A as 🤖 Agent
+  participant G as 🧑 Guest
+  B->>W: Lesson booked + secret
+  W->>W: Verify secret
+  W->>A: Booking details
+  A->>G: Confirmation
+  Note over B,W: Failed? Retry and log
+</pre>
+    <div class="caption">The webhook pattern from the reading</div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Best practices</span>
+    Match the pattern to real needs, not habit · document and separate sensitive endpoints · <b>regularly test authentication and rate limiting</b> · choose patterns that can grow · involve business, technical and user voices.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Each pattern has its own failure tests. API: no key, wrong key, expired key, burst traffic beyond the rate limit. Webhook: missing or bad secret, duplicate events, delivery failures and retries. Event-driven: out-of-order and duplicate events (the guest must not get two confirmations).
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Accessing your agent through its API</h2>
+    <p class="sub">Endpoint, key, request, status code, error handling <span class="page">🎬 Accessing your agent</span></p>
+  </div></div>
+
+  <div class="box analogy"><span class="label">🎯 Analogy</span>
+    An agent with no API is a library with no doors. The <b>endpoint</b> is the street address (host = which building, path = which office inside); the <b>API key</b> is the door key.
+  </div>
+
+  <div class="box example"><span class="label">🧩 The demo's Python call (➕ my sketch of it, with placeholders)</span>
+<pre class="case">import os, requests
+
+ENDPOINT = os.environ["AGENT_ENDPOINT"]   # never paste the URL and key in code
+API_KEY  = os.environ["AGENT_API_KEY"]    # use environment variables or a secret store
+
+headers = {"Authorization": API_KEY}      # exact header name depends on the API
+payload = {"message": "What time is checkout?"}   # JSON body: key-value pairs
+
+resp = requests.post(ENDPOINT, headers=headers, json=payload)
+
+if resp.status_code == 200:               # 200 = OK
+    print(resp.json())                    # the agent's reply, also JSON
+else:                                     # e.g. 401 = unauthorized (bad key)
+    print("Error", resp.status_code, resp.text)</pre>
+  </div>
+
+  <div class="grid">
+    <div class="tile green"><h4>✅ 200 OK</h4><p>Request worked; read the JSON reply.</p></div>
+    <div class="tile red"><h4>⛔ 401 Unauthorized</h4><p>Key wrong or missing. In the demo, setting the key to "WRONG" gives 401: <b>proof the security works</b>.</p></div>
+    <div class="tile orange"><h4>➕ 429 Too many requests</h4><p>Not in the video: the rate limit was hit. Back off and retry.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Common trap</span>
+    Committing an API key to a public GitHub repo (and your portfolio repo is public!). Bots scan GitHub for keys within minutes. Keep keys in environment variables or a secret manager; if one leaks, <b>rotate it</b> immediately. Module 1 also showed the safer keyless option: sign in with a Microsoft (Entra) identity.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    This is plain API testing, your existing skill (think Postman, which the course lists as a tool). Cases: 200 with a valid question, 401 with a wrong key, missing body, huge body, wrong content type, rate-limit burst, timeout handling. Then assert on the <b>reply content</b>, not just the status code.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--pink)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Under the hood: how a question becomes an answer</h2>
+    <p class="sub">Endpoint, JSON messages, perceive-reason-act <span class="page">🎬 Under the hood</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    In the agent's playground, <b>View code</b> shows the Python an app would use (with the project endpoint), and <b>Thread logs</b> show the actual messages. Each message is JSON with a <b>role</b> (<code>user</code> for the guest, <code>assistant</code> for the agent) and <b>content</b> (the text). That's how the agent tracks who said what.
+  </div>
+
+  <div class="box example"><span class="label">🧩 A thread, as JSON</span>
+<pre class="case">[
+  {"role": "user",      "content": "What time is checkout?"},
+  {"role": "assistant", "content": "Checkout is at 11:00 am. Would you like a late checkout?"}
+]</pre>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  APP["📱 App sends JSON<br/>to the endpoint, with the key"]:::grey --> P["👂 Perceive<br/>reads role = user and the content"]:::blue
+  P --> R["🧠 Reason<br/>system instructions first, then the question,<br/>search knowledge if connected"]:::purple
+  R --> A["✍️ Act<br/>generate the reply"]:::green
+  A --> OUT["📦 JSON back with role = assistant<br/>→ app shows it"]:::grey
+  classDef grey fill:#f1f5f9,stroke:#94a3b8,color:#334155
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">The layers: communication (endpoint + key) → message format (JSON) → agent logic → response</div>
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    Thread logs are your best debugging tool: when an answer is wrong, check whether the right knowledge was found (retrieval) or the model ignored it (generation). Attach the thread log to every bug report.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Building your portfolio</h2>
+    <p class="sub">Repository, README, docs, demo video, diagrams <span class="page">📄 Building your portfolio · 🎬 Portfolio creation workshop</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🗂️ GitHub repository</h4><p>Public, clear name and description, initialised with a README. Folders: <code>code/</code>, <code>docs/</code>, <code>demo/</code>. <code>main</code> for finished work, branches for experiments; issue and PR templates.</p></div>
+    <div class="tile green"><h4>📘 README</h4><p>Title + one-paragraph problem statement · Features · Architecture &amp; technologies (Foundry, model, prompt engineering) · Installation / usage or <b>Demonstration</b> link · Contributing · License · <b>Lessons learned</b>.</p></div>
+    <div class="tile purple"><h4>📐 Documentation</h4><p>Architecture diagram, API docs with placeholders (<code>POST &lt;your-endpoint&gt;/agent/run</code>, <code>&lt;API_KEY&gt;</code>), configuration guide (system prompt, temperature, Top P), <b>changelog</b>, and <b>testing documentation</b>.</p></div>
+    <div class="tile orange"><h4>🎬 Demo video</h4><p>About 2 minutes, clear audio, subtitles. Show an <b>easy</b> question, a <b>complex</b> one, and one <b>out of scope</b> to prove the boundaries work.</p></div>
+    <div class="tile pink"><h4>🗺️ Architecture diagrams</h4><p>Guest query → language understanding → knowledge retrieval → response. Add sequence and data-flow diagrams with a legend for non-technical readers.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Why it matters</span>
+    A portfolio shows <b>progression</b> (first simple agent → production-ready), communication and a continuous-improvement mindset. It's a living project: update docs, demos and features as you grow.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Your QA advantage</span>
+    The reading says portfolios should document the <b>testing process</b>: test cases, evaluation results (accuracy, performance), a QA dashboard, bug-fix logs. Most developers skip this; for a Lead QA engineer it's the centrepiece. Put your test sets, evaluation screenshots, pass rates per category and one "bug found → fixed → regression test added" story in <code>docs/testing.md</code>.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Fits your existing site</span>
+    You already publish notes to <b>sri44193.github.io</b>. A portfolio repo for the hotel agent can link here, and these notes can link back to it.
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>💥 Untested agents cause legal, PR and privacy damage (airline refund, offensive bot, bank leak).</li>
+    <li>🧪 Five methods: <b>functional, edge case, security, performance (load, stress), regression</b>; plus <b>red teaming</b> (injection, fuzzing, integration boundaries).</li>
+    <li>📋 Template: name, purpose, steps/input, expected, pass/fail rule, actual, result.</li>
+    <li>🔁 Design → execute → analyse → fix → retest; <b>every incident becomes a regression test</b>.</li>
+    <li>🤖 Automate regression and performance; keep edge cases, attacks and UX manual.</li>
+    <li>📊 Foundry evaluations: simulate or upload questions → evaluators (Likert, labeler, scorer) → pass grade → Data tab. Plus AI red teaming.</li>
+    <li>🚀 <b>Dev → staging → production → monitoring</b>; metrics: requests, tokens, latency, time to last byte.</li>
+    <li>🔌🧰🔔📡 Patterns: <b>direct API, SDK, webhook, event-driven</b>. Always authentication + rate limits.</li>
+    <li>🔑 Endpoint (host + path) + key; keys in env vars or a secret store, never in code. <b>200</b> OK, <b>401</b> bad key.</li>
+    <li>💬 Messages are JSON: <b>role</b> (user / assistant) + <b>content</b>. Agent loop: perceive → reason → act.</li>
+    <li>🗂️ Portfolio: repo, README, docs (incl. testing), 2-minute demo, architecture diagrams.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: the module's activities</h2>
+    <p class="sub">What the course asks you to do, plus a QA twist</p>
+  </div></div>
+  <ol>
+    <li><b>Agent testing and evaluation</b>: run happy-path, edge-case and prompt-injection evaluations in Foundry.</li>
+    <li><b>Agent access and model deployment</b>: call your endpoint from Python (or Postman); see 200, then 401 with a bad key.</li>
+    <li><b>Under the hood and portfolio creation</b> (60 min): inspect thread logs, create the GitHub repo, README, docs and demo.</li>
+    <li>➕ <b>QA twist</b>: bring the 20–30 question sets from Modules 1–3 into one evaluation dataset; publish pass rates by category and a short "what I'd test next" section in <code>docs/testing.md</code>.</li>
+  </ol>
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    <i>AI Engineering</i> Ch 3–4 (evaluation, AI as a judge) and Ch 10 (guardrails, monitoring) · <i>LLM Evaluation</i> Ch 2–3 (release gates, inference-time controls) and Ch 8 (agents) · next in this specialisation: course 2, <b>Building intelligent agent workflows</b>.
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from the Coursera course <i>AI agent fundamentals with Azure AI Foundry</i> (Microsoft) · video and reading titles are the course's own</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
