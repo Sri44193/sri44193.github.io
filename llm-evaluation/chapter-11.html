@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Evaluation · Ch 11 Notes</title>
+<style>
+/* ===== Colour tokens (light) ===== */
+:root {
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5b636e; --line:#e6e2da;
+  --blue:#2563eb;   --blue-bg:#eaf1ff;
+  --green:#15803d;  --green-bg:#e7f6ec;
+  --orange:#c2410c; --orange-bg:#fff0e4;
+  --purple:#7c3aed; --purple-bg:#f2ecff;
+  --red:#dc2626;    --red-bg:#fdecec;
+  --yellow:#a16207; --yellow-bg:#fff7d6;
+  --teal:#0f766e;   --teal-bg:#e3f5f2;
+  --pink:#db2777;   --pink-bg:#fdeaf3;
+  --code-bg:#f4f1ea;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+}
+/* ===== Colour tokens (dark) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+    --blue:#7fa9ff;   --blue-bg:#1a2742;
+    --green:#5fd08a;  --green-bg:#152b1d;
+    --orange:#ff9f62; --orange-bg:#35210f;
+    --purple:#b99cff; --purple-bg:#271f40;
+    --red:#ff8080;    --red-bg:#3a1a1a;
+    --yellow:#f2c94c; --yellow-bg:#332b10;
+    --teal:#4fd1c5;   --teal-bg:#102d2a;
+    --pink:#ff80b8;   --pink-bg:#3a1828;
+    --code-bg:#22262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#13151a; --surface:#1b1e24; --ink:#e9e7e3; --muted:#a3a9b2; --line:#2c313a;
+  --blue:#7fa9ff;   --blue-bg:#1a2742;
+  --green:#5fd08a;  --green-bg:#152b1d;
+  --orange:#ff9f62; --orange-bg:#35210f;
+  --purple:#b99cff; --purple-bg:#271f40;
+  --red:#ff8080;    --red-bg:#3a1a1a;
+  --yellow:#f2c94c; --yellow-bg:#332b10;
+  --teal:#4fd1c5;   --teal-bg:#102d2a;
+  --pink:#ff80b8;   --pink-bg:#3a1828;
+  --code-bg:#22262d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 0 16px 80px; }
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.55rem; margin: 0 0 .4rem; }
+h3 { font-size: 1.1rem; margin: 1.4rem 0 .5rem; }
+p { margin: .55rem 0; }
+a { color: var(--blue); }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.muted { color: var(--muted); }
+.page { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+/* ===== Top bar ===== */
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 880px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 10px; align-items: center; }
+.topbar-title { font-weight: 700; font-size: .95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+
+/* ===== Hero ===== */
+.hero { margin: 24px 0 18px; padding: 28px 24px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); box-shadow: var(--shadow); }
+.hero .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; opacity: .9; }
+.hero h1 { font-size: 2rem; margin: .3rem 0 .4rem; }
+.hero p { opacity: .95; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+
+/* ===== Legend & TOC ===== */
+.legend, .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: .85rem;
+  text-decoration: none; border: 1px solid transparent; }
+.pill.blue   { background: var(--blue-bg);   color: var(--blue); }
+.pill.green  { background: var(--green-bg);  color: var(--green); }
+.pill.orange { background: var(--orange-bg); color: var(--orange); }
+.pill.purple { background: var(--purple-bg); color: var(--purple); }
+.pill.red    { background: var(--red-bg);    color: var(--red); }
+.pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+.pill.teal   { background: var(--teal-bg);   color: var(--teal); }
+.pill.pink   { background: var(--pink-bg);   color: var(--pink); }
+.toc .pill { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.toc .pill b { color: var(--purple); }
+
+/* ===== Section card ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
+  margin: 22px 0; box-shadow: var(--shadow); border-top: 6px solid var(--accent, var(--blue)); scroll-margin-top: 64px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; }
+.num { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; color: #fff; background: var(--accent, var(--blue)); }
+.card-head .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+
+/* ===== Colour boxes ===== */
+.box { border-radius: 14px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+.box > .label { font-weight: 700; font-size: .85rem; letter-spacing: .02em; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.box.plain    { background: var(--blue-bg);   border-color: var(--blue); }   .box.plain > .label    { color: var(--blue); }
+.box.analogy  { background: var(--purple-bg); border-color: var(--purple); } .box.analogy > .label  { color: var(--purple); }
+.box.example  { background: var(--green-bg);  border-color: var(--green); }  .box.example > .label  { color: var(--green); }
+.box.test     { background: var(--orange-bg); border-color: var(--orange); } .box.test > .label     { color: var(--orange); }
+.box.trap     { background: var(--red-bg);    border-color: var(--red); }    .box.trap > .label     { color: var(--red); }
+.box.remember { background: var(--yellow-bg); border-color: var(--yellow); } .box.remember > .label { color: var(--yellow); }
+.box.extra    { background: var(--teal-bg);   border-color: var(--teal); }   .box.extra > .label    { color: var(--teal); }
+.box ul, .box ol { margin: .3rem 0; padding-left: 1.3rem; }
+
+/* ===== Diagrams ===== */
+.diagram { margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--bg); overflow-x: auto; }
+.diagram .caption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: 6px; }
+pre.mermaid { margin: 0; text-align: center; background: transparent; font-size: 14px; }
+
+/* ===== Token chips ===== */
+.tokens { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.tok { padding: 3px 8px; border-radius: 7px; }
+.tok:nth-child(5n+1) { background: var(--blue-bg); color: var(--blue); }
+.tok:nth-child(5n+2) { background: var(--green-bg); color: var(--green); }
+.tok:nth-child(5n+3) { background: var(--orange-bg); color: var(--orange); }
+.tok:nth-child(5n+4) { background: var(--purple-bg); color: var(--purple); }
+.tok:nth-child(5n+5) { background: var(--pink-bg); color: var(--pink); }
+.arrow { color: var(--muted); padding: 0 6px; }
+
+/* ===== Two-up / grids ===== */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 12px 0; }
+.tile { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--bg); }
+.tile h4 { margin: 0 0 4px; font-size: 1rem; }
+.tile.blue { background: var(--blue-bg); border-color: transparent; }   .tile.blue h4 { color: var(--blue); }
+.tile.green { background: var(--green-bg); border-color: transparent; } .tile.green h4 { color: var(--green); }
+.tile.orange { background: var(--orange-bg); border-color: transparent; } .tile.orange h4 { color: var(--orange); }
+.tile.purple { background: var(--purple-bg); border-color: transparent; } .tile.purple h4 { color: var(--purple); }
+.tile.pink { background: var(--pink-bg); border-color: transparent; } .tile.pink h4 { color: var(--pink); }
+.tile.teal { background: var(--teal-bg); border-color: transparent; } .tile.teal h4 { color: var(--teal); }
+.tile.yellow { background: var(--yellow-bg); border-color: transparent; } .tile.yellow h4 { color: var(--yellow); }
+.tile.red { background: var(--red-bg); border-color: transparent; } .tile.red h4 { color: var(--red); }
+.tile p { margin: .2rem 0; font-size: .95rem; }
+.emoji { font-size: 1.4rem; }
+
+/* ===== Stack ===== */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 14px; padding: 12px 16px; color: #fff; }
+.layer b { font-size: 1.05rem; } .layer span { display: block; opacity: .95; font-size: .93rem; }
+.layer.l1 { background: linear-gradient(90deg, #db2777, #f43f5e); }
+.layer.l2 { background: linear-gradient(90deg, #7c3aed, #6366f1); }
+.layer.l3 { background: linear-gradient(90deg, #0f766e, #0891b2); }
+
+/* ===== Tables ===== */
+table.compare { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; font-size: .95rem;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.compare tr:last-child td { border-bottom: 0; }
+table.compare th { background: var(--purple-bg); color: var(--purple); }
+table.compare th.old { background: var(--code-bg); color: var(--muted); }
+table.compare th.new { background: var(--green-bg); color: var(--green); }
+table.compare td:first-child { font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ===== Algorithm ===== */
+.algo { background: var(--code-bg); border-radius: 14px; padding: 14px 16px; margin: 14px 0; border: 1px solid var(--line); }
+.algo .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+.algo pre { margin: 8px 0 0; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.kw { color: var(--purple); font-weight: 700; } .cm { color: var(--muted); font-style: italic; } .fn { color: var(--blue); } .st { color: var(--green); }
+
+/* ===== Progress bars ===== */
+.bars { margin: 12px 0; display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; font-size: .9rem; }
+.bar .track { background: var(--code-bg); border-radius: 999px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; display: flex; align-items: center; padding-left: 10px; }
+
+/* ===== Key terms ===== */
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0; }
+dl.terms dt { font-weight: 700; color: var(--pink); }
+dl.terms dd { margin: 0; }
+@media (max-width: 560px) { dl.terms { grid-template-columns: 1fr; } dl.terms dd { margin-bottom: 6px; } .bar { grid-template-columns: 1fr; } }
+
+/* ===== Quiz ===== */
+.quiz { margin: 16px 0 4px; }
+.quiz .label { font-weight: 700; color: var(--teal); font-size: .85rem; text-transform: uppercase; }
+details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; margin: 8px 0; background: var(--bg); }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+details .answer { border-left: 4px solid var(--teal); padding-left: 10px; }
+
+/* ===== Cheat sheet ===== */
+.cheat { background: linear-gradient(135deg, var(--yellow-bg), var(--pink-bg)); border-radius: 18px; padding: 20px 22px; margin: 26px 0; border: 1px solid var(--line); }
+.cheat ol { padding-left: 1.3rem; } .cheat li { margin: 6px 0; }
+
+footer { color: var(--muted); font-size: .85rem; margin-top: 30px; text-align: center; }
+@media print { .topbar, .btn { display: none; } .card { break-inside: avoid; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-inner">
+  <a class="btn" href="index.html" style="text-decoration:none">← Contents</a>
+  <span class="topbar-title">📗 LLM Evaluation · Chapter 11</span>
+  <button class="btn" id="themeBtn" type="button">🌓 Theme</button>
+</div></div>
+
+<main>
+<style>
+/* page-specific: coloured ladders and code case blocks (same as earlier chapters) */
+.ladder { display: grid; gap: 6px; margin: 12px 0; }
+.ladder div { border-radius: 12px; padding: 9px 14px; color: #fff; display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: .93rem; }
+.ladder b { font-size: .98rem; }
+@media (max-width: 560px) { .ladder div { grid-template-columns: 1fr; gap: 2px; } }
+pre.case { background: var(--code-bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; overflow-x: auto;
+  font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 12px 0; }
+</style>
+
+<header class="hero" style="background: linear-gradient(135deg, #0f766e 0%, #0891b2 45%, #2563eb 100%);">
+  <div class="kicker">LLM Evaluation for Production Systems · Ammar Mohanna · Reference book</div>
+  <h1>Chapter 11: Evaluating Specialized LLM Systems</h1>
+  <p>Specialised systems need specialised tests: Text2SQL and Text2Cypher (execution correctness, grounding, governance), guardrail models like ShieldGemma (policy enforcement, false positives and negatives, calibration), and embedding models (recall@K, MRR, drift).</p>
+  <div class="chips">
+    <span class="chip">📖 PDF pages 498–544</span>
+    <span class="chip">⏱ ~3 study sessions</span>
+    <span class="chip">🧒 Beginner level</span>
+    <span class="chip">🔗 Read with AI Engineering Ch 6 &amp; 10</span>
+  </div>
+</header>
+
+<p class="muted" style="margin-bottom:4px">How to read these notes, by colour:</p>
+<div class="legend">
+  <span class="pill blue">🧒 Plain English</span>
+  <span class="pill purple">🎯 Analogy</span>
+  <span class="pill green">🧩 Example</span>
+  <span class="pill orange">🧪 Testing angle</span>
+  <span class="pill red">⚠️ Common trap</span>
+  <span class="pill yellow">📌 Remember</span>
+  <span class="pill teal">➕ Not in the book</span>
+</div>
+
+<!-- ===== BIG PICTURE ===== -->
+<section class="card" id="map" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">★</div><div>
+    <h2>The big picture</h2>
+    <p class="sub">The whole chapter on one page. Come back here after each topic.</p>
+  </div></div>
+
+  <div class="box remember"><span class="label">📌 The chapter in one sentence</span>
+    Specialised AI needs specialised evaluation: <b>query generators</b> are judged by <b>execution correctness and grounding</b> (valid SQL can still be wrong), <b>guardrails</b> by <b>policy enforcement and containment</b> (false positives vs false negatives, calibration, escalation), and <b>embeddings</b> by <b>retrieval quality and representation stability</b> (recall@K, MRR, drift).
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+mindmap
+  root((Specialised<br/>systems))
+    Text2SQL
+      System not just a model
+      Native vs orchestrated
+      Training checks
+      Inference checks
+    Text2Cypher
+      Graphs and paths
+      Gemma 2 fine-tune
+      Traversal and cost
+    Guardrail SLMs
+      ShieldGemma
+      Hate-speech policy
+      Image safety
+      Calibration
+    Embeddings
+      What they are
+      Text
+      Image
+      Multimodal
+</pre>
+    <div class="caption">Chapter map</div>
+  </div>
+
+  <nav class="toc" aria-label="Topics">
+    <a class="pill" href="#t1"><b>1</b> Text2SQL systems</a>
+    <a class="pill" href="#t2"><b>2</b> Native vs orchestrated</a>
+    <a class="pill" href="#t3"><b>3</b> Text2SQL in training</a>
+    <a class="pill" href="#t4"><b>4</b> Text2SQL at inference</a>
+    <a class="pill" href="#t5"><b>5</b> Text2Cypher</a>
+    <a class="pill" href="#t6"><b>6</b> Guardrail SLMs</a>
+    <a class="pill" href="#t7"><b>7</b> ShieldGemma: hate speech</a>
+    <a class="pill" href="#t8"><b>8</b> Image safety</a>
+    <a class="pill" href="#t9"><b>9</b> Embeddings explained</a>
+    <a class="pill" href="#t10"><b>10</b> Text embeddings</a>
+    <a class="pill" href="#t11"><b>11</b> Image &amp; multimodal</a>
+    <a class="pill" href="#t12"><b>12</b> Whole-book wrap-up</a>
+    <a class="pill" href="#cheat"><b>✓</b> Cheat sheet</a>
+  </nav>
+</section>
+
+<!-- ===== 1 ===== -->
+<section class="card" id="t1" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">1</div><div>
+    <h2>Text2SQL is a system, not a model</h2>
+    <p class="sub">Valid SQL can still be the wrong answer <span class="page">📖 PDF p. 498–502</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Text2SQL</b> turns a question ("total revenue last quarter?") into an SQL query. It predates LLMs (semantic parsing, grammars, schema linking). Today it's usually a general or code LLM <b>adapted</b> with fine-tuning, schema retrieval, constrained decoding and execution checks, not a brand-new kind of model. Tools named: Defog, Numbers Station, MotherDuck; open frameworks SQLCoder, DIN-SQL, RAT-SQL, PICARD, RESDSQL.
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  Q["👩 'Revenue from active customers last quarter?'"]:::blue --> R["🗂️ Schema retrieval and grounding<br/>which tables, columns, joins?"]:::purple
+  R --> M["📚 Metadata enrichment<br/>business definitions, sample values, keys"]:::purple
+  M --> P["🧭 Query planning"]:::orange
+  P --> G["✍️ SQL generation"]:::orange
+  G --> F["🔧 Query repair and optimisation"]:::yellow
+  F --> E["▶️ Execution verification in a sandbox"]:::green
+  E --> S["🛡️ Safety and access control<br/>permissions, cost limits"]:::red
+  S --> A["📊 Answer"]:::blue
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef yellow fill:#fef9c3,stroke:#ca8a04,color:#713f12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+</pre>
+    <div class="caption">A Text2SQL pipeline. Observability and feedback loops wrap around all of it</div>
+  </div>
+
+  <div class="box example"><span class="label">🧩 Why every stage needs testing (the book's example)</span>
+    Retrieval fetches the <b>transactions</b> table but misses <b>customer accounts</b>. The generator still writes valid SQL, but joins the wrong entity, misses account filters and returns misleading totals. It passes syntax checks and fails the business question.
+  </div>
+</section>
+
+<!-- ===== 2 ===== -->
+<section class="card" id="t2" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">2</div><div>
+    <h2>Four implementation patterns</h2>
+    <p class="sub">Where reliability is expected to come from <span class="page">📖 PDF p. 502–503</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🎯 Fine-tuned ("native")</h4><p>Trained on question–SQL pairs; the model carries more of the schema reasoning.</p></div>
+    <div class="tile purple"><h4>🧰 RAG / orchestration ("non-native")</h4><p>A general LLM plus schema retrieval, prompt building, validators and repair.</p></div>
+    <div class="tile orange"><h4>📏 Constrained decoding</h4><p>Output restricted by SQL grammar, schema rules or a parser (e.g. PICARD).</p></div>
+    <div class="tile green"><h4>▶️ Execution-verified</h4><p>Query run in a sandbox before acceptance.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    In orchestrated systems, test <b>retrieval, grounding, validation and repair</b> hardest. In fine-tuned systems, test the model's <b>learned schema reasoning, execution correctness, semantic stability and generalisation</b>. Both still need runtime validation.
+  </div>
+</section>
+
+<!-- ===== 3 ===== -->
+<section class="card" id="t3" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">3</div><div>
+    <h2>Text2SQL at training time</h2>
+    <p class="sub">Data, grounding, generation, retrieval, governance <span class="page">📖 PDF p. 503–507</span></p>
+  </div></div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Area</th><th>Orchestrated (non-native)</th><th>Fine-tuned (native)</th></tr>
+    <tr><td>Data</td><td>Schema diversity, join-path diversity, query complexity, <b>leakage</b> detection</td><td>Long-tail queries, <b>SQL dialect</b> coverage, glossary mappings</td></tr>
+    <tr><td>Grounding</td><td>Schema linking, entity grounding, foreign-key detection, business-term alignment</td><td>Learned schema understanding, query-plan alignment</td></tr>
+    <tr><td>Generation</td><td>Syntax, execution accuracy, hallucination, aggregation, filters, joins; PICARD effectiveness</td><td>Token accuracy, execution correctness, semantic equivalence</td></tr>
+    <tr><td>Context</td><td>Retrieval relevance, completeness, token efficiency</td><td>(Still needed for evolving schemas)</td></tr>
+    <tr><td>Hallucination</td><td>Hallucinated tables and columns</td><td>Fabricated columns, invalid joins, aggregation drift under paraphrase</td></tr>
+    <tr><td>Governance</td><td>Adversarial prompts, unsafe queries, access policy, query cost, schema drift</td><td>Restricted-table access, policy violations; training includes <b>negative and refusal examples</b></td></tr>
+  </table></div>
+
+  <div class="box trap"><span class="label">⚠️ Retrieval: too little and too much both hurt</span>
+    <b>Under-retrieval</b> misses tables or join paths → hallucinated schema, invalid joins. <b>Over-retrieval</b> stuffs the prompt with irrelevant tables → higher cost, confused planning, lower accuracy. Measure retrieval <b>recall and precision</b>.
+  </div>
+
+  <div class="box example"><span class="label">🧩 Execution-grounded evaluation (the book's example)</span>
+    A query uses <code>order_date</code> instead of <code>invoice_date</code> for revenue reporting. Syntax: fine. Result: wrong. Catch it by comparing results, row counts and aggregations against a <b>trusted reference query</b>.
+  </div>
+</section>
+
+<!-- ===== 4 ===== -->
+<section class="card" id="t4" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">4</div><div>
+    <h2>Text2SQL at inference time</h2>
+    <p class="sub">The most common failure: valid but semantically wrong <span class="page">📖 PDF p. 508–512</span></p>
+  </div></div>
+
+  <div class="box example"><span class="label">🧩 The book's example</span>
+    "Show total revenue from <b>active</b> customers last quarter" → the SQL sums <b>all</b> invoices with no active-customer filter. It runs, returns a number, and is wrong.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Area</th><th>Signals</th></tr>
+    <tr><td>Schema retrieval</td><td>Retrieval accuracy, context completeness and latency, grounding precision</td></tr>
+    <tr><td>Generation</td><td>Syntax, semantic correctness, hallucination, prompt-injection resistance, schema contamination, ambiguity handling</td></tr>
+    <tr><td>Execution</td><td>Success rate, <b>null-result frequency</b>, <b>row-count sanity</b>, semantic equivalence with business intent</td></tr>
+    <tr><td>Repair</td><td>Repair success, fallback effectiveness, retry stability</td></tr>
+    <tr><td>Safety</td><td>Permissions, <b>unrestricted scans</b>, dangerous joins, query cost, sensitive data exposure</td></tr>
+    <tr><td>Operations</td><td>Latency, throughput, token cost, concurrency</td></tr>
+  </table></div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    ➕ Keep a <b>golden question set</b> with trusted reference SQL and expected result snapshots on a fixed test database. Compare <b>results</b>, not SQL text: two different queries can both be right. Add paraphrases, ambiguous questions, questions about restricted tables, and one that would scan a huge table.
+  </div>
+</section>
+
+<!-- ===== 5 ===== -->
+<section class="card" id="t5" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">5</div><div>
+    <h2>Text2Cypher: queries over graphs</h2>
+    <p class="sub">Nodes, edges, paths and direction <span class="page">📖 PDF p. 512–520</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    <b>Cypher</b> is the query language of graph databases like Neo4j. Beyond tables it must handle <b>nodes, edges, paths, relationship direction and multi-hop traversals</b>, so it's more exposed to <b>path explosion</b>, relationship ambiguity and runaway traversal cost.
+  </div>
+
+  <div class="box example"><span class="label">🧩 ➕ Why direction matters</span>
+    "Who does Asha manage?" vs "Who manages Asha?" use the same <code>MANAGES</code> relationship in opposite directions. Both queries are valid Cypher; one answers the wrong question.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Neo4j fine-tuned experiment</th><th>Approx. size</th></tr>
+    <tr><td>Gemma 2 Text2Cypher</td><td>9B</td></tr>
+    <tr><td>Llama 3.1 Text2Cypher</td><td>8B</td></tr>
+    <tr><td>Phi-3 Medium / Small / Mini</td><td>14B / 7B / 3.8B</td></tr>
+  </table></div>
+  <p class="muted">Also GPT-4o and Gemini 1.5 Flash fine-tuned variants. These are <b>fine-tuned general models</b>, not graph-native foundation models: decoder-only transformers stay dominant because they're easier to tune and deploy. Recipe: base model → fine-tune → schema grounding → graph schema retrieval → Cypher validation and repair → execution checks.</p>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🏋️ Training-time</h4><p>Node-label grounding · relationship mapping · <b>edge-direction correctness</b> · syntax validity · <b>multi-hop traversal accuracy</b> · semantic equivalence · hallucinated nodes, relationships, properties · execution success · unseen schemas · restricted traversals.</p></div>
+    <div class="tile orange"><h4>🚀 Inference-time</h4><p>Schema retrieval · relationship interpretation stability · path validity · runtime exceptions, null results · hallucinated edges · schema drift · unauthorised traversals, <b>unrestricted scans</b> · <b>traversal cost control</b> (depth, recursion, query plan, timeouts) · latency and tail · retries and fallback.</p></div>
+  </div>
+</section>
+
+<!-- ===== 6 ===== -->
+<section class="card" id="t6" style="--accent: var(--red)">
+  <div class="card-head"><div class="num">6</div><div>
+    <h2>Guardrail SLMs</h2>
+    <p class="sub">Small, fast models that police bigger ones <span class="page">📖 PDF p. 520–523</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    A <b>guardrail SLM</b> isn't a chatbot. It sits around the main LLM and checks prompts, outputs, tool calls, retrieved content and actions against policies, fast enough to run on every request. Example: Google's <b>ShieldGemma</b> (ShieldGemma 1 on Gemma 2 at 2B/9B/27B; ShieldGemma 2 at 4B on Gemma 3).
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  U["👩 User prompt"]:::blue --> G1["🛡️ Input guard"]:::red
+  G1 -->|"safe"| L["🤖 Main LLM"]:::purple
+  G1 -->|"violation"| B["⛔ Block or escalate"]:::red
+  L --> G2["🛡️ Output guard"]:::red
+  G2 -->|"safe"| O["📤 Response"]:::green
+  G2 -->|"violation"| B
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef red fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+</pre>
+    <div class="caption">A guardrail before and after the main model</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile red"><h4>🛡️ Jobs</h4><p>Harmful content · toxicity · jailbreak and prompt-injection detection · unsafe instructions · PII · policy validation · output moderation · tool-use governance · escalation.</p></div>
+    <div class="tile orange"><h4>📏 KPIs</h4><p>Refusal correctness · <b>false-positive</b> and <b>false-negative</b> rates · adversarial robustness · policy consistency · escalation effectiveness · containment reliability · latency.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Explanation mismatch (multimodal guards)</span>
+    A guard may correctly block an unsafe image but justify it with objects that <b>aren't visible</b>. Compare the visual evidence, the label and the rationale.
+  </div>
+</section>
+
+<!-- ===== 7 ===== -->
+<section class="card" id="t7" style="--accent: var(--yellow)">
+  <div class="card-head"><div class="num">7</div><div>
+    <h2>Evaluating ShieldGemma for hate-speech policy</h2>
+    <p class="sub">Both mistakes are costly <span class="page">📖 PDF p. 523–527</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 The setup</span>
+    A policy forbids hate speech targeting race, gender, ethnicity, religion, nationality, sexual orientation, disability or caste. Before a prompt reaches the main LLM, the guard must answer <b>"Yes" (violates) or "No"</b>, then give step-by-step reasoning. It must tell <b>endorsement</b> apart from <b>discussion, education, reporting, condemnation, satire and quotation</b>, and resist adversarial phrasing.
+  </div>
+
+  <div class="grid">
+    <div class="tile orange"><h4>🚫 False positive</h4><p>Blocks a legitimate discussion (e.g. a history lesson about discrimination). Hurts users and free discussion.</p></div>
+    <div class="tile red"><h4>✅ False negative</h4><p>Lets real hate speech through. Legal, compliance, reputational and safety risk.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Calibration decides the action</span>
+    High-confidence violation → block. <b>Low-confidence or borderline</b> → human review, not automatic blocking. So measure confidence calibration, threshold sensitivity, <b>escalation precision and recall</b>, and agreement between confidence bands and human reviewers.
+  </div>
+
+  <div class="box plain"><span class="label">🧒 What to measure</span>
+    <b>Training</b>: classification accuracy across paraphrases, dialects and indirect hate · refusal correctness · FP and FN rates · adversarial robustness · contextual understanding · <b>policy-grounded reasoning quality</b> (rationales that cite the policy correctly, no invented reasons). <b>Inference</b>: latency, throughput, stability, jailbreak resistance, sarcasm and coded language, policy drift, escalation accuracy, human-review agreement, safety drift over time.
+  </div>
+
+  <div class="box test"><span class="label">🧪 Testing angle</span>
+    ➕ Build <b>contrast pairs</b>: an attack and a near-identical legitimate sentence (quoting a slur to condemn it, news reporting, a classroom question). A good guard blocks one and allows the other. Report precision and recall per protected category, not just overall.
+  </div>
+</section>
+
+<!-- ===== 8 ===== -->
+<section class="card" id="t8" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">8</div><div>
+    <h2>Guardrails for images</h2>
+    <p class="sub">Govern visual content before it's shown or stored <span class="page">📖 PDF p. 527–530</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Image moderation must reason about <b>objects, actions, symbols, embedded text, scene composition and synthetic manipulation</b>, not just words. Categories: violence and gore, explicit sexual imagery, dangerous activities, graphic harm, unsafe visual instructions, harmful synthetic imagery. Same Yes/No + reasoning format, grounded strictly in the policy text, with room to explain ambiguity.
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📏 KPIs</h4><p>Harm-category accuracy · unsafe-image precision and recall · FP and FN rates · synthetic-manipulation sensitivity · reasoning consistency · escalation · latency · containment.</p></div>
+    <div class="tile red"><h4>💉 Adversarial images</h4><p>Hidden text injection · blurred harmful content · perturbations · stylised unsafe content · manipulated context · synthetic transformations designed to evade the classifier.</p></div>
+  </div>
+
+  <div class="box extra"><span class="label">➕ Where this connects</span>
+    Chapters 4–5 of this book (embedded instructions and injection in images) and <i>AI Engineering</i> Ch 10 (guardrails in the architecture).
+  </div>
+</section>
+
+<!-- ===== 9 ===== -->
+<section class="card" id="t9" style="--accent: var(--blue)">
+  <div class="card-head"><div class="num">9</div><div>
+    <h2>Embeddings, explained simply</h2>
+    <p class="sub">Meaning as coordinates <span class="page">📖 PDF p. 530–536</span></p>
+  </div></div>
+
+  <div class="box plain"><span class="label">🧒 Plain English</span>
+    Text is split into <b>tokens</b>; each token gets an ID (e.g. "Today" → 2035), which is just a lookup key with no meaning. The <b>embedding</b> is the vector that ID maps to (e.g. [0.12, −0.44, 0.91, …], hundreds or thousands of numbers). Similar meanings land near each other ("dog" near "puppy", "banana" far from "planet"). In transformers, attention then makes them <b>contextual</b>: the same word's vector changes with its sentence (unlike older static Word2Vec or GloVe).
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  T["📝 'Today is a beautiful day'"]:::blue --> K["🔤 Tokens<br/>Today · is · a · beautiful · day"]:::purple
+  K --> I["🔢 Token IDs<br/>e.g. Today → 2035"]:::orange
+  I --> V["📍 Vectors<br/>[0.12, −0.44, 0.91, …]"]:::green
+  V --> S["🔍 Search, clustering,<br/>RAG retrieval"]:::teal
+  classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef purple fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+  classDef orange fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+  classDef green fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef teal fill:#ccfbf1,stroke:#0d9488,color:#134e4a
+</pre>
+    <div class="caption">From words to vectors</div>
+  </div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>📝 Text embeddings</h4><p>Documents, tickets, policies, chat history → semantic search, RAG, clustering, deduplication. Example: EmbeddingGemma (~300M parameters).</p></div>
+    <div class="tile green"><h4>🖼️ Image embeddings</h4><p>Image search, product matching, visual recommendations, anomaly detection.</p></div>
+    <div class="tile purple"><h4>🔗 Multimodal embeddings</h4><p>Text and images in one shared space: search a product photo with words, or words with a photo.</p></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 Remember</span>
+    Embeddings aren't judged by generated text: they're judged by <b>retrieval behaviour</b>, ranking consistency, vector-space stability and downstream reliability.
+  </div>
+
+  <div class="box extra"><span class="label">➕ Spotted slips in the PDF</span>
+    The figure showing words turning into vectors is captioned "Runtime guardrail pipeline for safe LLM responses" (Figure 11.7), and the label "Table 11.7" is used twice. The content is right; the labels are off.
+  </div>
+</section>
+
+<!-- ===== 10 ===== -->
+<section class="card" id="t10" style="--accent: var(--green)">
+  <div class="card-head"><div class="num">10</div><div>
+    <h2>Evaluating text embeddings</h2>
+    <p class="sub">Recall@K, MRR, hard negatives, drift <span class="page">📖 PDF p. 536–539</span></p>
+  </div></div>
+
+  <div class="algo"><span class="label">⚙️ ➕ Recall@K and MRR on three queries</span>
+<pre>rank of the first relevant document for each query:
+  query A → rank 1     query B → rank 3     query C → not in top 5
+Recall@3 (hit rate) = queries with a relevant doc in the top 3 ÷ all = 2 ÷ 3 ≈ <span class="kw">0.67</span>
+MRR = average of 1/rank = (1/1 + 1/3 + 0) ÷ 3 ≈ <span class="kw">0.44</span>
+<span class="cm"># MRR rewards putting the right answer near the very top</span></pre>
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Training-time KPI</th><th>Purpose</th></tr>
+    <tr><td>Recall@K</td><td>Relevant documents appear in the top K</td></tr>
+    <tr><td>Precision@K</td><td>Share of top K that are relevant</td></tr>
+    <tr><td>MRR</td><td>How high the first relevant result ranks</td></tr>
+    <tr><td>Cosine similarity stability</td><td>Paraphrases stay close</td></tr>
+    <tr><td>Triplet loss convergence</td><td>Positive vs negative separation is learned</td></tr>
+    <tr><td>Clustering score</td><td>Similar documents group together</td></tr>
+  </table></div>
+
+  <div class="box trap"><span class="label">⚠️ Hard negatives</span>
+    "Reset banking password" and "Close banking account" look similar but are <b>very different intents</b>. Training and test sets must include such near-misses so the model learns to separate them.
+  </div>
+
+  <div class="table-wrap"><table class="compare">
+    <tr><th>Inference-time KPI</th><th>Purpose</th></tr>
+    <tr><td>Retrieval latency, throughput</td><td>Runtime search performance at scale</td></tr>
+    <tr><td>Query drift stability</td><td>Consistent results for rephrased queries</td></tr>
+    <tr><td>Top-K accuracy</td><td>Runtime retrieval effectiveness</td></tr>
+    <tr><td>Hallucination reduction impact</td><td>Better RAG grounding downstream</td></tr>
+    <tr><td>Embedding drift score</td><td>Detects the semantic space degrading over time (e.g. new company terminology)</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 11 ===== -->
+<section class="card" id="t11" style="--accent: var(--orange)">
+  <div class="card-head"><div class="num">11</div><div>
+    <h2>Evaluating image and multimodal embeddings</h2>
+    <p class="sub">Robust visuals; balanced modalities <span class="page">📖 PDF p. 539–544</span></p>
+  </div></div>
+
+  <div class="grid">
+    <div class="tile blue"><h4>🖼️ Image: training</h4><p>Top-K image retrieval · <b>mAP</b> · contrastive loss stability · cluster purity · augmentation robustness (crop, blur, resize) · embedding variance. Tight within-class, well separated between classes. Must survive lighting, rotation, compression, occlusion, noise.</p></div>
+    <div class="tile green"><h4>🖼️ Image: inference</h4><p>Recall@K · latency per image · drift detection · <b>cross-resolution stability</b> · <b>false match rate</b> · indexing throughput · adversarial robustness.</p></div>
+    <div class="tile purple"><h4>🔗 Multimodal: training</h4><p>Cross-modal recall@K · alignment similarity · contrastive alignment loss · caption–image matching · cross-modal cluster consistency · <b>embedding collapse</b> detection.</p></div>
+    <div class="tile orange"><h4>🔗 Multimodal: inference</h4><p>Image→text and text→image accuracy · cross-modal drift · latency · robustness to visual changes · ranking stability across modalities.</p></div>
+  </div>
+
+  <div class="box trap"><span class="label">⚠️ Modality imbalance</span>
+    Text supervision is usually denser and cleaner, so text can <b>dominate</b>: results match the description while ignoring what the image shows. Measure modality dominance, collapse and cross-modal balance; check both inputs really affect the ranking. Over time, new product types, visual styles or generated images cause <b>multimodal drift</b>.
+  </div>
+
+  <div class="quiz"><span class="label">❓ Check yourself</span>
+    <details><summary>A Text2SQL query runs without errors and returns a plausible number. Why isn't that enough?</summary>
+      <div class="answer">It may be semantically wrong (missing a filter, wrong date column, wrong join). Compare results against a trusted reference query and check row counts and aggregations.</div></details>
+    <details><summary>Your guard blocks 99% of hate speech but also 15% of legitimate history lessons. What do you change?</summary>
+      <div class="answer">That's a high false-positive rate. Add contrast-pair tests, recalibrate thresholds, and route low-confidence or borderline cases to human review instead of auto-blocking.</div></details>
+    <details><summary>Five queries have first-relevant ranks 1, 2, 1, 4, 10. What's MRR?</summary>
+      <div class="answer">(1 + 0.5 + 1 + 0.25 + 0.1) ÷ 5 = 2.85 ÷ 5 = 0.57.</div></details>
+  </div>
+</section>
+
+<!-- ===== 12 ===== -->
+<section class="card" id="t12" style="--accent: var(--purple)">
+  <div class="card-head"><div class="num">12</div><div>
+    <h2>The whole book in one picture</h2>
+    <p class="sub">Evaluation as a continuous governance process <span class="page">📖 PDF p. 544</span></p>
+  </div></div>
+
+  <div class="ladder">
+    <div style="background:linear-gradient(90deg,#2563eb,#60a5fa)"><b>Ch 1–3 · Text LLMs</b><span>Evaluation primitives and gates → training-time gates → inference-time controls.</span></div>
+    <div style="background:linear-gradient(90deg,#0891b2,#06b6d4)"><b>Ch 4–6 · Vision &amp; multimodal</b><span>Visual grounding in training and at runtime; conversations across modalities and turns.</span></div>
+    <div style="background:linear-gradient(90deg,#7c3aed,#a78bfa)"><b>Ch 7–8 · Architectures &amp; agents</b><span>MoE routing and collapse; computer-using agents, action models, function calling.</span></div>
+    <div style="background:linear-gradient(90deg,#ea580c,#f59e0b)"><b>Ch 9–10 · Documents &amp; reasoning</b><span>Extraction, OCR and propagation; reasoning chains, stability and judges.</span></div>
+    <div style="background:linear-gradient(90deg,#16a34a,#22c55e)"><b>Ch 11 · Specialised systems</b><span>Query generators, guardrails, embeddings.</span></div>
+  </div>
+
+  <div class="box remember"><span class="label">📌 The book's closing message</span>
+    Reliable AI doesn't come from bigger models alone, but from <b>continuous evaluation, monitoring, validation and disciplined system design</b>. As systems gain tools, memory, retrieval and self-correction, evaluation becomes an ongoing <b>governance</b> process, not a one-off test phase. That is exactly the job of an AI-focused QA lead.
+  </div>
+</section>
+
+<!-- ===== CHEAT SHEET ===== -->
+<section class="cheat" id="cheat">
+  <h2>✅ One-page cheat sheet</h2>
+  <ol>
+    <li>🗂️ Text2SQL is a <b>pipeline</b>: retrieval → enrichment → planning → generation → repair → execution → access control.</li>
+    <li>🧭 Fine-tuned vs orchestrated vs constrained vs execution-verified: test where the reliability is meant to come from.</li>
+    <li>⚖️ Retrieval recall <b>and</b> precision: too little hallucinates schema, too much confuses and costs.</li>
+    <li>▶️ <b>Execution-grounded</b> checks against reference queries; valid-but-wrong is the top failure.</li>
+    <li>🛡️ SQL governance: permissions, restricted tables, unrestricted scans, query cost, injection, schema drift.</li>
+    <li>🕸️ Text2Cypher adds nodes, edges, <b>direction</b>, multi-hop paths and <b>traversal cost</b> control.</li>
+    <li>🚧 Guardrail SLMs (ShieldGemma) police inputs, outputs and tools; measure FP and FN, refusal correctness, robustness, escalation.</li>
+    <li>🎚️ Calibration: high-confidence → block; borderline → human review.</li>
+    <li>🖼️ Image guards: visual evidence, embedded text, synthetic images; rationale must match what's visible.</li>
+    <li>📍 Embeddings = meaning as vectors; judged by retrieval, not text.</li>
+    <li>📏 Recall@K, Precision@K, <b>MRR</b>, hard negatives, embedding drift.</li>
+    <li>🔗 Image: mAP, cluster purity, robustness, false matches. Multimodal: cross-modal recall, <b>modality imbalance</b>, collapse, drift.</li>
+  </ol>
+</section>
+
+<section class="card" style="--accent: var(--teal)">
+  <div class="card-head"><div class="num">→</div><div>
+    <h2>Try it: a mini lab</h2>
+    <p class="sub">Three small specialised-system tests</p>
+  </div></div>
+  <ol>
+    <li><b>Text2SQL</b>: make a tiny SQLite database (customers, invoices). Write 10 questions with reference SQL. Ask an LLM for SQL and compare <b>results</b>, not text. Include one "active customers only" question.</li>
+    <li><b>Guardrail</b>: write 10 contrast pairs (harmful vs legitimate discussion of the same topic). Run them through any moderation model; compute FP and FN.</li>
+    <li><b>Embeddings</b>: embed 20 FAQ answers and 10 user questions with any free embedding model. Compute recall@3 and MRR. Add a hard negative ("reset password" vs "close account") and see if ranking holds.</li>
+  </ol>
+  <div class="box remember"><span class="label">📌 Book complete</span>
+    That's all eleven chapters of <i>LLM Evaluation for Production Systems</i>. It's a reference book: come back to the chapter that matches the system you're testing (agents → Ch 8, documents → Ch 9, reasoning → Ch 10, RAG and guardrails → Ch 11).
+  </div>
+</section>
+
+<footer>Study notes for personal learning · paraphrased from <i>LLM Evaluation for Production Systems</i> (Ammar Mohanna, Packt) · page numbers are PDF pages</footer>
+</main>
+
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+const root = document.documentElement;
+const blocks = [...document.querySelectorAll("pre.mermaid")];
+// The browser parses <br/> inside <pre> as a real element; turn it back into text so Mermaid sees the line break.
+blocks.forEach(b => {
+  b.querySelectorAll("br").forEach(br => br.replaceWith(document.createTextNode("<br/>")));
+  b.dataset.src = b.textContent;
+});
+
+function isDark() {
+  const t = root.getAttribute("data-theme");
+  if (t) return t === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+async function render() {
+  const dark = isDark();
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    flowchart: { curve: "basis", htmlLabels: true },
+    themeVariables: dark ? {
+      background: "transparent", primaryColor: "#2a2145", primaryTextColor: "#e9e7e3", primaryBorderColor: "#b99cff",
+      lineColor: "#a3a9b2", textColor: "#e9e7e3", fontSize: "15px", edgeLabelBackground: "#22262d",
+      clusterBkg: "#1b1e24", clusterBorder: "#3a404a",
+      actorBkg: "#1a2742", actorBorder: "#7fa9ff", actorTextColor: "#e9e7e3", signalColor: "#a3a9b2", signalTextColor: "#e9e7e3",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    } : {
+      background: "transparent", primaryColor: "#f2ecff", primaryTextColor: "#1f2328", primaryBorderColor: "#7c3aed",
+      lineColor: "#64748b", textColor: "#1f2328", fontSize: "15px", edgeLabelBackground: "#ffffff",
+      clusterBkg: "#fbfaf7", clusterBorder: "#e6e2da",
+      actorBkg: "#eaf1ff", actorBorder: "#2563eb", actorTextColor: "#1e3a8a", signalColor: "#475569", signalTextColor: "#1f2328",
+      cScale0: "#7c3aed", cScale1: "#2563eb", cScale2: "#16a34a", cScale3: "#ea580c", cScale4: "#db2777", cScale5: "#0891b2",
+      cScaleLabel0: "#ffffff", cScaleLabel1: "#ffffff", cScaleLabel2: "#ffffff", cScaleLabel3: "#ffffff", cScaleLabel4: "#ffffff", cScaleLabel5: "#ffffff"
+    }
+  });
+  blocks.forEach(b => { b.removeAttribute("data-processed"); b.innerHTML = ""; b.textContent = b.dataset.src; });
+  try { await mermaid.run({ nodes: blocks }); } catch (e) { console.error(e); }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", isDark() ? "light" : "dark");
+  render();
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!root.getAttribute("data-theme")) render(); });
+render();
+</script>
+</body>
+</html>
